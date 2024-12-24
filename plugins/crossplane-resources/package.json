@@ -1,0 +1,70 @@
+{
+  "name": "@vrabbi/backstage-plugin-crossplane-resources-frontend",
+  "version": "1.0.1",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public",
+    "main": "dist/index.esm.js",
+    "types": "dist/index.d.ts"
+  },
+  "configSchema": "config.d.ts",
+  "backstage": {
+    "role": "frontend-plugin",
+    "pluginId": "crossplane-resources-frontend",
+    "pluginPackages": [
+      "@vrabbi/backstage-plugin-crossplane-resources-frontend"
+    ]
+  },
+  "sideEffects": false,
+  "scripts": {
+    "start": "backstage-cli package start",
+    "build": "backstage-cli package build",
+    "lint": "backstage-cli package lint",
+    "test": "backstage-cli package test",
+    "clean": "backstage-cli package clean",
+    "prepack": "backstage-cli package prepack",
+    "postpack": "backstage-cli package postpack"
+  },
+  "dependencies": {
+    "@backstage/core-components": "^0.16.2",
+    "@backstage/core-plugin-api": "^1.10.2",
+    "@backstage/plugin-permission-common": "^0.8.3",
+    "@backstage/theme": "^0.6.3",
+    "@material-ui/core": "^4.9.13",
+    "@material-ui/icons": "^4.9.1",
+    "@material-ui/lab": "^4.0.0-alpha.61",
+    "@vrabbi/backstage-plugin-crossplane-common": "^0.2.0",
+    "dagre": "^0.8.5",
+    "file-saver": "^2.0.5",
+    "react-copy-to-clipboard": "^5.1.0",
+    "react-flow-renderer": "^10.3.17",
+    "react-json-view": "^1.21.3",
+    "react-syntax-highlighter": "^15.6.1",
+    "react-use": "^17.2.4"
+  },
+  "peerDependencies": {
+    "react": "^16.13.1 || ^17.0.0 || ^18.0.0"
+  },
+  "devDependencies": {
+    "@backstage/cli": "^0.29.4",
+    "@backstage/core-app-api": "^1.15.3",
+    "@backstage/dev-utils": "^1.1.5",
+    "@backstage/test-utils": "^1.7.3",
+    "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/react": "^14.0.0",
+    "@testing-library/user-event": "^14.0.0",
+    "@types/dagre": "^0",
+    "@types/file-saver": "^2",
+    "@types/react-copy-to-clipboard": "^5",
+    "@types/react-syntax-highlighter": "^15",
+    "msw": "^1.0.0",
+    "react": "^16.13.1 || ^17.0.0 || ^18.0.0",
+    "typescript": "^5.7.2"
+  },
+  "files": [
+    "dist",
+    "config.d.ts"
+  ]
+}
