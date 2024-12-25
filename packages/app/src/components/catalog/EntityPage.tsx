@@ -63,6 +63,8 @@ import {
 import { CrossplaneAllResourcesTable, CrossplaneResourceGraph, isCrossplaneAvailable } from '@vrabbi/backstage-plugin-crossplane-resources-frontend';
 import { ScaleopsCard, isScaleopsAvailable } from '@vrabbi/backstage-plugin-scaleops-frontend'
 import { DevpodComponent, isDevpodAvailable } from '@vrabbi/backstage-plugin-devpod';
+import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
+import { EntityPickerFieldExtension, RepoUrlPickerFieldExtension } from '@backstage/plugin-scaffolder';
 
 const techdocsContent = (
   <EntityTechdocsContent>
@@ -213,6 +215,12 @@ const serviceEntityPage = (
               entity: stringifyEntityRef(entity)
             }
           )}
+          ScaffolderFieldExtensions={
+            <ScaffolderFieldExtensions>
+              <RepoUrlPickerFieldExtension />
+              <EntityPickerFieldExtension />
+            </ScaffolderFieldExtensions>
+          }
         />
     </EntityLayout.Route>
   </EntityLayout>
