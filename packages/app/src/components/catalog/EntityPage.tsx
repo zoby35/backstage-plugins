@@ -148,11 +148,108 @@ const overviewContent = (
     </EntitySwitch>
   </Grid>
 );
+const crossplaneOverviewContent = (
+  <Grid container spacing={3} alignItems="stretch">
+    {entityWarningContent}
+    <Grid item md={6}>
+      <EntityAboutCard variant="gridItem" />
+    </Grid>
 
+    <Grid item md={4} xs={12}>
+      <EntityLinksCard />
+    </Grid>
+    <Grid item md={8} xs={12}>
+      <EntityHasSubcomponentsCard variant="gridItem" />
+    </Grid>
+    <EntitySwitch>
+      <EntitySwitch.Case if={isDevpodAvailable}>
+        <Grid item md={6}>
+          <DevpodComponent />
+        </Grid>
+      </EntitySwitch.Case>
+    </EntitySwitch>
+  </Grid>
+);
 const serviceEntityPage = (
   <EntityLayout>
     <EntityLayout.Route path="/" title="Overview">
       {overviewContent}
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/ci-cd" title="CI/CD">
+      {cicdContent}
+    </EntityLayout.Route>
+
+    <EntityLayout.Route
+      path="/kubernetes"
+      title="Kubernetes"
+      if={isKubernetesAvailable}
+    >
+      <EntityKubernetesContent />
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/api" title="API">
+      <Grid container spacing={3} alignItems="stretch">
+        <Grid item md={6}>
+          <EntityProvidedApisCard />
+        </Grid>
+        <Grid item md={6}>
+          <EntityConsumedApisCard />
+        </Grid>
+      </Grid>
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/dependencies" title="Dependencies">
+      <Grid container spacing={3} alignItems="stretch">
+        <Grid item md={6}>
+          <EntityDependsOnComponentsCard variant="gridItem" />
+        </Grid>
+        <Grid item md={6}>
+          <EntityDependsOnResourcesCard variant="gridItem" />
+        </Grid>
+      </Grid>
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/docs" title="Docs">
+      {techdocsContent}
+    </EntityLayout.Route>
+    <EntityLayout.Route if={isCrossplaneAvailable} path="/crossplane-resources" title="Crossplane Resources">
+      <CrossplaneAllResourcesTable />
+    </EntityLayout.Route>
+    <EntityLayout.Route if={isCrossplaneAvailable} path="/crossplane-graph" title="Crossplane Graph">
+      <CrossplaneResourceGraph />
+    </EntityLayout.Route>
+    <EntityLayout.Route if={isScaleopsAvailable} path="/scaleops" title="Scale Ops">
+      <ScaleopsCard />
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/scaffolder" title="Crossplane Scaffolder">
+        <EntityScaffolderContent
+          templateGroupFilters={[
+            {
+              title: 'Crossplane Claims',
+              filter: (entity, template) =>
+                template.metadata?.labels?.target === 'component' &&
+                entity.metadata?.annotations?.['backstage.io/managed-by-location']?.split(":")[0] === 'cluster origin',
+            },
+          ]}
+          buildInitialState={entity => ({
+              entity: stringifyEntityRef(entity)
+            }
+          )}
+          ScaffolderFieldExtensions={
+            <ScaffolderFieldExtensions>
+              <RepoUrlPickerFieldExtension />
+              <EntityPickerFieldExtension />
+            </ScaffolderFieldExtensions>
+          }
+        />
+    </EntityLayout.Route>
+  </EntityLayout>
+);
+const crossplaneEntityPage = (
+  <EntityLayout>
+    <EntityLayout.Route path="/" title="Overview">
+      {crossplaneOverviewContent}
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/ci-cd" title="CI/CD">
@@ -284,7 +381,7 @@ const componentPage = (
     </EntitySwitch.Case>
 
     <EntitySwitch.Case if={isComponentType('crossplane-claim')}>
-      {serviceEntityPage}
+      {crossplaneEntityPage}
     </EntitySwitch.Case>
 
     <EntitySwitch.Case>{defaultEntityPage}</EntitySwitch.Case>

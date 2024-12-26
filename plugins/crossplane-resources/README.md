@@ -20,24 +20,48 @@ To install and configure the `crossplane-resources` frontend plugin in your Back
   ```javascript
   import { CrossplaneAllResourcesTable, CrossplaneResourceGraph, isCrossplaneAvailable } from '@vrabbi/backstage-plugin-crossplane-resources-frontend';
 
-  const serviceEntityPage = (
-  <EntityLayout>
-    ...
-    
-    <EntityLayout.Route if={isCrossplaneAvailable} path="/crossplane-resources" title="Crossplane Resources">
-      <CrossplaneAllResourcesTable />
-    </EntityLayout.Route>
-    <EntityLayout.Route if={isCrossplaneAvailable} path="/crossplane-graph" title="Crossplane Graph">
-      <CrossplaneResourceGraph />
-    </EntityLayout.Route>
-  </EntityLayout>
+  const crossplaneOverviewContent = (
+    <Grid container spacing={3} alignItems="stretch">
+      {entityWarningContent}
+      <Grid item md={6}>
+        <EntityAboutCard variant="gridItem" />
+      </Grid>
+      <Grid item md={4} xs={12}>
+        <EntityLinksCard />
+      </Grid>
+      <Grid item md={8} xs={12}>
+        <EntityHasSubcomponentsCard variant="gridItem" />
+      </Grid>
+    </Grid>
   );
+
+  const crossplaneEntityPage = (
+    <EntityLayout>
+      <EntityLayout.Route path="/" title="Overview">
+        {crossplaneOverviewContent}
+      </EntityLayout.Route>
+      <EntityLayout.Route
+        path="/kubernetes"
+        title="Kubernetes"
+        if={isKubernetesAvailable}
+      >
+        <EntityKubernetesContent />
+      </EntityLayout.Route>
+      <EntityLayout.Route if={isCrossplaneAvailable} path="/crossplane-resources" title="Crossplane Resources">
+        <CrossplaneAllResourcesTable />
+      </EntityLayout.Route>
+      <EntityLayout.Route if={isCrossplaneAvailable} path="/crossplane-graph" title="Crossplane Graph">
+        <CrossplaneResourceGraph />
+      </EntityLayout.Route>
+    </EntityLayout>
+  );
+
 
   const componentPage = (
   <EntitySwitch>
     ...
     <EntitySwitch.Case if={isComponentType('crossplane-claim')}>
-      {serviceEntityPage}
+      {crossplaneEntityPage}
     </EntitySwitch.Case>
     ...
   );
