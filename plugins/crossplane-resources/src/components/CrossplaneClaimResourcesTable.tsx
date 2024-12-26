@@ -36,9 +36,9 @@ const CrossplaneClaimResourcesTable = () => {
     const [order, setOrder] = useState<'asc' | 'desc'>('asc');
     const [orderBy, setOrderBy] = useState<string>('name');
 
-    const canListClaims = !enablePermissions ? usePermission({ permission: listClaimsPermission }).allowed : true;
-    const canViewYaml = !enablePermissions ? usePermission({ permission: viewYamlClaimsPermission }).allowed : true;
-    const canShowEvents = !enablePermissions ? usePermission({ permission: showEventsClaimsPermission }).allowed : true;
+    const canListClaims = enablePermissions ? usePermission({ permission: listClaimsPermission }).allowed : true;
+    const canViewYaml = enablePermissions ? usePermission({ permission: viewYamlClaimsPermission }).allowed : true;
+    const canShowEvents = enablePermissions ? usePermission({ permission: showEventsClaimsPermission }).allowed : true;
 
 
     useEffect(() => {

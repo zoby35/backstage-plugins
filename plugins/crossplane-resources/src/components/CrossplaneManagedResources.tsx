@@ -35,9 +35,9 @@ const CrossplaneManagedResources = () => {
     const [order, setOrder] = useState<'asc' | 'desc'>('asc');
     const [orderBy, setOrderBy] = useState<string>('name');
 
-    const canListManagedResources = !enablePermissions ? usePermission({ permission: listManagedResourcesPermission }).allowed : true;
-    const canViewYaml = !enablePermissions ? usePermission({ permission: viewYamlManagedResourcesPermission }).allowed : true;
-    const canShowEvents = !enablePermissions ? usePermission({ permission: showEventsManagedResourcesPermission }).allowed : true;
+    const canListManagedResources = enablePermissions ? usePermission({ permission: listManagedResourcesPermission }).allowed : true;
+    const canViewYaml = enablePermissions ? usePermission({ permission: viewYamlManagedResourcesPermission }).allowed : true;
+    const canShowEvents = enablePermissions ? usePermission({ permission: showEventsManagedResourcesPermission }).allowed : true;
 
     useEffect(() => {
         if (!canListManagedResources) {
@@ -129,25 +129,26 @@ const CrossplaneManagedResources = () => {
         if (!canShowEvents) {
             return;
         }
-
-        const namespace = resource.metadata?.namespace;
+        console.log('Getting events for resource', resource);
+        const namespace = 'default';
         const name = resource.metadata?.name;
         const kind = resource.kind;
         const clusterOfClaim = entity.metadata.annotations?.['backstage.io/managed-by-location'].split(": ")[1];
-
+        console.log('clusterOfClaim', clusterOfClaim);
         if (!namespace || !name || !clusterOfClaim) {
-            console.error('Required information is missing');
+            console.log('Required information is missing');
             return;
         }
 
         const url = `/api/v1/namespaces/${namespace}/events?fieldSelector=involvedObject.name=${name},involvedObject.kind=${kind}`;
-
+        console.log('Events URL', url);
         try {
             const response = await kubernetesApi.proxy({
                 clusterName: clusterOfClaim,
                 path: url,
                 init: { method: 'GET' },
             });
+            console.log('Events response', response);
             const eventsResponse = await response.json();
             setEvents(eventsResponse.items);
             setEventsDialogOpen(true);

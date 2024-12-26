@@ -60,12 +60,6 @@ kubernetesIngestor:
     claims:
       # Whether to create components for all claim resources in your cluster
       ingestAllClaims: true
-    # If integrated with Komoplane, a link will be added to each crossplane component within backstage to the claims URL in Komoplane.
-    komoplane:
-        # The name of the cluster in the Kubernetes plugin
-      - cluster: ${KUBERNETES_CLUSTER_NAME}
-        # The base URL of Komoplane for this cluster
-        baseUrl: "http://x.x.x.x:8090"
     xrds:
       # Settings related to the final steps of a software template
       publishPhase:

@@ -28,12 +28,6 @@ export interface Config {
     * NOTE: Visibility applies to only this field
     * @visibility frontend
     */
-    useProxy?: boolean;
-    /**
-    * Frontend root URL
-    * NOTE: Visibility applies to only this field
-    * @visibility frontend
-    */
     authentication?: {
       /**
       * Frontend root URL

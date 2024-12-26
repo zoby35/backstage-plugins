@@ -72,7 +72,7 @@ const CrossplaneResourceGraph = () => {
     const [elements, setElements] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const canShowResourceGraph = !enablePermissions ? usePermission({ permission: showResourceGraph }).allowed : true;
+    const canShowResourceGraph = enablePermissions ? usePermission({ permission: showResourceGraph }).allowed : true;
 
     useEffect(() => {
         if (!canShowResourceGraph) {

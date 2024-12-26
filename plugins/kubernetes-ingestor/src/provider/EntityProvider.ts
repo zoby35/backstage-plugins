@@ -2,7 +2,7 @@ import {
   EntityProvider,
   EntityProviderConnection,
 } from '@backstage/plugin-catalog-node';
-import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
+import { Entity } from '@backstage/catalog-model';
 import { SchedulerServiceTaskRunner } from '@backstage/backend-plugin-api';
 import { KubernetesDataProvider } from './KubernetesDataProvider';
 import { XrdDataProvider } from './XrdDataProvider';
@@ -853,18 +853,6 @@ export class KubernetesEntityProvider implements EntityProvider {
     annotations['terasky.backstage.io/composite-plural'] = compositePlural;
     annotations['backstage.io/kubernetes-label-selector'] = `crossplane.io/claim-name=${claim.metadata.name},crossplane.io/claim-namespace=${claim.metadata.namespace},crossplane.io/composite=${compositeName}`
 
-    const configKomoplane = this.config.getOptionalConfigArray('kubernetesIngestor.crossplane.komoplane');
-    const komoplaneCluster = configKomoplane?.find(item => item.getString('cluster') === clusterName);
-    const links = [];
-
-    if (komoplaneCluster) {
-      const baseUrl = komoplaneCluster.getString('baseUrl');
-      const visualizerLink = `${baseUrl}/claims/${crGroup}/${crVersion}/${crKind}/${claim.metadata.namespace}/${claim.metadata.name}`;
-      links.push({
-        title: 'Crossplane Visualizer',
-        url: visualizerLink,
-      });
-    }
     return {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Component',
@@ -877,7 +865,6 @@ export class KubernetesEntityProvider implements EntityProvider {
           'backstage.io/managed-by-location': `cluster origin: ${clusterName}`,
           'backstage.io/managed-by-origin-location': `cluster origin: ${clusterName}`,
         },
-        links,
       },
       spec: {
         type: 'crossplane-claim',

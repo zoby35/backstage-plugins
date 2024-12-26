@@ -53,16 +53,10 @@ export const ScaleopsCard = () => {
 
       const labelsQuery = labelSelector.split(',').map(label => `labels=${encodeURIComponent(label)}`).join('&');
 
-      const useProxy = configApi.getBoolean('scaleops.useProxy');
       let backendUrl;
       let baseURL;
-      if (useProxy) {
-        backendUrl = configApi.getString('backend.baseUrl');
-        baseURL = backendUrl + '/api/proxy/scaleops';
-      } else {
-        backendUrl = configApi.getString('scaleops.baseUrl');
-        baseURL = backendUrl;
-      }
+      backendUrl = configApi.getString('backend.baseUrl');
+      baseURL = backendUrl + '/api/proxy/scaleops';
       const scaleopsConfig = configApi.getConfig('scaleops');
       const currencyPrefix = scaleopsConfig?.getString('currencyPrefix');
       const dashboardURL = scaleopsConfig?.getString('baseUrl');
@@ -81,14 +75,14 @@ export const ScaleopsCard = () => {
           body: JSON.stringify({ userName: user, password: password }),
         });
         authToken = authResponse.headers.get('Location')?.split("=")[1];
-        response = await fetch(`${backendUrl}/api/v1/dashboard/byNamespace?multiCluster=true&logicalLabel=AND`, {
+        response = await fetch(`${baseURL}/api/v1/dashboard/byNamespace?multiCluster=true&logicalLabel=AND`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
           body: JSON.stringify({ label: labelSelector.split(',') }),
         });
         data = await response.json();
       } else {
-        response = await fetch(`${backendUrl}/api/v1/dashboard/byNamespace?multiCluster=true&logicalLabel=AND`, {
+        response = await fetch(`${baseURL}/api/v1/dashboard/byNamespace?multiCluster=true&logicalLabel=AND`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ label: labelSelector.split(',') }),

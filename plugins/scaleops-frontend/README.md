@@ -41,9 +41,18 @@ scaleops:
   baseUrl: url for your scaleops instance
   currencyPrefix: "$"
   linkToDashboard: true # Whether to add a clickable hardlink to the components resources in the scaleops dashboard
-  useProxy: false # Whether to use the backstage proxy instead of a direct URL.
   authentication: 
     enabled: false # planned for future expansion in order to support authenticated scaleops instances. currently basic support for auth is available when using the proxy mode but not via the direct mode.
+```
+
+* Configure Backstage Proxy
+```yaml
+proxy:
+  endpoints:
+    '/scaleops':
+      target: 'URL OF YOUR SCALEOPS INSTANCE'
+      changeOrigin: true
+      credentials: dangerously-allow-unauthenticated
 ```
 
 ## Usage

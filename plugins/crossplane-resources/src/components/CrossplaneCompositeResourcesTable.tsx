@@ -34,9 +34,9 @@ const CrossplaneCompositeResourcesTable = () => {
   const [orderBy, setOrderBy] = useState<string>('name');
   const enablePermissions = config.getOptionalBoolean('crossplane.enablePermissions') ?? false;
 
-  const canListCompositeResources = !enablePermissions ? usePermission({ permission: listCompositeResourcesPermission }).allowed : true;
-  const canViewYaml = !enablePermissions ? usePermission({ permission: viewYamlCompositeResourcesPermission }).allowed : true;
-  const canShowEvents = !enablePermissions ? usePermission({ permission: showEventsCompositeResourcesPermission }).allowed : true;
+  const canListCompositeResources = enablePermissions ? usePermission({ permission: listCompositeResourcesPermission }).allowed : true;
+  const canViewYaml = enablePermissions ? usePermission({ permission: viewYamlCompositeResourcesPermission }).allowed : true;
+  const canShowEvents = enablePermissions ? usePermission({ permission: showEventsCompositeResourcesPermission }).allowed : true;
 
   useEffect(() => {
     if (!canListCompositeResources) {
