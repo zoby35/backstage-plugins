@@ -132,6 +132,55 @@ export class XrdDataProvider {
           this.logger.debug(
             `Fetched ${filteredObjects.length} objects from cluster: ${cluster.name}`,
           );
+
+          // Fetch all compositions from the cluster
+          const compositions = await fetcher.fetchObjectsForService({
+            serviceId: 'compositionServiceId',
+            clusterDetails: cluster,
+            credential: { type: 'bearer token', token },
+            objectTypesToFetch: new Set([
+              {
+                group: 'apiextensions.crossplane.io',
+                apiVersion: 'v1',
+                plural: 'compositions',
+                objectType: 'customresources' as KubernetesObjectTypes,
+              },
+            ]),
+            labelSelector: '',
+            customResources: [],
+          });
+
+          const fetchedCompositions = compositions.responses.flatMap(response =>
+            response.resources.map(resource => ({
+              ...resource,
+              clusterName: cluster.name,
+            })),
+          );
+
+          // Group XRDs by their name and add clusters and compositions information
+          const xrdMap = new Map<string, any>();
+          allFetchedObjects.forEach(xrd => {
+            const xrdName = xrd.metadata.name;
+            if (!xrdMap.has(xrdName)) {
+              xrdMap.set(xrdName, { ...xrd, clusters: [xrd.clusterName], compositions: [] });
+            } else {
+              const existingXrd = xrdMap.get(xrdName);
+              existingXrd.clusters.push(xrd.clusterName);
+            }
+          });
+
+          // Add compositions to the corresponding XRDs
+          fetchedCompositions.forEach(composition => {
+            const { apiVersion, kind } = composition.spec.compositeTypeRef;
+            xrdMap.forEach((xrd) => {
+              const { apiVersion: xrdApiVersion, kind: xrdKind } = xrd.status.controllers.compositeResourceType;
+              if (apiVersion === xrdApiVersion && kind === xrdKind) {
+                xrd.compositions.push(composition.metadata.name);
+              }
+            });
+          });
+
+          return Array.from(xrdMap.values());
         } catch (clusterError) {
           if (clusterError instanceof Error) {
             this.logger.error(`Failed to fetch XRD objects for cluster ${cluster.name}: ${clusterError.message}`, clusterError);

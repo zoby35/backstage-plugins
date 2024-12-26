@@ -12,9 +12,8 @@ spec:
     - title: Entity Selection
       required:
         - entity
-        - repoHost
-        - repoOwner
-        - repoName
+        - repoUrl
+        - targetBranch
       properties:
         entity:
           title: Entity
@@ -24,21 +23,14 @@ spec:
           ui:options:
             catalogFilter:
               - kind: Component
-        repoHost:
-          title: Repository Host
+        repoUrl:
+          title: Repository Location
           type: string
-          enum:
-            - "github.com"
-            - "gitlab.com"
-          default: github.com
-        repoOwner:
-          title: Repository Owner
-          type: string
-          description: Owner of repository
-        repoName:
-          title: Repository Name
-          description: Name of repository
-          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+              - gitlab.com
         targetBranch:
           type: string
           description: Target Branch for the PR
@@ -55,14 +47,20 @@ spec:
       action: terasky:catalog-info-cleaner
       input:
         entity: ${{ steps['getEntity'].output.entity }}
+    - id: debug2
+      name: Debug2
+      action: debug:log
+      input:
+        message: "${{ steps['getEntity'].output.entity.metadata.name }}"
+  
     - id: create-pull-request
       name: create-pull-request
       action: publish:github:pull-request
       input:
-        repoUrl: ${{ parameters.repoHost }}?owner=${{ parameters.repoOwner }}&repo=${{ parameters.repoName }}
-        branchName: backstage-integration-${{ parameters.entity.metadata.name }}
-        title: Create Catalog Info YAML for Backstage entity ${{ parameters.entity.metadata.name }}
-        description: Create Catalog Info YAML for Backstage entity ${{ parameters.entity.metadata.name }}
+        repoUrl: ${{ parameters.repoUrl }}
+        branchName: backstage-integration-${{ steps['getEntity'].output.entity.metadata.name }}
+        title: Create Catalog Info YAML for Backstage entity ${{ steps['getEntity'].output.entity.metadata.name }}
+        description: Create Catalog Info YAML for Backstage entity ${{ steps['getEntity'].output.entity.metadata.name }}
         targetBranchName: ${{ parameters.targetBranch }}
   output:
     links:
