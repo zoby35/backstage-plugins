@@ -8,6 +8,8 @@ Welcome to the devpod plugin!
 
 The `devpod` plugin for Backstage adds a grid item on the overview tab of components allowing for an "Open in Devpod" button. It supports allowing the user to choose the IDE it should open with and also provides the CLI command the user could run to open it up from the command line.
 
+![example1](../../images/devpod01.png)
+![example2](../../images/devpod02.png)
 ## Installation
 
 To install and configure the `devpod` plugin in your Backstage instance, follow these steps:

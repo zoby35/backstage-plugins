@@ -8,6 +8,9 @@ Welcome to the entity-scaffolder-content plugin!
 
 The `entity-scaffolder-content` plugin for Backstage allows embedding a tab with scaffolder templates on a component. This can also populate the list of templates and data in the templates based on the context from which it is run.
 
+![example1](../../images/entity-scaffolder01.png)
+![example2](../../images/entity-scaffolder02.png)
+
 ## Installation
 
 To install and configure the `entity-scaffolder-content` plugin in your Backstage instance, follow these steps:
