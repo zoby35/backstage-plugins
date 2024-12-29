@@ -73,6 +73,7 @@ export class XrdDataProvider {
       const ingestAllXRDs = this.config.getOptionalBoolean('kubernetesIngestor.crossplane.xrds.ingestAllXRDs') ?? false;
 
       let allFetchedObjects: any[] = [];
+      const xrdMap = new Map<string, any>(); // Move xrdMap initialization outside the loop
 
       for (const cluster of clusters) {
         const token = cluster.authMetadata.serviceAccountToken;
@@ -108,7 +109,7 @@ export class XrdDataProvider {
             })),
           );
 
-            const filteredObjects = fetchedResources.filter(resource => {
+          const filteredObjects = fetchedResources.filter(resource => {
             if (resource.metadata.annotations?.['terasky.backstage.io/exclude-from-catalog']) {
               return false;
             }
@@ -122,10 +123,10 @@ export class XrdDataProvider {
             }
 
             return true;
-            }).map(resource => ({
+          }).map(resource => ({
             ...resource,
             clusterName: cluster.name, // Attach the cluster name to the resource
-            }));
+          }));
 
           allFetchedObjects = allFetchedObjects.concat(filteredObjects);
 
@@ -158,14 +159,15 @@ export class XrdDataProvider {
           );
 
           // Group XRDs by their name and add clusters and compositions information
-          const xrdMap = new Map<string, any>();
           allFetchedObjects.forEach(xrd => {
             const xrdName = xrd.metadata.name;
             if (!xrdMap.has(xrdName)) {
               xrdMap.set(xrdName, { ...xrd, clusters: [xrd.clusterName], compositions: [] });
             } else {
               const existingXrd = xrdMap.get(xrdName);
-              existingXrd.clusters.push(xrd.clusterName);
+              if (!existingXrd.clusters.includes(xrd.clusterName)) {
+                existingXrd.clusters.push(xrd.clusterName);
+              }
             }
           });
 
@@ -175,12 +177,13 @@ export class XrdDataProvider {
             xrdMap.forEach((xrd) => {
               const { apiVersion: xrdApiVersion, kind: xrdKind } = xrd.status.controllers.compositeResourceType;
               if (apiVersion === xrdApiVersion && kind === xrdKind) {
-                xrd.compositions.push(composition.metadata.name);
+                if (!xrd.compositions.includes(composition.metadata.name)) {
+                  xrd.compositions.push(composition.metadata.name);
+                }
               }
             });
           });
 
-          return Array.from(xrdMap.values());
         } catch (clusterError) {
           if (clusterError instanceof Error) {
             this.logger.error(`Failed to fetch XRD objects for cluster ${cluster.name}: ${clusterError.message}`, clusterError);
@@ -193,18 +196,6 @@ export class XrdDataProvider {
       }
 
       this.logger.debug(`Total fetched XRD objects: ${allFetchedObjects.length}`);
-
-      // Group XRDs by their name and add clusters information
-      const xrdMap = new Map<string, any>();
-      allFetchedObjects.forEach(xrd => {
-        const xrdName = xrd.metadata.name;
-        if (!xrdMap.has(xrdName)) {
-          xrdMap.set(xrdName, { ...xrd, clusters: [xrd.clusterName] });
-        } else {
-          const existingXrd = xrdMap.get(xrdName);
-          existingXrd.clusters.push(xrd.clusterName);
-        }
-      });
 
       return Array.from(xrdMap.values());
     } catch (error) {
