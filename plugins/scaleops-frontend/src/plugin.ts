@@ -21,3 +21,11 @@ export const ScaleopsCard = scaleopsPlugin.provide(
   }),
 );
 
+export const ScaleOpsDashboard = scaleopsPlugin.provide(
+  createComponentExtension({
+    name: 'ScaleOpsDashboard',
+    component: {
+      lazy: () => import('./components/ScaleOpsDashboard').then(m => m.ScaleOpsDashboard),
+    },
+  }),
+);

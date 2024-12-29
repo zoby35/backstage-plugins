@@ -65,6 +65,7 @@ import { ScaleopsCard, isScaleopsAvailable } from '@vrabbi/backstage-plugin-scal
 import { DevpodComponent, isDevpodAvailable } from '@vrabbi/backstage-plugin-devpod';
 import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
 import { EntityPickerFieldExtension, RepoUrlPickerFieldExtension } from '@backstage/plugin-scaffolder';
+import { ScaleOpsDashboard } from '@vrabbi/backstage-plugin-scaleops-frontend';
 
 const techdocsContent = (
   <EntityTechdocsContent>
@@ -220,7 +221,7 @@ const serviceEntityPage = (
       <CrossplaneResourceGraph />
     </EntityLayout.Route>
     <EntityLayout.Route if={isScaleopsAvailable} path="/scaleops" title="Scale Ops">
-      <ScaleopsCard />
+      <ScaleOpsDashboard />
     </EntityLayout.Route>
     <EntityLayout.Route path="/scaffolder" title="Crossplane Scaffolder">
         <EntityScaffolderContent

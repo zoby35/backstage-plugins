@@ -32,6 +32,7 @@ Add the plugin to your Backstage project by running:
   ```
 
 ## Configuration
+* Configure RBAC based on the [following doc](./K8S_RBAC.md)
 * available config options:
 ```yaml
 kubernetesIngestor:
