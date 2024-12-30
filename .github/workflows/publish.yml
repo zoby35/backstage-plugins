@@ -1,0 +1,38 @@
+name: Publish Plugins
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: '0'
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          registry-url: 'https://registry.npmjs.org'
+          scope: '@terasky'
+
+      - run: yarn workspaces foreach -A install
+      - run: yarn lint --since origin/main
+      - run: yarn workspaces foreach -W --include 'plugins/**' run tsc
+        continue-on-error: true
+      - run: yarn workspaces foreach -W --include 'plugins/**' run build
+      - run: yarn tsc
+      - run: yarn test
+      - run: yarn build
+      - run: ./publish.sh
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

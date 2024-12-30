@@ -10,9 +10,17 @@ for folder in */ ; do
   
   echo "Processing $folder..."
   
-  # Run the specified commands
+  # Run the build command
   yarn --cwd "$folder" build
-  yarn --cwd "$folder" npm publish
+  
+  # Check if the package already exists
+  package_name=$(jq -r .name "$folder/package.json")
+  package_version=$(jq -r .version "$folder/package.json")
+  
+  if npm show "$package_name@$package_version" > /dev/null 2>&1; then
+    echo "Package $package_name@$package_version already exists. Skipping publish."
+  else
+    echo "Publishing $package_name@$package_version..."
+    yarn --cwd "$folder" npm publish --access public --tolerate-republish
+  fi
 done
-
-echo "All plugins processed."
