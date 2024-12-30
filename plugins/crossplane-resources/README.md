@@ -2,7 +2,7 @@
 
 Welcome to the crossplane-resources plugin!
 
-[![npm latest version](https://img.shields.io/npm/v/@vrabbi/backstage-plugin-crossplane-resources-frontend/latest.svg)](https://www.npmjs.com/package/@vrabbi/backstage-plugin-crossplane-resources-frontend)
+[![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-crossplane-resources-frontend/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-crossplane-resources-frontend)
 
 ## Description
 
@@ -17,11 +17,11 @@ To install and configure the `crossplane-resources` frontend plugin in your Back
 
   * Add the package
   ```bash
-  yarn --cwd packages/app add @vrabbi/backstage-plugin-crossplane-resources-frontend
+  yarn --cwd packages/app add @terasky/backstage-plugin-crossplane-resources-frontend
   ```
   * Add to Entity Page (packages/app/src/components/catalog/EntityPage.tsx)
   ```javascript
-  import { CrossplaneAllResourcesTable, CrossplaneResourceGraph, isCrossplaneAvailable } from '@vrabbi/backstage-plugin-crossplane-resources-frontend';
+  import { CrossplaneAllResourcesTable, CrossplaneResourceGraph, isCrossplaneAvailable } from '@terasky/backstage-plugin-crossplane-resources-frontend';
 
   const crossplaneOverviewContent = (
     <Grid container spacing={3} alignItems="stretch">

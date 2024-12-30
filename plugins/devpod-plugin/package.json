@@ -1,5 +1,5 @@
 {
-  "name": "@vrabbi/backstage-plugin-devpod",
+  "name": "@terasky/backstage-plugin-devpod",
   "description": "Automatically launch Devpod workspaces for your Backstage services",
   "version": "1.0.1",
   "main": "src/index.ts",

@@ -11,7 +11,6 @@ for folder in */ ; do
   echo "Processing $folder..."
   
   # Run the specified commands
-  yarn --cwd "$folder" tsc
   yarn --cwd "$folder" build
   yarn --cwd "$folder" npm publish
 done

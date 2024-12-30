@@ -2,7 +2,7 @@
 
 Welcome to the entity-scaffolder-content plugin!
 
-[![npm latest version](https://img.shields.io/npm/v/@vrabbi/backstage-plugin-entity-scaffolder-content/latest.svg)](https://www.npmjs.com/package/@vrabbi/backstage-plugin-entity-scaffolder-content)
+[![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-entity-scaffolder-content/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-entity-scaffolder-content)
 
 ## Description
 
@@ -17,11 +17,11 @@ To install and configure the `entity-scaffolder-content` plugin in your Backstag
 
   * Add the package
   ```bash
-  yarn --cwd packages/app add @vrabbi/backstage-plugin-entity-scaffolder-content
+  yarn --cwd packages/app add @terasky/backstage-plugin-entity-scaffolder-content
   ```
   * Add to Entity Page (packages/app/src/components/catalog/EntityPage.tsx)
   ```javascript
-  import { EntityScaffolderContent } from '@vrabbi/backstage-plugin-entity-scaffolder-content';
+  import { EntityScaffolderContent } from '@terasky/backstage-plugin-entity-scaffolder-content';
   
   ...
 

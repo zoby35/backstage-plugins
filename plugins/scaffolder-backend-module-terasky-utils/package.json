@@ -1,5 +1,5 @@
 {
-  "name": "@vrabbi/backstage-plugin-scaffolder-backend-module-terasky-utils",
+  "name": "@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils",
   "description": "The terasky-utils module for @backstage/plugin-scaffolder-backend",
   "version": "1.0.1",
   "main": "src/index.ts",

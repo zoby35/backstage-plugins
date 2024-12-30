@@ -1,5 +1,5 @@
 {
-  "name": "@vrabbi/backstage-plugin-crossplane-permissions-backend",
+  "name": "@terasky/backstage-plugin-crossplane-permissions-backend",
   "version": "1.0.1",
   "main": "src/index.ts",
   "types": "src/index.ts",

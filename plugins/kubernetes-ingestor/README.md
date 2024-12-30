@@ -2,7 +2,7 @@
 
 Welcome to the backstage-plugin-kubernetes-ingestor backend plugin!
 
-[![npm latest version](https://img.shields.io/npm/v/@vrabbi/backstage-plugin-kubernetes-ingestor/latest.svg)](https://www.npmjs.com/package/@vrabbi/backstage-plugin-kubernetes-ingestor)
+[![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-kubernetes-ingestor/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-kubernetes-ingestor)
 
 ## Description
 
@@ -18,17 +18,17 @@ Add the plugin to your Backstage project by running:
 
 * Add the package
   ```bash
-  yarn --cwd packages/backend add @vrabbi/backstage-plugin-kubernetes-ingestor
-  yarn --cwd packages/backend add @vrabbi/backstage-plugin-scaffolder-backend-module-terasky-utils
+  yarn --cwd packages/backend add @terasky/backstage-plugin-kubernetes-ingestor
+  yarn --cwd packages/backend add @terasky/backstage-plugin-scaffolder-backend-module-terasky-utils
   ```
   * Add to backend (packages/backend/src/index.ts)
   ```javascript
   
-  backend.add(import('@vrabbi/backstage-plugin-kubernetes-ingestor'));
+  backend.add(import('@terasky/backstage-plugin-kubernetes-ingestor'));
   backend.add(import('@backstage/plugin-scaffolder-backend-module-github'));
   backend.add(import('@backstage/plugin-scaffolder-backend-module-gitlab'));
   backend.add(import('@backstage/plugin-scaffolder-backend-module-bitbucket'));
-  backend.add(import('@vrabbi/backstage-plugin-scaffolder-backend-module-terasky-utils'));
+  backend.add(import('@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils'));
   ```
 
 ## Configuration

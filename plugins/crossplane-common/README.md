@@ -2,11 +2,11 @@
 
 Welcome to the common package for the crossplane plugin!
 
-[![npm latest version](https://img.shields.io/npm/v/@vrabbi/backstage-plugin-crossplane-common/latest.svg)](https://www.npmjs.com/package/@vrabbi/backstage-plugin-crossplane-common)
+[![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-crossplane-common/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-crossplane-common)
 
 ## Description
 
-The `@vrabbi/backstage-plugin-crossplane-common` package provides shared functionalities and permission definitions for the Crossplane plugins in Backstage. This package is used by both the frontend and backend Crossplane plugins to ensure consistent permission management and access control.
+The `@terasky/backstage-plugin-crossplane-common` package provides shared functionalities and permission definitions for the Crossplane plugins in Backstage. This package is used by both the frontend and backend Crossplane plugins to ensure consistent permission management and access control.
 
 ## Permissions
 

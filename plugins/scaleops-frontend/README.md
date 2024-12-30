@@ -2,7 +2,7 @@
 
 Welcome to the scaleops-frontend plugin!
 
-[![npm latest version](https://img.shields.io/npm/v/@vrabbi/backstage-plugin-scaleops-frontend/latest.svg)](https://www.npmjs.com/package/@vrabbi/backstage-plugin-scaleops-frontend)
+[![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-scaleops-frontend/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-scaleops-frontend)
 
 ## Description
 
@@ -16,11 +16,11 @@ To install and configure the `scaleops-frontend` plugin in your Backstage instan
 
 * Add the package
   ```bash
-  yarn --cwd packages/app add @vrabbi/backstage-plugin-scaleops-frontend
+  yarn --cwd packages/app add @terasky/backstage-plugin-scaleops-frontend
   ```
   * Add to Entity Page (packages/app/src/components/catalog/EntityPage.tsx)
   ```javascript
-  import { ScaleOpsDashboard, isScaleopsAvailable } from '@vrabbi/backstage-plugin-scaleops-frontend'
+  import { ScaleOpsDashboard, isScaleopsAvailable } from '@terasky/backstage-plugin-scaleops-frontend'
 
 
   const serviceEntityPage = (

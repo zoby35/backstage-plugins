@@ -1,5 +1,5 @@
 {
-  "name": "@vrabbi/backstage-plugin-crossplane-common",
+  "name": "@terasky/backstage-plugin-crossplane-common",
   "description": "Common functionalities for the crossplane plugin",
   "version": "1.0.1",
   "main": "src/index.ts",

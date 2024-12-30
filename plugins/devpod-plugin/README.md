@@ -2,7 +2,7 @@
 
 Welcome to the devpod plugin!
 
-[![npm latest version](https://img.shields.io/npm/v/@vrabbi/backstage-plugin-devpod/latest.svg)](https://www.npmjs.com/package/@vrabbi/backstage-plugin-devpod)
+[![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-devpod/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-devpod)
 
 ## Description
 
@@ -16,11 +16,11 @@ To install and configure the `devpod` plugin in your Backstage instance, follow 
 
   * Add the package
   ```bash
-  yarn --cwd packages/app add @vrabbi/backstage-plugin-devpod
+  yarn --cwd packages/app add @terasky/backstage-plugin-devpod
   ```
   * Add to Entity Page (packages/app/src/components/catalog/EntityPage.tsx)
   ```javascript
-  import { DevpodComponent, isDevpodAvailable } from '@vrabbi/backstage-plugin-devpod';
+  import { DevpodComponent, isDevpodAvailable } from '@terasky/backstage-plugin-devpod';
   
   ...
 

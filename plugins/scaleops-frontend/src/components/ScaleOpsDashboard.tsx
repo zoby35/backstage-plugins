@@ -297,7 +297,7 @@ export const ScaleOpsDashboard = () => {
       baseURL = backendUrl + '/api/proxy/scaleops';
       const response = await fetch(`${baseURL}/detailedCostReport/getWorkloads?multiCluster=true&range=7d`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Scaleops-Cluster': selectedWorkload.clusterName },
         body: JSON.stringify({
           clusterFilters: [selectedWorkload.clusterName],
           namespaces: [selectedWorkload.namespace],
@@ -351,7 +351,7 @@ export const ScaleOpsDashboard = () => {
       const to = now;
       const response = await fetch(`${baseURL}/api/v1/workload-network?name=${selectedWorkload.workloadName}&namespace=${selectedWorkload.namespace}&workloadType=${selectedWorkload.type}&from=${from}&to=${to}`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Scaleops-Cluster': selectedWorkload.clusterName },
       });
       const data = await response.json();
       console.log('Network Usage Data:', data); // Debugging line

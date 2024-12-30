@@ -40,7 +40,7 @@ import {
   Direction,
   EntityCatalogGraphCard,
 } from '@backstage/plugin-catalog-graph';
-import { EntityScaffolderContent } from '@vrabbi/backstage-plugin-entity-scaffolder-content';
+import { EntityScaffolderContent } from '@terasky/backstage-plugin-entity-scaffolder-content';
 import {
   RELATION_API_CONSUMED_BY,
   RELATION_API_PROVIDED_BY,
@@ -60,12 +60,12 @@ import {
   EntityKubernetesContent,
   isKubernetesAvailable,
 } from '@backstage/plugin-kubernetes';
-import { CrossplaneAllResourcesTable, CrossplaneResourceGraph, isCrossplaneAvailable } from '@vrabbi/backstage-plugin-crossplane-resources-frontend';
-import { ScaleopsCard, isScaleopsAvailable } from '@vrabbi/backstage-plugin-scaleops-frontend'
-import { DevpodComponent, isDevpodAvailable } from '@vrabbi/backstage-plugin-devpod';
+import { CrossplaneAllResourcesTable, CrossplaneResourceGraph, isCrossplaneAvailable } from '@terasky/backstage-plugin-crossplane-resources-frontend';
+import { ScaleopsCard, isScaleopsAvailable } from '@terasky/backstage-plugin-scaleops-frontend'
+import { DevpodComponent, isDevpodAvailable } from '@terasky/backstage-plugin-devpod';
 import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
 import { EntityPickerFieldExtension, RepoUrlPickerFieldExtension } from '@backstage/plugin-scaffolder';
-import { ScaleOpsDashboard } from '@vrabbi/backstage-plugin-scaleops-frontend';
+import { ScaleOpsDashboard } from '@terasky/backstage-plugin-scaleops-frontend';
 
 const techdocsContent = (
   <EntityTechdocsContent>

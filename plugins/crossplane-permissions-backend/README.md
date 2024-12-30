@@ -1,7 +1,7 @@
 # crossplane-permissions
 Welcome to the crossplane-permissions backend plugin!
 
-[![npm latest version](https://img.shields.io/npm/v/@vrabbi/backstage-plugin-crossplane-permissions-backend/latest.svg)](https://www.npmjs.com/package/@vrabbi/backstage-plugin-crossplane-permissions-backend)
+[![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-crossplane-permissions-backend/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-crossplane-permissions-backend)
 
 ## Description
 
@@ -13,11 +13,11 @@ To install and configure the `crossplane-permissions` backend plugin in your Bac
 
   * Add the package
   ```bash
-  yarn --cwd packages/backend add @vrabbi/backstage-plugin-crossplane-permissions-backend
+  yarn --cwd packages/backend add @terasky/backstage-plugin-crossplane-permissions-backend
   ```
   * Add to backend (packages/backend/src/index.ts)
   ```javascript
-  backend.add(import('@vrabbi/backstage-plugin-crossplane-permissions-backend'));
+  backend.add(import('@terasky/backstage-plugin-crossplane-permissions-backend'));
   ```
 
 ## Usage

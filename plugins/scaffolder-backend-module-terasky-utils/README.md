@@ -2,7 +2,7 @@
 
 Welcome to the scaffolder-backend-module-terasky-utils plugin!
 
-[![npm latest version](https://img.shields.io/npm/v/@vrabbi/backstage-plugin-scaffolder-backend-module-terasky-utils/latest.svg)](https://www.npmjs.com/package/@vrabbi/backstage-plugin-scaffolder-backend-module-terasky-utils)
+[![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils)
 
 ## Description
 
@@ -17,11 +17,11 @@ To install and configure the `scaffolder-backend-module-terasky-utils` plugin in
 
   * Add the package
   ```bash
-  yarn --cwd packages/backend add @vrabbi/backstage-plugin-scaffolder-backend-module-terasky-utils
+  yarn --cwd packages/backend add @terasky/backstage-plugin-scaffolder-backend-module-terasky-utils
   ```
   * Add to backend (packages/backend/src/index.ts)
   ```javascript
-  backend.add(import('@vrabbi/backstage-plugin-scaffolder-backend-module-terasky-utils'));
+  backend.add(import('@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils'));
   ```
 
 ## Usage

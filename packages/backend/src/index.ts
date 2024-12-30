@@ -55,7 +55,7 @@ backend.add(import('@backstage/plugin-kubernetes-backend'));
 
 // Custom
 backend.add(import('@backstage-community/plugin-rbac-backend'));
-backend.add(import('@vrabbi/backstage-plugin-kubernetes-ingestor'));
+backend.add(import('@terasky/backstage-plugin-kubernetes-ingestor'));
 backend.add(import('@roadiehq/scaffolder-backend-module-utils/new-backend'));
 backend.add(import('@backstage-community/scaffolder-backend-module-regex'));
 backend.add(import('@backstage/plugin-scaffolder-backend-module-github'));
@@ -63,7 +63,7 @@ backend.add(import('@backstage/plugin-scaffolder-backend-module-gitlab'));
 backend.add(import('@backstage/plugin-scaffolder-backend-module-bitbucket'));
 backend.add(import('@backstage/plugin-scaffolder-backend-module-azure'));
 backend.add(import('@backstage/plugin-auth-backend-module-github-provider'));
-backend.add(import('@vrabbi/backstage-plugin-crossplane-permissions-backend'));
+backend.add(import('@terasky/backstage-plugin-crossplane-permissions-backend'));
 backend.add(import('@backstage/plugin-catalog-backend-module-ldap'));
-backend.add(import('@vrabbi/backstage-plugin-scaffolder-backend-module-terasky-utils'));
+backend.add(import('@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils'));
 backend.start();
