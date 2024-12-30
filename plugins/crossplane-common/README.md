@@ -1,4 +1,4 @@
-# @terasky/backstage-plugin-crossplane-common
+# crossplane-common
 
 Welcome to the common package for the crossplane plugin!
 
