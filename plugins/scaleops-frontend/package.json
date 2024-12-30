@@ -9,6 +9,12 @@
     "main": "dist/index.esm.js",
     "types": "dist/index.d.ts"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/terasky-oss/backstage-plugins",
+    "directory": "plugins/scaleops-frontend"
+  },
+  "homepage": "https://terasky.com",
   "configSchema": "config.d.ts",
   "backstage": {
     "role": "frontend-plugin",
@@ -28,8 +34,10 @@
     "postpack": "backstage-cli package postpack"
   },
   "dependencies": {
+    "@backstage/catalog-model": "^1.7.2",
     "@backstage/core-components": "^0.16.2",
     "@backstage/core-plugin-api": "^1.10.2",
+    "@backstage/plugin-catalog-react": "^1.15.0",
     "@backstage/theme": "^0.6.3",
     "@material-ui/core": "^4.9.13",
     "@material-ui/icons": "^4.9.1",

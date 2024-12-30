@@ -53,10 +53,8 @@ export const ScaleopsCard = () => {
 
       const labelsQuery = labelSelector.split(',').map(label => `labels=${encodeURIComponent(label)}`).join('&');
 
-      let backendUrl;
-      let baseURL;
-      backendUrl = configApi.getString('backend.baseUrl');
-      baseURL = backendUrl + '/api/proxy/scaleops';
+      const backendUrl = configApi.getString('backend.baseUrl');
+      const baseURL = `${backendUrl  }/api/proxy/scaleops`;
       const scaleopsConfig = configApi.getConfig('scaleops');
       const currencyPrefix = scaleopsConfig?.getString('currencyPrefix');
       const dashboardURL = scaleopsConfig?.getString('baseUrl');

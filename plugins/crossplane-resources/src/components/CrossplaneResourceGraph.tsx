@@ -72,7 +72,54 @@ const CrossplaneResourceGraph = () => {
     const [elements, setElements] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const canShowResourceGraph = enablePermissions ? usePermission({ permission: showResourceGraph }).allowed : true;
+    const canShowResourceGraphTemp = usePermission({ permission: showResourceGraph }).allowed;
+    const canShowResourceGraph = enablePermissions ? canShowResourceGraphTemp : true;
+
+    const generateGraphElements = (resourceList: KubernetesObject[]) => {
+        const nodes = resourceList.map(resource => {
+            const status = (resource as any).status;
+            const isSynced = status?.conditions?.some((condition: any) => condition.type === 'Synced');
+            const isReady = status?.conditions?.some((condition: any) => condition.type === 'Ready');
+            let color = 'red';
+            if (isSynced && isReady) {
+                color = 'green';
+            } else if (isSynced) {
+                color = 'yellow';
+            }
+
+            return {
+                id: resource.metadata?.uid || `${resource.kind}-${Math.random()}`,
+                data: { label: `${resource.metadata?.name} (${resource.kind})` },
+                position: { x: 0, y: 0 }, // Initial position, will be updated by dagre layout
+                style: { border: `2px solid ${color}` },
+            };
+        });
+
+        const edges = resourceList.flatMap(resource => {
+            const ownerReferences = resource.metadata?.ownerReferences || [];
+            const resourceRef = (resource as any).spec?.resourceRef;
+            const resourceRefUid = resourceList.find(res => res.metadata?.name === resourceRef?.name && res.kind === resourceRef?.kind)?.metadata?.uid;
+
+            const ownerEdges = ownerReferences.map(owner => ({
+                id: `${owner.uid}-${resource.metadata?.uid}`,
+                source: owner.uid,
+                target: resource.metadata?.uid || `${resource.kind}-${Math.random()}`,
+                type: 'smoothstep',
+            }));
+
+            const resourceRefEdges = resourceRefUid ? [{
+                id: `${resource.metadata?.uid}-${resourceRefUid}`,
+                source: resource.metadata?.uid || `${resource.kind}-${Math.random()}`,
+                target: resourceRefUid,
+                type: 'smoothstep',
+            }] : [];
+
+            return [...ownerEdges, ...resourceRefEdges];
+        });
+
+        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, edges);
+        setElements([...layoutedNodes, ...layoutedEdges]);
+    };
 
     useEffect(() => {
         if (!canShowResourceGraph) {
@@ -135,13 +182,13 @@ const CrossplaneResourceGraph = () => {
                     const claimResource = await response.json();
                     allResources.push(claimResource);
                 } catch (error) {
-                    console.error(`Failed to fetch claim resource from cluster ${clusterOfClaim}`, error);
+                    throw error
                 }
 
                 setResources(allResources);
                 generateGraphElements(allResources);
             } catch (error) {
-                console.error(`Failed to fetch resources from cluster ${clusterOfClaim}`, error);
+                throw error
             } finally {
                 setLoading(false);
             }
@@ -150,50 +197,29 @@ const CrossplaneResourceGraph = () => {
         fetchResources();
     }, [kubernetesApi, entity, canShowResourceGraph]);
 
-    const generateGraphElements = (resources: KubernetesObject[]) => {
-        const nodes = resources.map(resource => {
-            const status = (resource as any).status;
-            const isSynced = status?.conditions?.some((condition: any) => condition.type === 'Synced');
-            const isReady = status?.conditions?.some((condition: any) => condition.type === 'Ready');
-            let color = 'red';
-            if (isSynced && isReady) {
-                color = 'green';
-            } else if (isSynced) {
-                color = 'yellow';
-            }
+    
+    const handleGetEvents = async (resource: KubernetesObject) => {
+        const namespace = resource.metadata?.namespace || 'default';
+        const name = resource.metadata?.name;
+        const clusterOfClaim = entity.metadata.annotations?.['backstage.io/managed-by-location'].split(": ")[1];
 
-            return {
-                id: resource.metadata?.uid || `${resource.kind}-${Math.random()}`,
-                data: { label: `${resource.metadata?.name} (${resource.kind})` },
-                position: { x: 0, y: 0 }, // Initial position, will be updated by dagre layout
-                style: { border: `2px solid ${color}` },
-            };
-        });
+        if (!namespace || !name || !clusterOfClaim) {
+            return;
+        }
 
-        const edges = resources.flatMap(resource => {
-            const ownerReferences = resource.metadata?.ownerReferences || [];
-            const resourceRef = (resource as any).spec?.resourceRef;
-            const resourceRefUid = resources.find(res => res.metadata?.name === resourceRef?.name && res.kind === resourceRef?.kind)?.metadata?.uid;
+        const url = `/api/v1/namespaces/${namespace}/events?fieldSelector=involvedObject.name=${name}`;
 
-            const ownerEdges = ownerReferences.map(owner => ({
-                id: `${owner.uid}-${resource.metadata?.uid}`,
-                source: owner.uid,
-                target: resource.metadata?.uid || `${resource.kind}-${Math.random()}`,
-                type: 'smoothstep',
-            }));
-
-            const resourceRefEdges = resourceRefUid ? [{
-                id: `${resource.metadata?.uid}-${resourceRefUid}`,
-                source: resource.metadata?.uid || `${resource.kind}-${Math.random()}`,
-                target: resourceRefUid,
-                type: 'smoothstep',
-            }] : [];
-
-            return [...ownerEdges, ...resourceRefEdges];
-        });
-
-        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, edges);
-        setElements([...layoutedNodes, ...layoutedEdges]);
+        try {
+            const response = await kubernetesApi.proxy({
+                clusterName: clusterOfClaim,
+                path: url,
+                init: { method: 'GET' },
+            });
+            const eventsResponse = await response.json();
+            setEvents(eventsResponse.items);
+        } catch (error) {
+            throw error;
+        }
     };
 
     const handleElementClick = async (_event: any, element: any) => {
@@ -218,30 +244,7 @@ const CrossplaneResourceGraph = () => {
         saveAs(blob, fileName);
     };
 
-    const handleGetEvents = async (resource: KubernetesObject) => {
-        const namespace = resource.metadata?.namespace || 'default';
-        const name = resource.metadata?.name;
-        const clusterOfClaim = entity.metadata.annotations?.['backstage.io/managed-by-location'].split(": ")[1];
-
-        if (!namespace || !name || !clusterOfClaim) {
-            console.error('Required information is missing');
-            return;
-        }
-
-        const url = `/api/v1/namespaces/${namespace}/events?fieldSelector=involvedObject.name=${name}`;
-
-        try {
-            const response = await kubernetesApi.proxy({
-                clusterName: clusterOfClaim,
-                path: url,
-                init: { method: 'GET' },
-            });
-            const eventsResponse = await response.json();
-            setEvents(eventsResponse.items);
-        } catch (error) {
-            console.error(`Failed to fetch events from cluster ${clusterOfClaim}`, error);
-        }
-    };
+    
 
     if (loading) {
         return <CircularProgress />;

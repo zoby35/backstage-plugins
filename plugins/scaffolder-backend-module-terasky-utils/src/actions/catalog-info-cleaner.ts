@@ -40,7 +40,7 @@ export function createCatalogInfoCleanerAction() {
             ctx.logger.info(
                 `Running example template with parameters: ${JSON.stringify(ctx.input.entity)}`,
             );
-            let manifest = ctx.input.entity;
+            const manifest = ctx.input.entity;
             // Remove the metadata.uid field from the entity
             delete manifest.metadata.uid;
             delete manifest.metadata.etag;

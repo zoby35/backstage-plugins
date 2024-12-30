@@ -38,6 +38,7 @@ import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
 import { RbacPage } from '@backstage-community/plugin-rbac';
 import { githubAuthApiRef } from '@backstage/core-plugin-api';
+
 const app = createApp({
   apis,
   bindRoutes({ bind }) {

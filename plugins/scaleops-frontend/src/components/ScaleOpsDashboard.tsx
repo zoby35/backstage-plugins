@@ -63,9 +63,9 @@ const formatBytes = (bytes: number | undefined | null): string => {
   if (bytes === undefined || bytes === null) return 'N/A';
   if (bytes >= 1024 * 1024 * 1024) {
     return `${(bytes / 1024 / 1024 / 1024).toFixed(3)} GiB`;
-  } else {
+  } 
     return `${(bytes / 1024 / 1024).toFixed(3)} MiB`;
-  }
+  
 };
 
 const formatCost = (cost: number | undefined | null): string => {
@@ -211,10 +211,8 @@ export const ScaleOpsDashboard = () => {
       const labelSelector = entity.metadata.annotations?.['backstage.io/kubernetes-label-selector'];
       if (!labelSelector) return;
 
-      let backendUrl;
-      let baseURL;
-      backendUrl = configApi.getString('backend.baseUrl');
-      baseURL = backendUrl + '/api/proxy/scaleops';
+      const backendUrl = configApi.getString('backend.baseUrl');
+      const baseURL = `${backendUrl  }/api/proxy/scaleops`;
       const scaleopsConfig = configApi.getConfig('scaleops');
       const authConfig = scaleopsConfig?.getConfig('authentication');
       let authToken;
@@ -291,10 +289,8 @@ export const ScaleOpsDashboard = () => {
       const labelSelector = entity.metadata.annotations?.['backstage.io/kubernetes-label-selector'];
       if (!labelSelector) return;
 
-      let backendUrl;
-      let baseURL;
-      backendUrl = configApi.getString('backend.baseUrl');
-      baseURL = backendUrl + '/api/proxy/scaleops';
+      const backendUrl = configApi.getString('backend.baseUrl');
+      const baseURL = `${backendUrl  }/api/proxy/scaleops`;
       const response = await fetch(`${baseURL}/detailedCostReport/getWorkloads?multiCluster=true&range=7d`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Scaleops-Cluster': selectedWorkload.clusterName },
@@ -306,10 +302,7 @@ export const ScaleOpsDashboard = () => {
         }),
       });
       const data = await response.json();
-      console.log('Aggregated Workload Data:', data); // Debugging line
       const aggregatedWorkloadData = data.aggregatedWorkloads.find((w: any) => w.id.toLowerCase() === selectedWorkload.id.toLowerCase());
-      console.log('Selected Workload ID:', selectedWorkload.id); // Debugging line
-      console.log('Matching Aggregated Workload:', aggregatedWorkloadData); // Debugging line
       setAggregatedWorkload(aggregatedWorkloadData);
     };
 
@@ -318,16 +311,13 @@ export const ScaleOpsDashboard = () => {
 
   useEffect(() => {
     const checkNetworkCostEnabled = async () => {
-      let backendUrl;
-      let baseURL;
-      backendUrl = configApi.getString('backend.baseUrl');
-      baseURL = backendUrl + '/api/proxy/scaleops';
+      const backendUrl = configApi.getString('backend.baseUrl');
+      const baseURL = `${backendUrl  }/api/proxy/scaleops`;
       const response = await fetch(`${baseURL}/api/v1/networkCost/networkCostEnabled?multiCluster=true`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
       const data = await response.json();
-      console.log('Network Cost Enabled Data:', data); // Debugging line
       if (selectedWorkload && data.networkCostEnabled[selectedWorkload.clusterName]) {
         setNetworkCostEnabled(true);
       } else {
@@ -342,10 +332,8 @@ export const ScaleOpsDashboard = () => {
     if (!selectedWorkload || !networkCostEnabled) return;
 
     const fetchNetworkUsage = async () => {
-      let backendUrl;
-      let baseURL;
-      backendUrl = configApi.getString('backend.baseUrl');
-      baseURL = backendUrl + '/api/proxy/scaleops';
+      const backendUrl = configApi.getString('backend.baseUrl');
+      const baseURL = `${backendUrl  }/api/proxy/scaleops`;
       const now = Date.now();
       const from = now - 24 * 60 * 60 * 1000; // 24 hours ago
       const to = now;
@@ -354,7 +342,6 @@ export const ScaleOpsDashboard = () => {
         headers: { 'Content-Type': 'application/json', 'X-Scaleops-Cluster': selectedWorkload.clusterName },
       });
       const data = await response.json();
-      console.log('Network Usage Data:', data); // Debugging line
       setNetworkUsage(data.destinations);
     };
 

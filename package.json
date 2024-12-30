@@ -9,17 +9,18 @@
     "dev": "yarn workspaces foreach -A --include backend --include app --parallel -v -i run start",
     "start": "yarn workspace app start",
     "start-backend": "yarn workspace backend start",
+    "build": "backstage-cli repo build --all",
     "build:backend": "yarn workspace backend build",
     "build:all": "backstage-cli repo build --all",
     "build-image": "yarn workspace backend build-image",
     "tsc": "tsc",
     "tsc:full": "tsc --skipLibCheck false --incremental false",
     "clean": "backstage-cli repo clean",
-    "test": "backstage-cli repo test",
+    "test": "yarn backstage-cli repo test --workerIdleMemoryLimit=800M --coverage --runInBand",
     "test:all": "backstage-cli repo test --coverage",
     "test:e2e": "playwright test",
     "fix": "backstage-cli repo fix",
-    "lint": "backstage-cli repo lint --since origin/master",
+    "lint": "backstage-cli repo lint --since origin/main",
     "lint:all": "backstage-cli repo lint",
     "prettier:check": "prettier --check .",
     "new": "backstage-cli new --scope internal"
@@ -53,5 +54,12 @@
       "prettier --write"
     ]
   },
-  "packageManager": "yarn@4.4.1"
+  "packageManager": "yarn@4.4.1",
+  "dependencies": {
+    "@backstage/plugin-scaffolder-backend-module-azure": "^0.2.4",
+    "@backstage/plugin-scaffolder-backend-module-bitbucket": "^0.3.5",
+    "@backstage/plugin-scaffolder-backend-module-github": "^0.5.4",
+    "@backstage/plugin-scaffolder-backend-module-gitlab": "^0.7.0",
+    "@backstage/plugin-scaffolder-react": "^1.14.2"
+  }
 }

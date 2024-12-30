@@ -5,6 +5,7 @@ import { CatalogApi } from '@backstage/catalog-client';
 import { PermissionEvaluator } from '@backstage/plugin-permission-common';
 import { DiscoveryService, BackstageCredentials } from '@backstage/backend-plugin-api';
 import { KubernetesObjectTypes } from '@backstage/plugin-kubernetes-node';
+
 type ObjectToFetch = {
   group: string;
   apiVersion: string;

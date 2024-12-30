@@ -3,6 +3,7 @@ import { Box, Typography } from '@material-ui/core';
 import CrossplaneClaimResourcesTable from './CrossplaneClaimResourcesTable';
 import CrossplaneCompositeResourcesTable from './CrossplaneCompositeResourcesTable';
 import CrossplaneManagedResources from './CrossplaneManagedResources';
+
 const CrossplaneAllResourcesTable = () => {
     return (
         <Box>

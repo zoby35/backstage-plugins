@@ -34,25 +34,25 @@ export interface Config {
       * NOTE: Visibility applies to only this field
       * @visibility frontend
       */
-      enabled: boolean;
+      enabled?: boolean;
       /**
       * Frontend root URL
       * NOTE: Visibility applies to only this field
       * @visibility frontend
       */
-      type: string;
+      type?: string;
       /**
       * Frontend root URL
       * NOTE: Visibility applies to only this field
       * @visibility frontend
       */
-      user: string;
+      user?: string;
       /**
       * Frontend root URL
       * NOTE: Visibility applies to only this field
       * @visibility frontend
       */
-      password: string;
+      password?: string;
     };
   }
 }  

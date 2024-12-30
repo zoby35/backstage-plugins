@@ -36,9 +36,13 @@ const CrossplaneClaimResourcesTable = () => {
     const [order, setOrder] = useState<'asc' | 'desc'>('asc');
     const [orderBy, setOrderBy] = useState<string>('name');
 
-    const canListClaims = enablePermissions ? usePermission({ permission: listClaimsPermission }).allowed : true;
-    const canViewYaml = enablePermissions ? usePermission({ permission: viewYamlClaimsPermission }).allowed : true;
-    const canShowEvents = enablePermissions ? usePermission({ permission: showEventsClaimsPermission }).allowed : true;
+    const canListClaimsTemp = usePermission({ permission: listClaimsPermission }).allowed;
+    const canViewYamlTemp = usePermission({ permission: viewYamlClaimsPermission }).allowed;
+    const canShowEventsTemp = usePermission({ permission: showEventsClaimsPermission }).allowed;
+
+    const canListClaims = enablePermissions ? canListClaimsTemp : true;
+    const canViewYaml = enablePermissions ? canViewYamlTemp : true;
+    const canShowEvents = enablePermissions ? canShowEventsTemp : true;
 
 
     useEffect(() => {
@@ -56,7 +60,6 @@ const CrossplaneClaimResourcesTable = () => {
             const clusterOfClaim = annotations['backstage.io/managed-by-location'].split(": ")[1];
 
             if (!plural || !group || !version || !namespace || !clusterOfClaim) {
-                console.error('Required annotations are missing');
                 return;
             }
 
@@ -72,7 +75,7 @@ const CrossplaneClaimResourcesTable = () => {
                 const resource = await response.json();
                 setResources([resource]);
             } catch (error) {
-                console.error(`Failed to fetch resource from cluster ${clusterOfClaim}`, error);
+                throw error;
             }
         };
 
@@ -116,7 +119,6 @@ const CrossplaneClaimResourcesTable = () => {
         const clusterOfClaim = entity.metadata.annotations?.['backstage.io/managed-by-location'].split(": ")[1];
 
         if (!namespace || !name || !clusterOfClaim) {
-            console.error('Required information is missing');
             return;
         }
 
@@ -132,7 +134,7 @@ const CrossplaneClaimResourcesTable = () => {
             setEvents(eventsResponse.items);
             setEventsDialogOpen(true);
         } catch (error) {
-            console.error(`Failed to fetch events from cluster ${clusterOfClaim}`, error);
+            throw error;
         }
     };
 

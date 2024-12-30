@@ -10,6 +10,12 @@
     "main": "dist/index.cjs.js",
     "types": "dist/index.d.ts"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/terasky-oss/backstage-plugins",
+    "directory": "plugins/scaffolder-backend-module-terasky-utils"
+  },
+  "homepage": "https://terasky.com",
   "backstage": {
     "role": "backend-plugin-module",
     "pluginId": "scaffolder",
@@ -27,12 +33,14 @@
   "dependencies": {
     "@backstage/backend-plugin-api": "^1.1.0",
     "@backstage/plugin-scaffolder-node": "^0.6.2",
-    "fs-extra": "^10.0.0"
+    "fs-extra": "^10.0.0",
+    "js-yaml": "^4.1.0"
   },
   "devDependencies": {
     "@backstage/cli": "^0.29.4",
     "@backstage/plugin-scaffolder-node-test-utils": "^0.1.17",
     "@types/fs-extra": "^9.0.13",
+    "@types/js-yaml": "^4",
     "typescript": "^5.7.2"
   },
   "files": [

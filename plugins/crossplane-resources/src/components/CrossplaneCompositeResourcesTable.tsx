@@ -34,9 +34,13 @@ const CrossplaneCompositeResourcesTable = () => {
   const [orderBy, setOrderBy] = useState<string>('name');
   const enablePermissions = config.getOptionalBoolean('crossplane.enablePermissions') ?? false;
 
-  const canListCompositeResources = enablePermissions ? usePermission({ permission: listCompositeResourcesPermission }).allowed : true;
-  const canViewYaml = enablePermissions ? usePermission({ permission: viewYamlCompositeResourcesPermission }).allowed : true;
-  const canShowEvents = enablePermissions ? usePermission({ permission: showEventsCompositeResourcesPermission }).allowed : true;
+  const canListCompositeResourcesTemp = usePermission({ permission: listCompositeResourcesPermission }).allowed;
+  const canViewYamlTemp = usePermission({ permission: viewYamlCompositeResourcesPermission }).allowed;
+  const canShowEventsTemp = usePermission({ permission: showEventsCompositeResourcesPermission }).allowed;
+
+  const canListCompositeResources = enablePermissions ? canListCompositeResourcesTemp : true;
+  const canViewYaml = enablePermissions ? canViewYamlTemp : true;
+  const canShowEvents = enablePermissions ? canShowEventsTemp : true;
 
   useEffect(() => {
     if (!canListCompositeResources) {
@@ -52,7 +56,6 @@ const CrossplaneCompositeResourcesTable = () => {
       const clusterOfComposite = annotations['backstage.io/managed-by-location'].split(": ")[1];
 
       if (!plural || !group || !version || !name || !clusterOfComposite) {
-        console.error('Required annotations are missing');
         return;
       }
 
@@ -67,7 +70,7 @@ const CrossplaneCompositeResourcesTable = () => {
         const resource = await response.json();
         setResources([resource]);
       } catch (error) {
-        console.error(`Failed to fetch resource from cluster ${clusterOfComposite}`, error);
+        throw error
       }
     };
 
@@ -110,7 +113,6 @@ const CrossplaneCompositeResourcesTable = () => {
     const clusterOfComposite = entity.metadata.annotations?.['backstage.io/managed-by-location'].split(": ")[1];
 
     if (!namespace || !name || !clusterOfComposite) {
-      console.error('Required information is missing');
       return;
     }
 
@@ -126,7 +128,7 @@ const CrossplaneCompositeResourcesTable = () => {
       setEvents(eventsResponse.items);
       setEventsDialogOpen(true);
     } catch (error) {
-      console.error(`Failed to fetch events from cluster ${clusterOfComposite}`, error);
+      throw error
     }
   };
 

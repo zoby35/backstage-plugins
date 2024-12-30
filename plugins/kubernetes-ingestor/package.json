@@ -9,6 +9,12 @@
     "main": "dist/index.cjs.js",
     "types": "dist/index.d.ts"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/terasky-oss/backstage-plugins",
+    "directory": "plugins/kubernetes-ingestor"
+  },
+  "homepage": "https://terasky.com",
   "backstage": {
     "role": "backend-plugin",
     "pluginId": "backstage-plugin-kubernetes-ingestor",

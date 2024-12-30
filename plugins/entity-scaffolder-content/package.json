@@ -9,6 +9,12 @@
     "main": "dist/index.esm.js",
     "types": "dist/index.d.ts"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/terasky-oss/backstage-plugins",
+    "directory": "plugins/entity-scaffolder-content"
+  },
+  "homepage": "https://terasky.com",
   "backstage": {
     "role": "frontend-plugin",
     "pluginId": "entity-scaffolder-content",

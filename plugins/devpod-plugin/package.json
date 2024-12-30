@@ -11,6 +11,12 @@
     "main": "dist/index.esm.js",
     "types": "dist/index.d.ts"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/terasky-oss/backstage-plugins",
+    "directory": "plugins/devpod-plugin"
+  },
+  "homepage": "https://terasky.com",
   "backstage": {
     "role": "frontend-plugin",
     "pluginId": "devpod",

@@ -234,7 +234,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
           },
         };
       }
-      else {
+      
         return {
           apiVersion: 'scaffolder.backstage.io/v1beta3',
           kind: 'Template',
@@ -261,7 +261,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
             },
           },
         };
-      }
+      
     });
   }
 
@@ -546,9 +546,9 @@ export class XRDTemplateEntityProvider implements EntityProvider {
     if (this.config.getOptionalBoolean('kubernetesIngestor.crossplane.xrds.publishPhase.allowRepoSelection')) {
       return additionalParameters ? [mainParameterGroup, additionalParameters, crossplaneParameters, publishParameters] : [mainParameterGroup, crossplaneParameters, publishParameters];
     }
-    else {
+    
       return additionalParameters ? [mainParameterGroup, additionalParameters, crossplaneParameters] : [mainParameterGroup, crossplaneParameters];
-    }
+    
   }
 
   private extractSteps(version: any, xrd: any): any[] {
@@ -612,7 +612,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
 
     let defaultStepsYaml = baseStepsYaml;
 
-    if (publishPhaseTarget != 'yaml') {
+    if (publishPhaseTarget !== 'yaml') {
       if (this.config.getOptionalBoolean('kubernetesIngestor.crossplane.xrds.publishPhase.allowRepoSelection')) {
         defaultStepsYaml += repoSelectionStepsYaml;
       }
@@ -632,9 +632,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
         defaultStepsYaml += repoHardcodedStepsYaml;
       }
     }
-    else {
-      defaultStepsYaml;
-    }
+
     // Replace placeholders in the default steps YAML with XRD details
     const apiVersion = `${xrd.spec.group}/${version.name}`;
     const kind = xrd.spec.claimNames?.kind;
@@ -716,13 +714,13 @@ export class KubernetesEntityProvider implements EntityProvider {
         const crdMapping = await kubernetesDataProvider.fetchCRDMapping();
 
         const entities = kubernetesData.flatMap(k8s => {
-          if (k8s.spec?.['resourceRef']) {
+          if (k8s.spec?.resourceRef) {
             this.logger.debug(`Processing Crossplane Claim: ${JSON.stringify(k8s)}`);
             return this.translateCrossplaneClaimToEntity(k8s, k8s.clusterName, crdMapping);
-          } else {
+          } 
             this.logger.debug(`Processing Kubernetes Object: ${JSON.stringify(k8s)}`);
             return this.translateKubernetesObjectsToEntities(k8s);
-          }
+          
         });
 
         await this.connection.applyMutation({
@@ -764,7 +762,7 @@ export class KubernetesEntityProvider implements EntityProvider {
 
     // Add logic for source-location
     if (annotations['terasky.backstage.io/source-code-repo-url']) {
-      const repoUrl = 'url:' + annotations['terasky.backstage.io/source-code-repo-url'];
+      const repoUrl = `url:${  annotations['terasky.backstage.io/source-code-repo-url']}`;
       customAnnotations['backstage.io/source-location'] = repoUrl;
 
       // Construct techdocs-ref
