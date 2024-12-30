@@ -1,4 +1,3 @@
-// filepath: /home/vrabbi/crossplane/bakstage-plugins/plugins/devpod-plugin/src/hooks/useDevpod.ts
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { DevpodIDE } from '../types';
 import { useState } from 'react';

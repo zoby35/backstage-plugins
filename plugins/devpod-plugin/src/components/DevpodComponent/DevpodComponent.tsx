@@ -1,4 +1,3 @@
-// filepath: /home/vrabbi/crossplane/bakstage-plugins/plugins/devpod-plugin/src/components/DevpodComponent/DevpodComponent.tsx
 import React from 'react';
 import { useDevpod } from '../../hooks/useDevpod';
 import { InfoCard } from '@backstage/core-components';

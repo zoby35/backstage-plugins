@@ -1,6 +1,6 @@
 {
   "name": "@terasky/backstage-plugin-kubernetes-ingestor",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "main": "dist/index.cjs.js",
   "types": "dist/index.d.ts",
   "license": "Apache-2.0",
@@ -19,7 +19,7 @@
     "role": "backend-plugin",
     "pluginId": "backstage-plugin-kubernetes-ingestor",
     "pluginPackages": [
-      "@vrabbi/backstage-plugin-kubernetes-ingestor"
+      "@terasky/backstage-plugin-kubernetes-ingestor"
     ]
   },
   "scripts": {

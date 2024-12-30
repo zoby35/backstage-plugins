@@ -13,7 +13,7 @@ import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import ReactFlow, { ReactFlowProvider, MiniMap, Controls, Background } from 'react-flow-renderer';
 import dagre from 'dagre';
 import { usePermission } from '@backstage/plugin-permission-react';
-import { showResourceGraph } from '@vrabbi/backstage-plugin-crossplane-common';
+import { showResourceGraph } from '@terasky/backstage-plugin-crossplane-common';
 
 const removeManagedFields = (resource: KubernetesObject) => {
     const resourceCopy = JSON.parse(JSON.stringify(resource)); // Deep copy the resource

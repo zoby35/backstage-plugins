@@ -1,6 +1,6 @@
 {
   "name": "@terasky/backstage-plugin-scaleops-frontend",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "main": "dist/index.esm.js",
   "types": "dist/index.d.ts",
   "license": "Apache-2.0",
@@ -20,7 +20,7 @@
     "role": "frontend-plugin",
     "pluginId": "scaleops-frontend",
     "pluginPackages": [
-      "@vrabbi/backstage-plugin-scaleops-frontend"
+      "@terasky/backstage-plugin-scaleops-frontend"
     ]
   },
   "sideEffects": false,

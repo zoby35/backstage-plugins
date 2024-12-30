@@ -1,8 +1,10 @@
-name: Publish Plugins
+name: NodeJS CI And Plugin Publishing
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'plugins/**'
 
 jobs:
   build:

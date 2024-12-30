@@ -3,7 +3,7 @@ import { LoggerService, PermissionsService } from '@backstage/backend-plugin-api
 import express from 'express';
 import Router from 'express-promise-router';
 import { createPermissionIntegrationRouter } from '@backstage/plugin-permission-node';
-import { crossplanePermissions } from '@vrabbi/backstage-plugin-crossplane-common';
+import { crossplanePermissions } from '@terasky/backstage-plugin-crossplane-common';
 
 export interface RouterOptions {
   logger: LoggerService;

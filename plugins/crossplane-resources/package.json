@@ -1,6 +1,6 @@
 {
   "name": "@terasky/backstage-plugin-crossplane-resources-frontend",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "license": "Apache-2.0",
@@ -20,7 +20,7 @@
     "role": "frontend-plugin",
     "pluginId": "crossplane-resources-frontend",
     "pluginPackages": [
-      "@vrabbi/backstage-plugin-crossplane-resources-frontend"
+      "@terasky/backstage-plugin-crossplane-resources-frontend"
     ]
   },
   "sideEffects": false,
@@ -46,7 +46,7 @@
     "@material-ui/core": "^4.9.13",
     "@material-ui/icons": "^4.9.1",
     "@material-ui/lab": "^4.0.0-alpha.61",
-    "@vrabbi/backstage-plugin-crossplane-common": "^0.2.0",
+    "@terasky/backstage-plugin-crossplane-common": "^1.0.2",
     "dagre": "^0.8.5",
     "file-saver": "^2.0.5",
     "js-yaml": "^4.1.0",

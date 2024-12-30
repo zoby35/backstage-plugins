@@ -11,7 +11,7 @@ import { saveAs } from 'file-saver';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { usePermission } from '@backstage/plugin-permission-react';
-import { listCompositeResourcesPermission, viewYamlCompositeResourcesPermission, showEventsCompositeResourcesPermission } from '@vrabbi/backstage-plugin-crossplane-common';
+import { listCompositeResourcesPermission, viewYamlCompositeResourcesPermission, showEventsCompositeResourcesPermission } from '@terasky/backstage-plugin-crossplane-common';
 
 const removeManagedFields = (resource: KubernetesObject) => {
   const resourceCopy = JSON.parse(JSON.stringify(resource)); // Deep copy the resource

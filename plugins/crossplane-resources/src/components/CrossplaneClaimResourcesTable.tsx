@@ -11,7 +11,7 @@ import { saveAs } from 'file-saver';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { usePermission } from '@backstage/plugin-permission-react';
-import { listClaimsPermission, viewYamlClaimsPermission, showEventsClaimsPermission } from '@vrabbi/backstage-plugin-crossplane-common';
+import { listClaimsPermission, viewYamlClaimsPermission, showEventsClaimsPermission } from '@terasky/backstage-plugin-crossplane-common';
 import { configApiRef } from '@backstage/core-plugin-api';
 
 const removeManagedFields = (resource: KubernetesObject) => {
