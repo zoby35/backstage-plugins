@@ -53,52 +53,59 @@ const CrossplaneManagedResources = () => {
             setLoading(true);
             const annotations = entity.metadata.annotations || {};
             const clusterOfClaim = annotations['backstage.io/managed-by-location'].split(": ")[1];
-
-            const crdMap: { [name: string]: any } = {};
-
+      
             try {
-                const crdsResponse = await kubernetesApi.proxy({
-                    clusterName: clusterOfClaim,
-                    path: '/apis/apiextensions.k8s.io/v1/customresourcedefinitions',
-                    init: { method: 'GET' },
-                }).then(response => response.json());
-
-                crdsResponse.items.forEach((crd: any) => {
-                    crdMap[crd.metadata.name] = crd;
+              const response = await kubernetesApi.proxy({
+                clusterName: clusterOfClaim,
+                path: '/apis',
+                init: {
+                  method: 'GET',
+                  headers: {
+                    'Accept': 'application/json;g=apidiscovery.k8s.io;v=v2beta1;as=APIGroupDiscoveryList,application/json',
+                  },
+                },
+              });
+      
+              const apiGroupDiscoveryList = await response.json();
+              const crdMap: { [name: string]: any } = {};
+      
+              apiGroupDiscoveryList.items.forEach((group: any) => {
+                group.versions.forEach((version: any) => {
+                  version.resources.forEach((resource: any) => {
+                    if (resource.categories?.includes('crossplane') && resource.categories?.includes('managed')) {
+                      crdMap[resource.resource] = {
+                        group: group.metadata.name,
+                        apiVersion: version.version,
+                        plural: resource.resource,
+                      };
+                    }
+                  });
                 });
-
-                const crds = Object.values(crdMap);
-                const filteredCrds = crds.filter(crd =>
-                    crd.spec.names.categories?.some((category: string) => ['crossplane', 'managed'].includes(category))
-                );
-
-                const customResources = filteredCrds.map(crd => ({
-                    group: crd.spec.group,
-                    apiVersion: crd.spec.versions[0].name,
-                    plural: crd.spec.names.plural,
-                }));
-
-                const resourcesResponse = await kubernetesApi.getCustomObjectsByEntity({
-                    entity,
-                    auth: { type: 'serviceAccount' },
-                    customResources,
-                });
-
-                const allResources = resourcesResponse.items.flatMap(item =>
-                    item.resources.flatMap(resourceGroup => resourceGroup.resources)
-                ).filter(resource => resource);
-
-                const managedResources = allResources.filter(resource =>
-                    !resource.metadata?.finalizers?.includes('composite.apiextensions.crossplane.io')
-                );
-
-                setResources(managedResources);
+              });
+      
+              const customResources = Object.values(crdMap);
+      
+              const resourcesResponse = await kubernetesApi.getCustomObjectsByEntity({
+                entity,
+                auth: { type: 'serviceAccount' },
+                customResources,
+              });
+      
+              const allResources = resourcesResponse.items.flatMap(item =>
+                item.resources.flatMap(resourceGroup => resourceGroup.resources)
+              ).filter(resource => resource);
+      
+              const managedResources = allResources.filter(resource =>
+                !resource.metadata?.finalizers?.includes('composite.apiextensions.crossplane.io')
+              );
+      
+              setResources(managedResources);
             } catch (error) {
-                throw error
+              throw error;
             } finally {
-                setLoading(false);
+              setLoading(false);
             }
-        };
+          };
 
         fetchResources();
     }, [kubernetesApi, entity, canListManagedResources]);

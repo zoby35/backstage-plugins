@@ -138,26 +138,35 @@ const CrossplaneResourceGraph = () => {
             const crdMap: { [name: string]: any } = {};
 
             try {
-                const crdsResponse = await kubernetesApi.proxy({
+                const response = await kubernetesApi.proxy({
                     clusterName: clusterOfClaim,
-                    path: '/apis/apiextensions.k8s.io/v1/customresourcedefinitions',
-                    init: { method: 'GET' },
-                }).then(response => response.json());
-
-                crdsResponse.items.forEach((crd: any) => {
-                    crdMap[crd.metadata.name] = crd;
+                    path: '/apis',
+                    init: {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json;g=apidiscovery.k8s.io;v=v2beta1;as=APIGroupDiscoveryList,application/json',
+                        },
+                    },
                 });
 
-                const crds = Object.values(crdMap);
-                const filteredCrds = crds.filter(crd =>
-                    crd.spec.names.categories?.some((category: string) => ['crossplane', 'managed', 'composite', 'claim'].includes(category))
-                );
+                const apiGroupDiscoveryList = await response.json();
 
-                const customResources = filteredCrds.map(crd => ({
-                    group: crd.spec.group,
-                    apiVersion: crd.spec.versions[0].name,
-                    plural: crd.spec.names.plural,
-                }));
+                apiGroupDiscoveryList.items.forEach((group: any) => {
+                    group.versions.forEach((version: any) => {
+                        version.resources.forEach((resource: any) => {
+                            if (resource.categories?.some((category: string) => ['crossplane', 'managed', 'composite', 'claim'].includes(category))) {
+                                crdMap[resource.resource] = {
+                                    group: group.metadata.name,
+                                    apiVersion: version.version,
+                                    plural: resource.resource,
+                                };
+                            }
+                        });
+                    });
+                });
+
+                const customResources = Object.values(crdMap);
+                console.log(customResources);
 
                 const resourcesResponse = await kubernetesApi.getCustomObjectsByEntity({
                     entity,
@@ -168,7 +177,7 @@ const CrossplaneResourceGraph = () => {
                 const allResources = resourcesResponse.items.flatMap(item =>
                     item.resources.flatMap(resourceGroup => resourceGroup.resources)
                 ).filter(resource => resource);
-
+                console.log(allResources);
                 // Fetch the claim resource
                 const resourceName = entity.metadata.name;
                 const url = `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${resourceName}`;
@@ -197,7 +206,7 @@ const CrossplaneResourceGraph = () => {
         fetchResources();
     }, [kubernetesApi, entity, canShowResourceGraph]);
 
-    
+
     const handleGetEvents = async (resource: KubernetesObject) => {
         const namespace = resource.metadata?.namespace || 'default';
         const name = resource.metadata?.name;
@@ -244,7 +253,7 @@ const CrossplaneResourceGraph = () => {
         saveAs(blob, fileName);
     };
 
-    
+
 
     if (loading) {
         return <CircularProgress />;
