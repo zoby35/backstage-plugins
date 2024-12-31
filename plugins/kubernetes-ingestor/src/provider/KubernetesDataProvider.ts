@@ -134,13 +134,28 @@ export class KubernetesDataProvider {
               }
 
               return !excludedNamespaces.has(resource.metadata.namespace);
-            }).map(resource => ({
-              ...resource,
-              clusterName: cluster.name, // Attach the cluster name to the resource
-            }))
+            }).map(async resource => {
+              if (resource.spec?.compositionRef?.name) {
+                const composition = await this.fetchComposition(fetcher, cluster, token, resource.spec.compositionRef.name);
+                const usedFunctions = this.extractUsedFunctions(composition);
+
+                return {
+                  ...resource,
+                  clusterName: cluster.name, // Attach the cluster name to the resource
+                  compositionData: {
+                    name: resource.spec.compositionRef.name,
+                    usedFunctions,
+                  },
+                };
+              }
+              return {
+                ...resource,
+                clusterName: cluster.name, // Attach the cluster name to the resource
+              };
+            })
           );
 
-          allFetchedObjects = allFetchedObjects.concat(filteredObjects);
+          allFetchedObjects = allFetchedObjects.concat(await Promise.all(filteredObjects));
 
           this.logger.debug(`Crossplane Fetched ${filteredObjects.length} objects from cluster: ${cluster.name}`);
         } catch (clusterError) {
@@ -168,6 +183,39 @@ export class KubernetesDataProvider {
       }
       return []; // Add this return statement
     }
+  }
+
+  private async fetchComposition(fetcher: any, cluster: any, token: string, compositionName: string): Promise<any> {
+    const compositions = await fetcher.fetchObjectsForService({
+      serviceId: cluster.name,
+      clusterDetails: cluster,
+      credential: { type: 'bearer token', token },
+      objectTypesToFetch: new Set([
+        {
+          group: 'apiextensions.crossplane.io',
+          apiVersion: 'v1',
+          plural: 'compositions',
+          objectType: 'customresources' as KubernetesObjectTypes,
+        },
+      ]),
+      customResources: [],
+    });
+
+    return compositions.responses
+      .flatMap((response: { resources: any; }) => response.resources)
+      .find((composition: { metadata: { name: string; }; }) => composition.metadata.name === compositionName);
+  }
+
+  private extractUsedFunctions(composition: any): string[] {
+    const usedFunctions = new Set<string>();
+    if (composition?.spec?.pipeline) {
+      composition.spec.pipeline.forEach((item: { functionRef: { name: string; }; }) => {
+        if (item.functionRef?.name) {
+          usedFunctions.add(item.functionRef.name);
+        }
+      });
+    }
+    return Array.from(usedFunctions);
   }
 
   async fetchCRDMapping(): Promise<Record<string, string>> {

@@ -44,9 +44,25 @@ export const showEventsManagedResourcesPermission = createPermission({
   name: 'crossplane.managed-resources.show-events',
   attributes: { action: 'read' },
 });
+
+export const listAdditionalResourcesPermission = createPermission({
+  name: 'crossplane.additional-resources.list',
+  attributes: { action: 'read' },
+});
+
+export const viewYamlAdditionalResourcesPermission = createPermission({
+  name: 'crossplane.additional-resources.view-yaml',
+  attributes: { action: 'read' },
+});
+
+export const showEventsAdditionalResourcesPermission = createPermission({
+  name: 'crossplane.additional-resources.show-events',
+  attributes: { action: 'read' },
+});
+
 export const showResourceGraph = createPermission({
   name: 'crossplane.resource-graph.show',
   attributes: { action: 'read' },
 });
 
-export const crossplanePermissions = [showResourceGraph, showEventsManagedResourcesPermission, viewYamlManagedResourcesPermission, listManagedResourcesPermission, showEventsCompositeResourcesPermission, viewYamlCompositeResourcesPermission, listCompositeResourcesPermission, showEventsClaimsPermission, viewYamlClaimsPermission, listClaimsPermission];
+export const crossplanePermissions = [showEventsAdditionalResourcesPermission, viewYamlAdditionalResourcesPermission, listAdditionalResourcesPermission, showResourceGraph, showEventsManagedResourcesPermission, viewYamlManagedResourcesPermission, listManagedResourcesPermission, showEventsCompositeResourcesPermission, viewYamlCompositeResourcesPermission, listCompositeResourcesPermission, showEventsClaimsPermission, viewYamlClaimsPermission, listClaimsPermission];

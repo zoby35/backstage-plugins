@@ -21,4 +21,7 @@ The `crossplane-common` package defines the following permissions for managing C
 - **List Crossplane Managed Resources**: `crossplane.managed-resources.list`
 - **View YAML of Crossplane Managed Resources**: `crossplane.managed-resources.view-yaml`
 - **View Events of Crossplane Managed Resources**: `crossplane.managed-resources.show-events`
+- **List Crossplane Additional Resources (XRD, Composition, Function)**: `crossplane.additional-resources.list`
+- **View YAML of Crossplane Additional Resources (XRD, Composition, Function)**: `crossplane.additional-resources.view-yaml`
+- **View Events of Crossplane Additional Resources (XRD, Composition, Function)**: `crossplane.additional-resources.show-events`
 - **View Resource Graph of Crossplane Resources**: `crossplane.resource-graph.show`

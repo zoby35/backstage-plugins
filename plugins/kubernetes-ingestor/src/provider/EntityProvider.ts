@@ -836,7 +836,9 @@ export class KubernetesEntityProvider implements EntityProvider {
     const compositeGroup = compositeRef.apiVersion?.split('/')?.[0] || '';
     const compositeVersion = compositeRef.apiVersion?.split('/')?.[1] || '';
     const compositePlural = compositeKind ? crdMapping[compositeKind] || '' : ''; // Fetch plural for composite kind
-
+    const compositionData = claim.compositionData || {};
+    const compositionName = compositionData.name || '';
+    const compositionFunctions = compositionData.usedFunctions || [];
     // Add Crossplane claim annotations
     annotations['terasky.backstage.io/claim-kind'] = crKind;
     annotations['terasky.backstage.io/claim-version'] = crVersion;
@@ -849,6 +851,8 @@ export class KubernetesEntityProvider implements EntityProvider {
     annotations['terasky.backstage.io/composite-group'] = compositeGroup;
     annotations['terasky.backstage.io/composite-version'] = compositeVersion;
     annotations['terasky.backstage.io/composite-plural'] = compositePlural;
+    annotations['terasky.backstage.io/composition-name'] = compositionName;
+    annotations['terasky.backstage.io/composition-functions'] = compositionFunctions.join(',');
     annotations['backstage.io/kubernetes-label-selector'] = `crossplane.io/claim-name=${claim.metadata.name},crossplane.io/claim-namespace=${claim.metadata.namespace},crossplane.io/composite=${compositeName}`
 
     return {
