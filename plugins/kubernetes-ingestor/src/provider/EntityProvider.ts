@@ -290,14 +290,52 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       type: 'object',
     };
 
-    // Extract additional parameters as a separate titled object
-    const additionalParameters = version.schema?.openAPIV3Schema?.properties?.spec
-      ? {
-        title: 'Resource Spec',
-        properties: version.schema.openAPIV3Schema.properties.spec.properties,
-        type: 'object',
+    
+    const processProperties = (properties: Record<string, any>): Record<string, any> => {
+      const processedProperties: Record<string, any> = {};
+    
+      for (const [key, value] of Object.entries(properties)) {
+        const typedValue = value as Record<string, any>;
+        if (typedValue.type === 'object' && typedValue.properties) {
+          this.logger.info(`Processing sub object properties: ${JSON.stringify(typedValue.properties)}`);
+          const subProperties = processProperties(typedValue.properties);
+          this.logger.info(`Processed sub object properties: ${JSON.stringify(subProperties)}`);
+          processedProperties[key] = { ...typedValue, properties: subProperties };
+    
+          if (typedValue.properties.enabled && typedValue.properties.enabled.type === 'boolean') {
+            const siblingKeys = Object.keys(typedValue.properties).filter(k => k !== 'enabled');
+            processedProperties[key].dependencies = {
+              enabled: {
+                if: {
+                  properties: {
+                    enabled: { const: true },
+                  },
+                },
+                then: {
+                  properties: siblingKeys.reduce((acc, k) => ({ ...acc, [k]: typedValue.properties[k] }), {}),
+                },
+              },
+            };
+            siblingKeys.forEach(k => delete processedProperties[key].properties[k]);
+          }
+        } else {
+          processedProperties[key] = typedValue;
+        }
       }
-      : null;
+    
+      return processedProperties;
+    };
+    
+    // Extract additional parameters as a separate titled object
+    const processedSpec = version.schema?.openAPIV3Schema?.properties?.spec
+      ? processProperties(version.schema.openAPIV3Schema.properties.spec.properties)
+      : {};
+    
+    const additionalParameters = {
+      title: 'Resource Spec',
+      properties: processedSpec,
+      type: 'object',
+    };
     const crossplaneParameters = {
       title: "Crossplane Settings",
       properties: {
