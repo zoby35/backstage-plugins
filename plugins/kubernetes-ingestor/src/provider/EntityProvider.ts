@@ -297,9 +297,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       for (const [key, value] of Object.entries(properties)) {
         const typedValue = value as Record<string, any>;
         if (typedValue.type === 'object' && typedValue.properties) {
-          this.logger.info(`Processing sub object properties: ${JSON.stringify(typedValue.properties)}`);
           const subProperties = processProperties(typedValue.properties);
-          this.logger.info(`Processed sub object properties: ${JSON.stringify(subProperties)}`);
           processedProperties[key] = { ...typedValue, properties: subProperties };
     
           if (typedValue.properties.enabled && typedValue.properties.enabled.type === 'boolean') {
