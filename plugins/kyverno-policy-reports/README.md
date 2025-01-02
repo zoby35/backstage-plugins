@@ -42,8 +42,10 @@ Once installed and configured, the kyverno-policy-reports plugin will provide co
 
 You can see i haigh level table per cluster with the resources of this components results:
 ![img01](../../images/kyverno-01.png)
+
 By clicking on a specific resource row, details will expand bellow:
 ![img02](../../images/kyverno-02.png)
+
 You can click on the policy name, and get the full YAML of the policy which this result is made by:
 ![img03](../../images/kyverno-03.png)
 
