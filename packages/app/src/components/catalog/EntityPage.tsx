@@ -66,7 +66,7 @@ import { DevpodComponent, isDevpodAvailable } from '@terasky/backstage-plugin-de
 import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
 import { EntityPickerFieldExtension, RepoUrlPickerFieldExtension } from '@backstage/plugin-scaffolder';
 import { ScaleOpsDashboard } from '@terasky/backstage-plugin-scaleops-frontend';
-
+import { KyvernoPolicyReportsTable } from '@terasky/backstage-plugin-kyverno-policy-reports';
 const techdocsContent = (
   <EntityTechdocsContent>
     <TechDocsAddons>
@@ -188,7 +188,9 @@ const serviceEntityPage = (
     >
       <EntityKubernetesContent />
     </EntityLayout.Route>
-
+    <EntityLayout.Route path="/kyverno-policy-reports" title="Kyverno Policy Reports">
+      <KyvernoPolicyReportsTable />
+    </EntityLayout.Route>
     <EntityLayout.Route path="/api" title="API">
       <Grid container spacing={3} alignItems="stretch">
         <Grid item md={6}>
