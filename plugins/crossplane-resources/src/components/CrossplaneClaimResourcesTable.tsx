@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableRow, Paper, Button, Drawer, IconButton, TableSortLabel, Box, Dialog, DialogTitle, DialogContent, Typography } from '@material-ui/core';
+import { Table, TableBody, TableCell, TableHead, TableRow, Paper, Button, Drawer, IconButton, TableSortLabel, Box, Dialog, DialogTitle, DialogContent, Typography, useTheme } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
 import { KubernetesObject } from '@backstage/plugin-kubernetes';
 import { kubernetesApiRef } from '@backstage/plugin-kubernetes-react';
@@ -10,6 +10,8 @@ import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { saveAs } from 'file-saver';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { dark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+
 import { usePermission } from '@backstage/plugin-permission-react';
 import { listClaimsPermission, viewYamlClaimsPermission, showEventsClaimsPermission } from '@terasky/backstage-plugin-crossplane-common';
 import { configApiRef } from '@backstage/core-plugin-api';
@@ -27,7 +29,7 @@ const CrossplaneClaimResourcesTable = () => {
     const kubernetesApi = useApi(kubernetesApiRef);
     const config = useApi(configApiRef);
     const enablePermissions = config.getOptionalBoolean('crossplane.enablePermissions') ?? false;
-
+    const theme = useTheme();
     const [resources, setResources] = useState<Array<KubernetesObject>>([]);
     const [selectedResource, setSelectedResource] = useState<KubernetesObject | null>(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -257,7 +259,7 @@ const CrossplaneClaimResourcesTable = () => {
                                     Download YAML
                                 </Button>
                             </Box>
-                            <SyntaxHighlighter language="yaml" style={docco}>
+                            <SyntaxHighlighter language="yaml" style={theme.palette.type === 'dark' ? dark : docco}>
                                 {YAML.dump(removeManagedFields(selectedResource))}
                             </SyntaxHighlighter>
                         </>

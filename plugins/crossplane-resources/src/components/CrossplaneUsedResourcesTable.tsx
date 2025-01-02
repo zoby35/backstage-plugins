@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableRow, Paper, Button, Drawer, IconButton, TableSortLabel, Box, Dialog, DialogTitle, DialogContent, Typography } from '@material-ui/core';
+import { useTheme, Table, TableBody, TableCell, TableHead, TableRow, Paper, Button, Drawer, IconButton, TableSortLabel, Box, Dialog, DialogTitle, DialogContent, Typography } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
 import { KubernetesObject } from '@backstage/plugin-kubernetes';
 import { kubernetesApiRef } from '@backstage/plugin-kubernetes-react';
@@ -13,6 +13,7 @@ import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { usePermission } from '@backstage/plugin-permission-react';
 import { listAdditionalResourcesPermission, showEventsAdditionalResourcesPermission, viewYamlAdditionalResourcesPermission } from '@terasky/backstage-plugin-crossplane-common';
 import { configApiRef } from '@backstage/core-plugin-api';
+import { dark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 
 interface ExtendedKubernetesObject extends KubernetesObject {
     status?: {
@@ -35,6 +36,7 @@ const CrossplaneUsedResourcesTable = () => {
     const { entity } = useEntity();
     const kubernetesApi = useApi(kubernetesApiRef);
     const config = useApi(configApiRef);
+    const theme = useTheme();
     const enablePermissions = config.getOptionalBoolean('crossplane.enablePermissions') ?? false;
 
     const [resources, setResources] = useState<Array<ExtendedKubernetesObject>>([]);
@@ -319,7 +321,7 @@ const CrossplaneUsedResourcesTable = () => {
                                     Download YAML
                                 </Button>
                             </Box>
-                            <SyntaxHighlighter language="yaml" style={docco}>
+                            <SyntaxHighlighter language="yaml" style={theme.palette.type === 'dark' ? dark : docco}>
                                 {YAML.dump(removeManagedFields(selectedResource))}
                             </SyntaxHighlighter>
                         </>

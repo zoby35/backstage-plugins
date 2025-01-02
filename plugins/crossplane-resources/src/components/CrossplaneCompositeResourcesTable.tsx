@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableRow, Paper, Button, Drawer, IconButton, TableSortLabel, Box, Dialog, DialogTitle, DialogContent, Typography } from '@material-ui/core';
+import { useTheme, Table, TableBody, TableCell, TableHead, TableRow, Paper, Button, Drawer, IconButton, TableSortLabel, Box, Dialog, DialogTitle, DialogContent, Typography } from '@material-ui/core';
 import { useApi, configApiRef } from '@backstage/core-plugin-api';
 import { KubernetesObject } from '@backstage/plugin-kubernetes';
 import { kubernetesApiRef } from '@backstage/plugin-kubernetes-react';
@@ -12,6 +12,7 @@ import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { usePermission } from '@backstage/plugin-permission-react';
 import { listCompositeResourcesPermission, viewYamlCompositeResourcesPermission, showEventsCompositeResourcesPermission } from '@terasky/backstage-plugin-crossplane-common';
+import { dark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 
 const removeManagedFields = (resource: KubernetesObject) => {
   const resourceCopy = JSON.parse(JSON.stringify(resource)); // Deep copy the resource
@@ -25,6 +26,7 @@ const CrossplaneCompositeResourcesTable = () => {
   const { entity } = useEntity();
   const kubernetesApi = useApi(kubernetesApiRef);
   const config = useApi(configApiRef);
+  const theme = useTheme();
   const [resources, setResources] = useState<Array<KubernetesObject>>([]);
   const [selectedResource, setSelectedResource] = useState<KubernetesObject | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -243,7 +245,7 @@ const CrossplaneCompositeResourcesTable = () => {
                   Download YAML
                 </Button>
               </Box>
-              <SyntaxHighlighter language="yaml" style={docco}>
+              <SyntaxHighlighter language="yaml" style={theme.palette.type === 'dark' ? dark : docco}>
                 {YAML.dump(removeManagedFields(selectedResource))}
               </SyntaxHighlighter>
             </>

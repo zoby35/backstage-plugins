@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Drawer, IconButton, Box, Button, Table, TableBody, TableCell, TableHead, TableRow, Typography, CircularProgress } from '@material-ui/core';
+import { useTheme, Drawer, IconButton, Box, Button, Table, TableBody, TableCell, TableHead, TableRow, Typography, CircularProgress } from '@material-ui/core';
 import { useApi, configApiRef } from '@backstage/core-plugin-api';
 import { KubernetesObject } from '@backstage/plugin-kubernetes';
 import { kubernetesApiRef } from '@backstage/plugin-kubernetes-react';
@@ -9,7 +9,8 @@ import CloseIcon from '@material-ui/icons/Close';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { saveAs } from 'file-saver';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { docco, dark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+
 import ReactFlow, { ReactFlowProvider, MiniMap, Controls, Background } from 'react-flow-renderer';
 import dagre from 'dagre';
 import { usePermission } from '@backstage/plugin-permission-react';
@@ -62,6 +63,7 @@ const getLayoutedElements = (nodes: any[], edges: any[]) => {
 
 const CrossplaneResourceGraph = () => {
     const { entity } = useEntity();
+    const theme = useTheme();
     const kubernetesApi = useApi(kubernetesApiRef);
     const config = useApi(configApiRef);
     const enablePermissions = config.getOptionalBoolean('crossplane.enablePermissions') ?? false;
@@ -91,7 +93,7 @@ const CrossplaneResourceGraph = () => {
                 id: resource.metadata?.uid || `${resource.kind}-${Math.random()}`,
                 data: { label: `${resource.metadata?.name} (${resource.kind})` },
                 position: { x: 0, y: 0 }, // Initial position, will be updated by dagre layout
-                style: { border: `2px solid ${color}` },
+                style: { border: `2px solid ${color}`, backgroundColor: theme.palette.background.paper, color: theme.palette.text.primary },
             };
         });
 
@@ -253,8 +255,6 @@ const CrossplaneResourceGraph = () => {
         saveAs(blob, fileName);
     };
 
-
-
     if (loading) {
         return <CircularProgress />;
     }
@@ -272,13 +272,18 @@ const CrossplaneResourceGraph = () => {
                     onNodeClick={handleElementClick}
                     style={{ width: '100%', height: '100%' }}
                 >
-                    <MiniMap />
-                    <Controls />
-                    <Background />
+                    <MiniMap
+                        nodeColor={theme.palette.type === 'dark' ? '#fff' : '#000'}
+                        nodeStrokeColor={theme.palette.type === 'dark' ? '#fff' : '#000'}
+                        nodeBorderRadius={2}
+                        style={{ backgroundColor: theme.palette.background.default }}
+                    />
+                    <Controls style={{ backgroundColor: theme.palette.background.default, color: theme.palette.text.primary }} />
+                    <Background color={theme.palette.type === 'dark' ? '#fff' : '#000'} />
                 </ReactFlow>
             </div>
             <Drawer anchor="right" open={drawerOpen} onClose={handleCloseDrawer}>
-                <div style={{ width: '50vw', padding: '16px' }}>
+                <div style={{ width: '50vw', padding: '16px', backgroundColor: theme.palette.background.default, color: theme.palette.text.primary }}>
                     <IconButton onClick={handleCloseDrawer}>
                         <CloseIcon />
                     </IconButton>
@@ -301,7 +306,7 @@ const CrossplaneResourceGraph = () => {
                                         </Button>
                                     </Box>
                                 </Box>
-                                <SyntaxHighlighter language="yaml" style={docco}>
+                                <SyntaxHighlighter language="yaml" style={theme.palette.type === 'dark' ? dark : docco}>
                                     {YAML.dump(removeManagedFields(selectedResource))}
                                 </SyntaxHighlighter>
                             </Box>
