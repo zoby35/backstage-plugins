@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useApi, configApiRef } from '@backstage/core-plugin-api';
 import { Table, TableColumn } from '@backstage/core-components';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { Card, CardContent, Typography, Grid, Box } from '@material-ui/core';
-import './ScaleOpsDashboard.css';
+import { useTheme, Card, CardContent, Typography, Grid, Box } from '@material-ui/core';
+//import './ScaleOpsDashboard.css';
 
 interface Workload {
   id: string;
@@ -179,6 +179,7 @@ const NetworkUsageTable = ({ networkUsage }: { networkUsage: NetworkUsage[] }) =
 
 export const ScaleOpsDashboard = () => {
   const configApi = useApi(configApiRef);
+  const theme = useTheme();
   const { entity } = useEntity();
   const [workloads, setWorkloads] = useState<Workload[]>([]);
   const [selectedWorkload, setSelectedWorkload] = useState<Workload | null>(null);
@@ -351,14 +352,23 @@ export const ScaleOpsDashboard = () => {
   return (
     <>
       <Table
-  title="Scaleops Workloads"
-  options={{ search: false, paging: false, rowStyle: (rowData: Workload) => ({
-    backgroundColor: selectedWorkload && selectedWorkload.id === rowData.id ? '#EEE' : '#FFF'
-  }) }}
-  columns={columns}
-  data={workloads}
-  onRowClick={(_, rowData) => rowData && setSelectedWorkload(rowData)}
-/>
+        title="Scaleops Workloads"
+        options={{
+          search: false,
+          paging: false,
+          rowStyle: (rowData: Workload) => ({
+            backgroundColor: selectedWorkload && selectedWorkload.id === rowData.id ? theme.palette.action.selected : theme.palette.background.default,
+            color: theme.palette.text.primary,
+          }),
+          headerStyle: {
+            backgroundColor: theme.palette.background.default,
+            color: theme.palette.text.primary,
+          },
+        }}
+        columns={columns}
+        data={workloads}
+        onRowClick={(_, rowData) => rowData && setSelectedWorkload(rowData)}
+      />
       <Box mt={3}>
         {selectedWorkload && (
           <Grid container spacing={3}>
