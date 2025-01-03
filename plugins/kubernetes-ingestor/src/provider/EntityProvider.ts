@@ -291,15 +291,17 @@ export class XRDTemplateEntityProvider implements EntityProvider {
     };
 
     
+    const convertDefaultValuesToPlaceholders = this.config.getOptionalBoolean('kubernetesIngestor.crossplane.xrds.convertDefaultValuesToPlaceholders');
+
     const processProperties = (properties: Record<string, any>): Record<string, any> => {
       const processedProperties: Record<string, any> = {};
-    
+  
       for (const [key, value] of Object.entries(properties)) {
         const typedValue = value as Record<string, any>;
         if (typedValue.type === 'object' && typedValue.properties) {
           const subProperties = processProperties(typedValue.properties);
           processedProperties[key] = { ...typedValue, properties: subProperties };
-    
+  
           if (typedValue.properties.enabled && typedValue.properties.enabled.type === 'boolean') {
             const siblingKeys = Object.keys(typedValue.properties).filter(k => k !== 'enabled');
             processedProperties[key].dependencies = {
@@ -317,10 +319,15 @@ export class XRDTemplateEntityProvider implements EntityProvider {
             siblingKeys.forEach(k => delete processedProperties[key].properties[k]);
           }
         } else {
-          processedProperties[key] = typedValue;
+          if (convertDefaultValuesToPlaceholders && typedValue.default !== undefined && typedValue.type !== 'boolean') {
+            processedProperties[key] = { ...typedValue, 'ui:placeholder': typedValue.default };
+            delete processedProperties[key].default;
+          } else {
+            processedProperties[key] = typedValue;
+          }
         }
       }
-    
+  
       return processedProperties;
     };
     

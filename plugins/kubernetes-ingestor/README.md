@@ -83,6 +83,8 @@ kubernetesIngestor:
         timeout: 600 
       # Allows ingestion to be opt-in or opt-out by either requiring or not a dedicated annotation to ingest a xrd (terasky.backstage.io/add-to-catalog or terasky.backstage.io/exclude-from-catalog)
       ingestAllXRDs: true
+      # Will convert default values from the XRD into placeholders in the UI instead of always adding them to the generated manifest.
+      convertDefaultValuesToPlaceholders: true
 ```
 
 ## Usage
