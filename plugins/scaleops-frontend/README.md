@@ -37,17 +37,16 @@ To install and configure the `scaleops-frontend` plugin in your Backstage instan
   ```
 
 ## Configuration
-* available config options:
+* With internal auth setup in scaleops:
 ```yaml
 scaleops:
   baseUrl: url for your scaleops instance
   linkToDashboard: true
   authentication: 
-    enabled: false # planned for future expansion in order to support authenticated scaleops instances.
-```
+    enabled: true
+    user: EXMAPLE_USER
+    password: EXAMPLE_PASSWORD
 
-* Configure Backstage Proxy
-```yaml
 proxy:
   endpoints:
     '/scaleops':
@@ -55,6 +54,22 @@ proxy:
       changeOrigin: true
       credentials: dangerously-allow-unauthenticated
 ```
+* With no auth setup in scaleops
+```yaml
+scaleops:
+  baseUrl: url for your scaleops instance
+  linkToDashboard: true
+  authentication: 
+    enabled: false
+
+proxy:
+  endpoints:
+    '/scaleops':
+      target: 'URL OF YOUR SCALEOPS INSTANCE'
+      changeOrigin: true
+      credentials: dangerously-allow-unauthenticated
+```
+* Other Auth options are planned for future versions
 
 ## Usage
 Once installed and configured, the scaleops-frontend plugin will provide components for visualizing ScaleOps data in the Backstage UI.
