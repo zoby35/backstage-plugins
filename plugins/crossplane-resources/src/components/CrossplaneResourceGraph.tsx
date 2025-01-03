@@ -18,8 +18,13 @@ import { showResourceGraph } from '@terasky/backstage-plugin-crossplane-common';
 
 const removeManagedFields = (resource: KubernetesObject) => {
     const resourceCopy = JSON.parse(JSON.stringify(resource)); // Deep copy the resource
-    if (resourceCopy.metadata && resourceCopy.metadata.managedFields) {
-        delete resourceCopy.metadata.managedFields;
+    if (resourceCopy.metadata) {
+        if (resourceCopy.metadata.managedFields) {
+            delete resourceCopy.metadata.managedFields;
+        }
+        if (resourceCopy.metadata.annotations && resourceCopy.metadata.annotations["kubectl.kubernetes.io/last-applied-configuration"]) {
+            delete resourceCopy.metadata.annotations["kubectl.kubernetes.io/last-applied-configuration"];
+        }
     }
     return resourceCopy;
 };
