@@ -52,7 +52,6 @@ proxy:
     '/scaleops':
       target: 'URL OF YOUR SCALEOPS INSTANCE'
       changeOrigin: true
-      credentials: dangerously-allow-unauthenticated
 ```
 * With no auth setup in scaleops
 ```yaml
@@ -67,7 +66,6 @@ proxy:
     '/scaleops':
       target: 'URL OF YOUR SCALEOPS INSTANCE'
       changeOrigin: true
-      credentials: dangerously-allow-unauthenticated
 ```
 * Other Auth options are planned for future versions
 
