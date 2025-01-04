@@ -13,6 +13,15 @@ import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { usePermission } from '@backstage/plugin-permission-react';
 import { listManagedResourcesPermission, viewYamlManagedResourcesPermission, showEventsManagedResourcesPermission } from '@terasky/backstage-plugin-crossplane-common';
 import { dark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import pluralize from 'pluralize';
+
+interface ExtendedKubernetesObject extends KubernetesObject {
+    spec?: {
+        providerConfigRef?: {
+            name?: string;
+        };
+    };
+}
 
 const removeManagedFields = (resource: KubernetesObject) => {
     const resourceCopy = JSON.parse(JSON.stringify(resource)); // Deep copy the resource
@@ -33,9 +42,9 @@ const CrossplaneManagedResources = () => {
     const config = useApi(configApiRef);
     const theme = useTheme();
     const enablePermissions = config.getOptionalBoolean('crossplane.enablePermissions') ?? false;
-    const [resources, setResources] = useState<Array<KubernetesObject>>([]);
+    const [resources, setResources] = useState<Array<ExtendedKubernetesObject>>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedResource, setSelectedResource] = useState<KubernetesObject | null>(null);
+    const [selectedResource, setSelectedResource] = useState<ExtendedKubernetesObject | null>(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [eventsDialogOpen, setEventsDialogOpen] = useState(false);
     const [events, setEvents] = useState<Array<any>>([]);
@@ -59,65 +68,52 @@ const CrossplaneManagedResources = () => {
         const fetchResources = async () => {
             setLoading(true);
             const annotations = entity.metadata.annotations || {};
-            const clusterOfClaim = annotations['backstage.io/managed-by-location'].split(": ")[1];
-      
-            try {
-              const response = await kubernetesApi.proxy({
-                clusterName: clusterOfClaim,
-                path: '/apis',
-                init: {
-                  method: 'GET',
-                  headers: {
-                    'Accept': 'application/json;g=apidiscovery.k8s.io;v=v2beta1;as=APIGroupDiscoveryList,application/json',
-                  },
-                },
-              });
-      
-              const apiGroupDiscoveryList = await response.json();
-              const crdMap: { [name: string]: any } = {};
-      
-              apiGroupDiscoveryList.items.forEach((group: any) => {
-                group.versions.forEach((version: any) => {
-                  version.resources.forEach((resource: any) => {
-                    if (resource.categories?.includes('crossplane') && resource.categories?.includes('managed')) {
-                      crdMap[resource.resource] = {
-                        group: group.metadata.name,
-                        apiVersion: version.version,
-                        plural: resource.resource,
-                      };
-                    }
-                  });
-                });
-              });
-      
-              const customResources = Object.values(crdMap);
-      
-              const resourcesResponse = await kubernetesApi.getCustomObjectsByEntity({
-                entity,
-                auth: { type: 'serviceAccount' },
-                customResources,
-              });
-      
-              const allResources = resourcesResponse.items.flatMap(item =>
-                item.resources.flatMap(resourceGroup => resourceGroup.resources)
-              ).filter(resource => resource);
-      
-              const managedResources = allResources.filter(resource =>
-                !resource.metadata?.finalizers?.includes('composite.apiextensions.crossplane.io')
-              );
-      
-              setResources(managedResources);
-            } catch (error) {
-              throw error;
-            } finally {
-              setLoading(false);
+            const plural = annotations['terasky.backstage.io/composite-plural'];
+            const group = annotations['terasky.backstage.io/composite-group'];
+            const version = annotations['terasky.backstage.io/composite-version'];
+            const name = annotations['terasky.backstage.io/composite-name'];
+            const clusterOfComposite = annotations['backstage.io/managed-by-location'].split(": ")[1];
+
+            if (!plural || !group || !version || !name || !clusterOfComposite) {
+                setLoading(false);
+                return;
             }
-          };
+
+            const url = `/apis/${group}/${version}/${plural}/${name}`;
+
+            try {
+                const response = await kubernetesApi.proxy({
+                    clusterName: clusterOfComposite,
+                    path: url,
+                    init: { method: 'GET' },
+                });
+                const compositeResource = await response.json();
+                const resourceRefs = compositeResource.spec.resourceRefs || [];
+
+                const managedResources = await Promise.all(resourceRefs.map(async (ref: any) => {
+                    const [apiGroup, apiVersion] = ref.apiVersion.split('/');
+                    const kindPlural = pluralize(ref.kind.toLowerCase());
+                    const resourceUrl = `/apis/${apiGroup}/${apiVersion}/${kindPlural}/${ref.name}`;
+                    const resourceResponse = await kubernetesApi.proxy({
+                        clusterName: clusterOfComposite,
+                        path: resourceUrl,
+                        init: { method: 'GET' },
+                    });
+                    return await resourceResponse.json();
+                }));
+
+                setResources(managedResources);
+            } catch (error) {
+                throw error;
+            } finally {
+                setLoading(false);
+            }
+        };
 
         fetchResources();
     }, [kubernetesApi, entity, canListManagedResources]);
 
-    const handleViewYaml = (resource: KubernetesObject) => {
+    const handleViewYaml = (resource: ExtendedKubernetesObject) => {
         if (!canViewYaml) {
             return;
         }
@@ -136,14 +132,14 @@ const CrossplaneManagedResources = () => {
         setOrderBy(property);
     };
 
-    const handleDownloadYaml = (resource: KubernetesObject) => {
+    const handleDownloadYaml = (resource: ExtendedKubernetesObject) => {
         const yamlContent = YAML.dump(removeManagedFields(resource));
         const blob = new Blob([yamlContent], { type: 'text/yaml;charset=utf-8' });
         const fileName = `${resource.kind}-${resource.metadata?.name}.yaml`;
         saveAs(blob, fileName);
     };
 
-    const handleGetEvents = async (resource: KubernetesObject) => {
+    const handleGetEvents = async (resource: ExtendedKubernetesObject) => {
         if (!canShowEvents) {
             return;
         }
@@ -190,6 +186,8 @@ const CrossplaneManagedResources = () => {
             const aReady = (a as any).status?.conditions?.some((condition: any) => condition.type === 'Ready') ? 'Yes' : 'No';
             const bReady = (b as any).status?.conditions?.some((condition: any) => condition.type === 'Ready') ? 'Yes' : 'No';
             return aReady.localeCompare(bReady) * (order === 'asc' ? 1 : -1);
+        } else if (orderBy === 'providerConfig') {
+            return (a.spec?.providerConfigRef?.name || '').localeCompare(b.spec?.providerConfigRef?.name || '') * (order === 'asc' ? 1 : -1);
         }
         return 0;
     });
@@ -227,7 +225,6 @@ const CrossplaneManagedResources = () => {
                                         Name
                                     </TableSortLabel>
                                 </TableCell>
-
                                 <TableCell sortDirection={orderBy === 'synced' ? order : false}>
                                     <TableSortLabel
                                         active={orderBy === 'synced'}
@@ -246,6 +243,15 @@ const CrossplaneManagedResources = () => {
                                         Ready
                                     </TableSortLabel>
                                 </TableCell>
+                                <TableCell sortDirection={orderBy === 'providerConfig' ? order : false}>
+                                    <TableSortLabel
+                                        active={orderBy === 'providerConfig'}
+                                        direction={orderBy === 'providerConfig' ? order : 'asc'}
+                                        onClick={() => handleRequestSort('providerConfig')}
+                                    >
+                                        Provider Config
+                                    </TableSortLabel>
+                                </TableCell>
                                 <TableCell>Kubernetes YAML</TableCell>
                                 <TableCell>Kubernetes Events</TableCell>
                             </TableRow>
@@ -257,6 +263,7 @@ const CrossplaneManagedResources = () => {
                                     <TableCell>{resource.metadata?.name}</TableCell>
                                     <TableCell>{(resource as any).status?.conditions?.some((condition: any) => condition.type === 'Synced') ? 'Yes' : 'No'}</TableCell>
                                     <TableCell>{(resource as any).status?.conditions?.some((condition: any) => condition.type === 'Ready') ? 'Yes' : 'No'}</TableCell>
+                                    <TableCell>{resource.spec?.providerConfigRef?.name || 'N/A'}</TableCell>
                                     <TableCell>
                                         <Button onClick={() => handleViewYaml(resource)} disabled={!canViewYaml}>View YAML</Button>
                                     </TableCell>

@@ -14,6 +14,7 @@ import { usePermission } from '@backstage/plugin-permission-react';
 import { listAdditionalResourcesPermission, showEventsAdditionalResourcesPermission, viewYamlAdditionalResourcesPermission } from '@terasky/backstage-plugin-crossplane-common';
 import { configApiRef } from '@backstage/core-plugin-api';
 import { dark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import pluralize from 'pluralize';
 
 interface ExtendedKubernetesObject extends KubernetesObject {
     status?: {
@@ -82,12 +83,11 @@ const CrossplaneUsedResourcesTable = () => {
                 const xrdPlural = annotations['terasky.backstage.io/composite-plural'];
                 const xrdGroup = annotations['terasky.backstage.io/composite-group'];
                 const xrdName = `${xrdPlural}.${xrdGroup}`;
-                console.log(xrdName);
+                const xrdVersion = annotations['terasky.backstage.io/composite-version'];
                 const compositionName = annotations['terasky.backstage.io/composition-name'];
                 const compositionFunctions = annotations['terasky.backstage.io/composition-functions']?.split(',') || [];
 
                 if (xrdName) {
-                    //              /apis/apiextensions.crossplane.io/v1/compositeresourcedefinitions/
                     const xrdUrl = `/apis/apiextensions.crossplane.io/v1/compositeresourcedefinitions/${xrdName}`;
                     const xrdResponse = await kubernetesApi.proxy({
                         clusterName: clusterOfClaim,
@@ -134,8 +134,61 @@ const CrossplaneUsedResourcesTable = () => {
                     }
                 });
 
+                // Fetch composite resource
+                const compositeUrl = `/apis/${xrdGroup}/${xrdVersion}/${xrdPlural}/${annotations['terasky.backstage.io/composite-name']}`;
+                console.log("compositeUrl", compositeUrl)
+                const compositeResponse = await kubernetesApi.proxy({
+                    clusterName: clusterOfClaim,
+                    path: compositeUrl,
+                    init: { method: 'GET' },
+                });
+                const compositeResource = await compositeResponse.json();
+                const resourceRefs = compositeResource.spec.resourceRefs || [];
+                console.log("resourceRefs", resourceRefs)
+
+                // Deduplicate managed resources based on kind and apiVersion
+                const uniqueManagedResources = Array.from(new Set(resourceRefs.map((ref: { kind: any; apiVersion: any; }) => `${ref.kind}-${ref.apiVersion}`)))
+                    .map(key => resourceRefs.find((ref: { kind: any; apiVersion: any; }) => `${ref.kind}-${ref.apiVersion}` === key));
+                console.log("uniqueManagedResources", uniqueManagedResources)
+
+                // Fetch provider resources
+                const providerResourcesSet = new Set();
+                const providerResources = await Promise.all(uniqueManagedResources.map(async (ref: any) => {
+                    console.log("trying to pull CRDs for", ref.kind, ref.apiVersion)
+                    const crdUrl = `/apis/apiextensions.k8s.io/v1/customresourcedefinitions/${pluralize(ref.kind.toLowerCase())}.${ref.apiVersion.split('/')[0]}`;
+                    const crdResponse = await kubernetesApi.proxy({
+                        clusterName: clusterOfClaim,
+                        path: crdUrl,
+                        init: { method: 'GET' },
+                    });
+                    const crd = await crdResponse.json();
+                    console.log("crd", crd)
+                    const ownerReferences = crd.metadata.ownerReferences || [];
+                    const providerRefs = ownerReferences.filter((ownerRef: { kind: string; }) => ownerRef.kind === 'Provider');
+                    console.log("providerRefs", providerRefs)
+                    const providerResources = await Promise.all(providerRefs.map(async (providerRef: any) => {
+                        const providerKey = `${providerRef.apiVersion}-${providerRef.name}`;
+                        if (providerResourcesSet.has(providerKey)) {
+                            return null;
+                        }
+                        providerResourcesSet.add(providerKey);
+                        const providerUrl = `/apis/${providerRef.apiVersion}/providers/${providerRef.name}`;
+                        const providerResponse = await kubernetesApi.proxy({
+                            clusterName: clusterOfClaim,
+                            path: providerUrl,
+                            init: { method: 'GET' },
+                        });
+                        const providerResource = await providerResponse.json();
+                        console.log("providerResource", providerResource)
+                        return providerResource;
+                    }));
+                    return providerResources.filter(Boolean);
+                }));
+
+                setResources(prevResources => [...prevResources, ...providerResources.flat()]);
+
             } catch (error) {
-                throw error;
+                console.error("Error fetching resources:", error);
             }
         };
 
@@ -193,7 +246,7 @@ const CrossplaneUsedResourcesTable = () => {
             setEvents(eventsResponse.items);
             setEventsDialogOpen(true);
         } catch (error) {
-            throw error;
+            console.error("Error fetching events:", error);
         }
     };
 
