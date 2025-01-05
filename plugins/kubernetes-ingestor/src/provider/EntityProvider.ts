@@ -586,11 +586,112 @@ export class XRDTemplateEntityProvider implements EntityProvider {
         }
       }
     };
+    const publishParametersNoGitSelection = {
+      title: "Creation Settings",
+      properties: {
+        pushToGit: {
+          title: "Push Manifest to GitOps Repository",
+          type: "boolean",
+          default: true
+        }
+      },
+      dependencies: {
+        pushToGit: {
+          oneOf: [
+            {
+              properties: {
+                pushToGit: {
+                  enum: [
+                    false
+                  ]
+                }
+              }
+            },
+            {
+              properties: {
+                pushToGit: {
+                  enum: [
+                    true
+                  ]
+                },
+                manifestLayout: {
+                  type: "string",
+                  description: "Layout of the manifest",
+                  default: "cluster-scoped",
+                  "ui:help": "Choose how the manifest should be generated in the repo.\n* Cluster-scoped - a manifest is created for each selected cluster under the root directory of the clusters name\n* namespace-scoped - a manifest is created for the resource under the root directory with the namespace name\n* custom - a manifest is created under the specified base path",
+                  enum: [
+                    "cluster-scoped",
+                    "namespace-scoped",
+                    "custom"
+                  ]
+                }
+              },
+              dependencies: {
+                manifestLayout: {
+                  oneOf: [
+                    {
+                      properties: {
+                        manifestLayout: {
+                          enum: [
+                            "cluster-scoped"
+                          ]
+                        },
+                        clusters: {
+                          title: "Target Clusters",
+                          description: "The target clusters to apply the resource to",
+                          type: "array",
+                          minItems: 1,
+                          items: {
+                            enum: clusters,
+                            type: 'string',
+                          },
+                          uniqueItems: true,
+                          'ui:widget': 'checkboxes',
+                        },
+                      },
+                      type: 'object',
+                      required: [
+                        "clusters"
+                      ]
+                    },
+                    {
+                      properties: {
+                        manifestLayout: {
+                          enum: [
+                            "custom"
+                          ]
+                        },
+                        basePath: {
+                          type: "string",
+                          description: "Base path in GitOps repository to push the manifest to"
+                        }
+                      },
+                      required: [
+                        "basePath"
+                      ]
+                    },
+                    {
+                      properties: {
+                        manifestLayout: {
+                          enum: [
+                            "namespace-scoped"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    };
     if (this.config.getOptionalBoolean('kubernetesIngestor.crossplane.xrds.publishPhase.allowRepoSelection')) {
       return additionalParameters ? [mainParameterGroup, additionalParameters, crossplaneParameters, publishParameters] : [mainParameterGroup, crossplaneParameters, publishParameters];
     }
     
-      return additionalParameters ? [mainParameterGroup, additionalParameters, crossplaneParameters] : [mainParameterGroup, crossplaneParameters];
+      return additionalParameters ? [mainParameterGroup, additionalParameters, crossplaneParameters, publishParametersNoGitSelection] : [mainParameterGroup, crossplaneParameters, publishParametersNoGitSelection];
     
   }
 
