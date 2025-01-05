@@ -20,27 +20,44 @@ To install and configure the `kyverno-policy-reports` frontend plugin in your Ba
   ```
   * Add to Entity Page (packages/app/src/components/catalog/EntityPage.tsx)
   ```javascript
-  import { KyvernoPolicyReportsTable } from '@terasky/backstage-plugin-kyverno-policy-reports';
+  import { KyvernoPolicyReportsTable, KyvernoOverviewCard } from '@terasky/backstage-plugin-kyverno-policy-reports';
   
   ...
+  const overviewContent = (
+    <Grid container spacing={3} alignItems="stretch">
+
+      ...
+
+      <EntitySwitch>
+        <EntitySwitch.Case if={isKubernetesAvailable}>
+          <Grid item md={6}>
+            <KyvernoOverviewCard />
+          </Grid>
+        </EntitySwitch.Case>
+      </EntitySwitch>
+
+      ... 
+
+    </Grid>
+  );
 
   const serviceEntityPage = (
-  <EntityLayout>
-    ...
-    
-    <EntityLayout.Route path="/kyverno-policy-reports" title="Kyverno Policy Reports">
-      <KyvernoPolicyReportsTable />
-    </EntityLayout.Route>
+    <EntityLayout>
+      ...
+      
+      <EntityLayout.Route path="/kyverno-policy-reports" title="Kyverno Policy Reports">
+        <KyvernoPolicyReportsTable />
+      </EntityLayout.Route>
 
-    ...
-  </EntityLayout>
+      ...
+    </EntityLayout>
   );
   ```
 
 # Usage
 Once installed and configured, the kyverno-policy-reports plugin will provide components for visualizing Kyverno policy reports in the Backstage UI.
 
-You can see i haigh level table per cluster with the resources of this components results:
+You can see a high level table per cluster with the resources of this components results:
 ![img01](../../images/kyverno-01.png)
 
 By clicking on a specific resource row, details will expand bellow:
@@ -48,6 +65,9 @@ By clicking on a specific resource row, details will expand bellow:
 
 You can click on the policy name, and get the full YAML of the policy which this result is made by:
 ![img03](../../images/kyverno-03.png)
+
+You can also see a general overview of the results on the overview page of the component:
+![img04](../../images/kyverno-04.png)
 
 # Contributing
 Contributions are welcome! Please open an issue or submit a pull request on GitHub.

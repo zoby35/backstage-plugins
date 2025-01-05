@@ -1,1 +1,1 @@
-export { kyvernoPolicyReportsPlugin, KyvernoPolicyReportsTable } from './plugin';
+export { kyvernoPolicyReportsPlugin, KyvernoPolicyReportsTable, KyvernoOverviewCard } from './plugin';

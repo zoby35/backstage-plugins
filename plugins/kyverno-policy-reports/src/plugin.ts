@@ -20,3 +20,12 @@ export const KyvernoPolicyReportsTable = kyvernoPolicyReportsPlugin.provide(
     },
   }),
 );
+
+export const KyvernoOverviewCard = kyvernoPolicyReportsPlugin.provide(
+  createComponentExtension({
+    name: 'KyvernoOverviewCard',
+    component: {
+      lazy: () => import('./components/KyvernoOverviewCard').then(m => m.default),
+    },
+  }),
+);
