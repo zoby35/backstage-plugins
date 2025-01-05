@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useApi, configApiRef } from '@backstage/core-plugin-api';
+import { useApi, configApiRef, identityApiRef } from '@backstage/core-plugin-api';
 import { Table, TableColumn } from '@backstage/core-components';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useTheme, Card, CardContent, Typography, Grid, Box } from '@material-ui/core';
@@ -179,6 +179,7 @@ const NetworkUsageTable = ({ networkUsage }: { networkUsage: NetworkUsage[] }) =
 
 export const ScaleOpsDashboard = () => {
   const configApi = useApi(configApiRef);
+  const identityApi = useApi(identityApiRef);
   const theme = useTheme();
   const { entity } = useEntity();
   const [workloads, setWorkloads] = useState<Workload[]>([]);
@@ -211,7 +212,9 @@ export const ScaleOpsDashboard = () => {
     const fetchWorkloads = async () => {
       const labelSelector = entity.metadata.annotations?.['backstage.io/kubernetes-label-selector'];
       if (!labelSelector) return;
-
+    
+      const token = await identityApi.getCredentials(); 
+      
       const backendUrl = configApi.getString('backend.baseUrl');
       const baseURL = `${backendUrl  }/api/proxy/scaleops`;
       const scaleopsConfig = configApi.getConfig('scaleops');
@@ -224,7 +227,7 @@ export const ScaleOpsDashboard = () => {
         const password = authConfig.getString('password');
         const authResponse = await fetch(`${baseURL}/auth/callback`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token.token}` },
           body: JSON.stringify({ userName: user, password: password }),
         });
         authToken = authResponse.headers.get('Location')?.split("=")[1];
@@ -237,7 +240,7 @@ export const ScaleOpsDashboard = () => {
       } else {
         response = await fetch(`${baseURL}/api/v1/dashboard/byNamespace?multiCluster=true&logicalLabel=AND`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token.token}` },
           body: JSON.stringify({ label: labelSelector.split(',') }),
         });
         data = await response.json();
@@ -290,11 +293,13 @@ export const ScaleOpsDashboard = () => {
       const labelSelector = entity.metadata.annotations?.['backstage.io/kubernetes-label-selector'];
       if (!labelSelector) return;
 
+      const token = await identityApi.getCredentials(); 
+
       const backendUrl = configApi.getString('backend.baseUrl');
       const baseURL = `${backendUrl  }/api/proxy/scaleops`;
       const response = await fetch(`${baseURL}/detailedCostReport/getWorkloads?multiCluster=true&range=7d`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Scaleops-Cluster': selectedWorkload.clusterName },
+        headers: { 'Content-Type': 'application/json', 'X-Scaleops-Cluster': selectedWorkload.clusterName, Authorization: `Bearer ${token.token}` },
         body: JSON.stringify({
           clusterFilters: [selectedWorkload.clusterName],
           namespaces: [selectedWorkload.namespace],
@@ -312,11 +317,14 @@ export const ScaleOpsDashboard = () => {
 
   useEffect(() => {
     const checkNetworkCostEnabled = async () => {
+
+      const token = await identityApi.getCredentials(); 
+
       const backendUrl = configApi.getString('backend.baseUrl');
       const baseURL = `${backendUrl  }/api/proxy/scaleops`;
       const response = await fetch(`${baseURL}/api/v1/networkCost/networkCostEnabled?multiCluster=true`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token.token}` },
       });
       const data = await response.json();
       if (selectedWorkload && data.networkCostEnabled[selectedWorkload.clusterName]) {
@@ -333,6 +341,9 @@ export const ScaleOpsDashboard = () => {
     if (!selectedWorkload || !networkCostEnabled) return;
 
     const fetchNetworkUsage = async () => {
+
+      const token = await identityApi.getCredentials(); 
+
       const backendUrl = configApi.getString('backend.baseUrl');
       const baseURL = `${backendUrl  }/api/proxy/scaleops`;
       const now = Date.now();
@@ -340,7 +351,7 @@ export const ScaleOpsDashboard = () => {
       const to = now;
       const response = await fetch(`${baseURL}/api/v1/workload-network?name=${selectedWorkload.workloadName}&namespace=${selectedWorkload.namespace}&workloadType=${selectedWorkload.type}&from=${from}&to=${to}`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json', 'X-Scaleops-Cluster': selectedWorkload.clusterName },
+        headers: { 'Content-Type': 'application/json', 'X-Scaleops-Cluster': selectedWorkload.clusterName, Authorization: `Bearer ${token.token}` },
       });
       const data = await response.json();
       setNetworkUsage(data.destinations);
