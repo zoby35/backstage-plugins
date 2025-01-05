@@ -66,7 +66,7 @@ import { DevpodComponent, isDevpodAvailable } from '@terasky/backstage-plugin-de
 import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
 import { EntityPickerFieldExtension, RepoUrlPickerFieldExtension } from '@backstage/plugin-scaffolder';
 import { ScaleOpsDashboard } from '@terasky/backstage-plugin-scaleops-frontend';
-import { KyvernoPolicyReportsTable } from '@terasky/backstage-plugin-kyverno-policy-reports';
+import { KyvernoOverviewCard, KyvernoPolicyReportsTable } from '@terasky/backstage-plugin-kyverno-policy-reports';
 const techdocsContent = (
   <EntityTechdocsContent>
     <TechDocsAddons>
@@ -144,6 +144,11 @@ const overviewContent = (
       <EntitySwitch.Case if={isDevpodAvailable}>
         <Grid item md={6}>
           <DevpodComponent />
+        </Grid>
+      </EntitySwitch.Case>
+      <EntitySwitch.Case if={isKubernetesAvailable}>
+        <Grid item md={6}>
+          <KyvernoOverviewCard />
         </Grid>
       </EntitySwitch.Case>
     </EntitySwitch>
