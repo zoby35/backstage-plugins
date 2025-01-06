@@ -56,4 +56,11 @@ export const CrossplaneResourceGraph = crossplaneResourcesPlugin.provide(
     },
   }),
 );
-
+export const CrossplaneOverviewCard = crossplaneResourcesPlugin.provide(
+  createComponentExtension({
+    name: 'CrossplaneOverviewCard',
+    component: {
+      lazy: () => import('./components/CrossplaneOverviewCard').then(m => m.default),
+    },
+  }),
+);

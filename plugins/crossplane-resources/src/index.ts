@@ -1,2 +1,2 @@
-export { crossplaneResourcesPlugin, CrossplaneResourceGraph, CrossplaneAllResourcesTable, CrossplaneClaimResourcesTable, CrossplaneCompositeResourcesTable, CrossplaneManagedResources } from './plugin';
+export { crossplaneResourcesPlugin, CrossplaneResourceGraph, CrossplaneAllResourcesTable, CrossplaneClaimResourcesTable, CrossplaneCompositeResourcesTable, CrossplaneManagedResources, CrossplaneOverviewCard } from './plugin';
 export { isCrossplaneAvailable } from './components/isCrossplaneAvailable'

@@ -21,19 +21,15 @@ To install and configure the `crossplane-resources` frontend plugin in your Back
   ```
   * Add to Entity Page (packages/app/src/components/catalog/EntityPage.tsx)
   ```javascript
-  import { CrossplaneAllResourcesTable, CrossplaneResourceGraph, isCrossplaneAvailable } from '@terasky/backstage-plugin-crossplane-resources-frontend';
+  import { CrossplaneAllResourcesTable, CrossplaneResourceGraph, isCrossplaneAvailable, CrossplaneOverviewCard } from '@terasky/backstage-plugin-crossplane-resources-frontend';
 
   const crossplaneOverviewContent = (
     <Grid container spacing={3} alignItems="stretch">
-      {entityWarningContent}
       <Grid item md={6}>
         <EntityAboutCard variant="gridItem" />
       </Grid>
-      <Grid item md={4} xs={12}>
-        <EntityLinksCard />
-      </Grid>
-      <Grid item md={8} xs={12}>
-        <EntityHasSubcomponentsCard variant="gridItem" />
+      <Grid item md={6}>
+        < CrossplaneOverviewCard />
       </Grid>
     </Grid>
   );
@@ -92,6 +88,8 @@ If you have integrated the permissions elements, the UI will render accordingly
 ![no permissions](../../images/no-permissions.png)
 ![some permissions](../../images/some-permissions.png)
 
+There is also an overview card which shows basic information:
+![overview](../../images/claim-info.png)
 ## Contributing
 Contributions are welcome! Please open an issue or submit a pull request on GitHub.
 

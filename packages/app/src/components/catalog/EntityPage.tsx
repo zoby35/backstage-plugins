@@ -60,13 +60,14 @@ import {
   EntityKubernetesContent,
   isKubernetesAvailable,
 } from '@backstage/plugin-kubernetes';
-import { CrossplaneAllResourcesTable, CrossplaneResourceGraph, isCrossplaneAvailable } from '@terasky/backstage-plugin-crossplane-resources-frontend';
+import { CrossplaneAllResourcesTable, CrossplaneOverviewCard, CrossplaneResourceGraph, isCrossplaneAvailable } from '@terasky/backstage-plugin-crossplane-resources-frontend';
 import { ScaleopsCard, isScaleopsAvailable } from '@terasky/backstage-plugin-scaleops-frontend'
 import { DevpodComponent, isDevpodAvailable } from '@terasky/backstage-plugin-devpod';
 import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
 import { EntityPickerFieldExtension, RepoUrlPickerFieldExtension } from '@backstage/plugin-scaffolder';
 import { ScaleOpsDashboard } from '@terasky/backstage-plugin-scaleops-frontend';
 import { KyvernoOverviewCard, KyvernoPolicyReportsTable } from '@terasky/backstage-plugin-kyverno-policy-reports';
+
 const techdocsContent = (
   <EntityTechdocsContent>
     <TechDocsAddons>
@@ -156,24 +157,12 @@ const overviewContent = (
 );
 const crossplaneOverviewContent = (
   <Grid container spacing={3} alignItems="stretch">
-    {entityWarningContent}
     <Grid item md={6}>
       <EntityAboutCard variant="gridItem" />
     </Grid>
-
-    <Grid item md={4} xs={12}>
-      <EntityLinksCard />
+    <Grid item md={6}>
+      < CrossplaneOverviewCard />
     </Grid>
-    <Grid item md={8} xs={12}>
-      <EntityHasSubcomponentsCard variant="gridItem" />
-    </Grid>
-    <EntitySwitch>
-      <EntitySwitch.Case if={isDevpodAvailable}>
-        <Grid item md={6}>
-          <DevpodComponent />
-        </Grid>
-      </EntitySwitch.Case>
-    </EntitySwitch>
   </Grid>
 );
 const serviceEntityPage = (
