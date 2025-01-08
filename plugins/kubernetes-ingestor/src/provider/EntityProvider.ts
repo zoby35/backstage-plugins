@@ -81,10 +81,13 @@ export class XRDTemplateEntityProvider implements EntityProvider {
         const entities = xrdData.flatMap(xrd =>
           this.translateXRDVersionsToTemplates(xrd),
         );
-
+        const APIEntites = xrdData.flatMap(xrd =>
+          this.translateXRDVersionsToAPI(xrd),
+        );
+        const allEntities = entities.concat(APIEntites);
         await this.connection.applyMutation({
           type: 'full',
-          entities: entities.map(entity => ({
+          entities: allEntities.map(entity => ({
             entity,
             locationKey: `provider:${this.getProviderName()}`,
           })),
@@ -265,12 +268,54 @@ export class XRDTemplateEntityProvider implements EntityProvider {
     });
   }
 
+  private translateXRDVersionsToAPI(xrd: any): Entity[] {
+    if (!xrd?.metadata || !xrd?.spec?.versions) {
+      throw new Error('Invalid XRD object');
+    }
+     
+    return xrd.spec.versions.map((version: any = {}) => {
+      let xrdOpenAPIDoc: any = {};
+      xrdOpenAPIDoc.openapi = "3.0.0";
+      xrdOpenAPIDoc.info = {
+        title: `${xrd.spec.claimNames.plural}.${xrd.spec.group}`,
+        version: version.name,
+      };
+      xrdOpenAPIDoc.components = {
+        schemas: {
+          Resource: {
+            type: "object",
+            properties: version.schema.openAPIV3Schema.properties
+          }
+        } 
+      }
+      return {
+          apiVersion: 'backstage.io/v1alpha1',
+          kind: 'API',
+          metadata: {
+            name: `${xrd.spec.claimNames.kind.toLowerCase()}-${xrd.spec.group}--${version.name}`,
+            title: `${xrd.spec.claimNames.kind.toLowerCase()}-${xrd.spec.group}--${version.name}`,
+            annotations: {
+              'backstage.io/managed-by-location': `cluster origin: ${xrd.clusterName}`,
+              'backstage.io/managed-by-origin-location': `cluster origin: ${xrd.clusterName}`,
+            },
+          },
+          spec: {
+            type: "openapi",
+            lifecycle: "production",
+            owner: "kubernetes-auto-ingested",
+            system: "kubernets-auto-ingested",
+            definition: yaml.dump(xrdOpenAPIDoc),
+          },
+        };
+      }
+    );
+  }
 
   private extractParameters(version: any, clusters: string[], xrd: any): any[] {
     // Define the title and properties for xrName and xrNamespace
     const mainParameterGroup = {
       title: 'Resource Metadata',
-      required: ['xrName', 'xrNamespace'],
+      required: ['xrName', 'xrNamespace', 'owner'],
       properties: {
         xrName: {
           title: 'Name',
@@ -286,6 +331,17 @@ export class XRDTemplateEntityProvider implements EntityProvider {
           maxLength: 63,
           type: 'string',
         },
+        owner: {
+          title: 'Owner',
+          description: 'The owner of the resource',
+          type: 'string',
+          'ui:field': 'OwnerPicker',
+          'ui:options': {
+            'catalogFilter': {
+              'kind': 'Group',
+            },
+          },
+        }
       },
       type: 'object',
     };
@@ -705,7 +761,8 @@ export class XRDTemplateEntityProvider implements EntityProvider {
         parameters: \${{ parameters }}
         nameParam: xrName
         namespaceParam: xrNamespace
-        excludeParams: ['compositionSelectionStrategy','pushToGit','basePath','manifestLayout','_editData', 'targetBranch', 'repoUrl', 'clusters', "xrName", "xrNamespace"]
+        ownerParam: owner
+        excludeParams: ['owner', 'compositionSelectionStrategy','pushToGit','basePath','manifestLayout','_editData', 'targetBranch', 'repoUrl', 'clusters', "xrName", "xrNamespace"]
         apiVersion: {API_VERSION}
         kind: {KIND}
         clusters: \${{ parameters.clusters if parameters.manifestLayout === 'cluster-scoped' and parameters.pushToGit else ['temp'] }}
@@ -1017,6 +1074,7 @@ export class KubernetesEntityProvider implements EntityProvider {
         lifecycle: annotations['terasky.backstage.io/lifecycle'] || 'production',
         owner: annotations['terasky.backstage.io/owner'] || 'kubernetes-auto-ingested',
         system: annotations['terasky.backstage.io/system'] || claim.metadata.namespace || 'default',
+        consumesApis: [`${claim.kind}-${claim.apiVersion.split('/').join('--')}`],
       },
     };
   }

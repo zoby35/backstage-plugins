@@ -14,6 +14,7 @@ export function createCrossplaneClaimAction() {
     kind: string;
     clusters: string[];
     removeEmptyParams?: boolean;
+    ownerParam: string;
   }>({
     id: 'terasky:claim-template',
     description: 'Templates a claim manifest based on input parameters',
@@ -73,6 +74,11 @@ export function createCrossplaneClaimAction() {
             type: 'boolean',
             default: true,
           },
+          ownerParam: {
+            title: 'Template parameter to map to the owner of the claim',
+            description: "Template parameter to map to the owner of the claim",
+            type: 'string',
+          },
         },
       },
       output: {
@@ -131,6 +137,11 @@ export function createCrossplaneClaimAction() {
         apiVersion: ctx.input.apiVersion,
         kind: ctx.input.kind,
         metadata: {
+          annotations: {
+            'terasky.backstage.io/add-to-catalog': "true",
+            'terasky.backstage.io/owner': ctx.input.parameters[ctx.input.ownerParam],
+            'terasky.backstage.io/system': ctx.input.parameters[ctx.input.namespaceParam],
+          },
           name: ctx.input.parameters[ctx.input.nameParam],
           namespace: ctx.input.parameters[ctx.input.namespaceParam],
         },
