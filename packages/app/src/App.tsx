@@ -38,6 +38,10 @@ import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
 import { RbacPage } from '@backstage-community/plugin-rbac';
 import { githubAuthApiRef } from '@backstage/core-plugin-api';
+import { themes, UnifiedThemeProvider } from '@backstage/theme';
+import { teraskyLightTheme, teraskyDarkTheme } from './theme/teraskyTheme';
+import LightIcon from '@material-ui/icons/WbSunny';
+import Brightness2Icon from '@material-ui/icons/Brightness2';
 
 const app = createApp({
   apis,
@@ -74,6 +78,37 @@ const app = createApp({
       />
     ),
   },
+  themes: [{
+    id: 'terasky-light',
+    title: 'TeraSky Light',
+    variant: 'light',
+    icon: <LightIcon />,
+    Provider: ({ children }) => (
+      <UnifiedThemeProvider theme={teraskyLightTheme} children={children} />
+    ),
+  },
+  {
+    id: 'terasky-dark',
+    title: 'TeraSky Dark',
+    variant: 'dark',
+    icon: <Brightness2Icon />,
+    Provider: ({ children }) => (
+      <UnifiedThemeProvider theme={teraskyDarkTheme} children={children} />
+    ),
+  },
+  {
+    id: 'default-dark',
+    title: 'Default Dark',
+    variant: 'dark',
+    Provider: ({ children }) => <UnifiedThemeProvider theme={themes.dark} children={children} />,
+  },
+  {
+    id: 'default-light',
+    title: 'Default Light',
+    variant: 'light',
+    Provider: ({ children }) => <UnifiedThemeProvider theme={themes.light} children={children} />,
+  },
+],
 });
 
 const routes = (

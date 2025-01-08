@@ -113,7 +113,7 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
             
           </SidebarSubmenu>
         </SidebarItem>
-        <SidebarItem icon={SiKubernetes} text="Kubernetes" to={"/catalog"}>
+        <SidebarItem icon={SiKubernetes} text="Kubernetes">
           <SidebarSubmenu title="Kubernetes">
           <SidebarSubmenuItem title="Namespaces" to="catalog?filters[kind]=system&filters[type]=kubernetes-namespace" icon={SiKubernetes} />
             <SidebarSubmenuItem title="Claims" to="catalog?filters[kind]=component&filters[type]=crossplane-claim" icon={SiKubernetes} />
