@@ -61,7 +61,7 @@ import {
   isKubernetesAvailable,
 } from '@backstage/plugin-kubernetes';
 import { CrossplaneAllResourcesTable, CrossplaneOverviewCard, CrossplaneResourceGraph, isCrossplaneAvailable } from '@terasky/backstage-plugin-crossplane-resources-frontend';
-import { ScaleopsCard, isScaleopsAvailable } from '@terasky/backstage-plugin-scaleops-frontend'
+import { isScaleopsAvailable } from '@terasky/backstage-plugin-scaleops-frontend'
 import { DevpodComponent, isDevpodAvailable } from '@terasky/backstage-plugin-devpod';
 import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
 import { EntityPickerFieldExtension, RepoUrlPickerFieldExtension } from '@backstage/plugin-scaffolder';
