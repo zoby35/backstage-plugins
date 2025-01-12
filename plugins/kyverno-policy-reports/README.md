@@ -53,7 +53,41 @@ To install and configure the `kyverno-policy-reports` frontend plugin in your Ba
     </EntityLayout>
   );
   ```
+If you are also using the Crossplane Plugins and want Kyverno policy reports for the Crossplane Claims and Composite resources you can add the relevant components like bellow:
+```javascript
+  import { KyvernoCrossplanePolicyReportsTable, KyvernoCrossplaneOverviewCard } from '@terasky/backstage-plugin-kyverno-policy-reports';
+  
+  ...
+  const crossplaneOverviewContent = (
+    <Grid container spacing={3} alignItems="stretch">
 
+      ...
+
+      <EntitySwitch>
+        <EntitySwitch.Case if={isKubernetesAvailable}>
+          <Grid item md={6}>
+            <KyvernoCrossplaneOverviewCard />
+          </Grid>
+        </EntitySwitch.Case>
+      </EntitySwitch>
+
+      ... 
+
+    </Grid>
+  );
+
+  const crossplaneEntityPage = (
+    <EntityLayout>
+      ...
+      
+      <EntityLayout.Route path="/kyverno-policy-reports" title="Kyverno Policy Reports">
+        <KyvernoCrossplanePolicyReportsTable />
+      </EntityLayout.Route>
+
+      ...
+    </EntityLayout>
+  );
+  ```
 # Usage
 Once installed and configured, the kyverno-policy-reports plugin will provide components for visualizing Kyverno policy reports in the Backstage UI.
 

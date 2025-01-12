@@ -75,7 +75,7 @@ interface PolicyReport {
   };
 }
 
-const KyvernoOverviewCard = () => {
+const KyvernoCrossplaneOverviewCard = () => {
   const classes = useStyles();
   const theme = useTheme();
   const { entity } = useEntity();
@@ -96,24 +96,60 @@ const KyvernoOverviewCard = () => {
     const fetchOverviewData = async () => {
       setLoading(true);
       try {
-        const response = await kubernetesApi.getWorkloadsByEntity({ entity, auth: {} });
-        const resources = response.items.flatMap(item =>
-          item.resources.flatMap(resourceGroup =>
-            resourceGroup.resources.map(resource => ({
-              resource,
-              clusterName: item.cluster.name,
-            }))
-          )
-        );
+        const annotations = entity.metadata.annotations || {};
+        const claimPlural = annotations['terasky.backstage.io/claim-plural'];
+        const claimGroup = annotations['terasky.backstage.io/claim-group'];
+        const claimVersion = annotations['terasky.backstage.io/claim-version'];
+        const labelSelector = annotations['backstage.io/kubernetes-label-selector'];
+        const namespace = labelSelector.split(',').find(s => s.startsWith('crossplane.io/claim-namespace'))?.split('=')[1];
+        const clusterOfClaim = annotations['backstage.io/managed-by-location'].split(": ")[1];
 
-        const policyReports = await Promise.all(resources.map(async ({ resource, clusterName }) => {
+        if (!claimPlural || !claimGroup || !claimVersion || !namespace || !clusterOfClaim) {
+          return;
+        }
+
+        const claimResourceName = entity.metadata.name;
+        const claimUrl = `/apis/${claimGroup}/${claimVersion}/namespaces/${namespace}/${claimPlural}/${claimResourceName}`;
+
+        const claimResponse = await kubernetesApi.proxy({
+          clusterName: clusterOfClaim,
+          path: claimUrl,
+          init: { method: 'GET' },
+        });
+        const claimResource = await claimResponse.json();
+
+        const compositePlural = annotations['terasky.backstage.io/composite-plural'];
+        const compositeGroup = annotations['terasky.backstage.io/composite-group'];
+        const compositeVersion = annotations['terasky.backstage.io/composite-version'];
+        const compositeName = annotations['terasky.backstage.io/composite-name'];
+        const clusterOfComposite = annotations['backstage.io/managed-by-location'].split(": ")[1];
+
+        if (!compositePlural || !compositeGroup || !compositeVersion || !compositeName || !clusterOfComposite) {
+          return;
+        }
+
+        const compositeUrl = `/apis/${compositeGroup}/${compositeVersion}/${compositePlural}/${compositeName}`;
+
+        const compositeResponse = await kubernetesApi.proxy({
+          clusterName: clusterOfComposite,
+          path: compositeUrl,
+          init: { method: 'GET' },
+        });
+        const compositeResource = await compositeResponse.json();
+
+        const resources = [claimResource, compositeResource];
+
+        const fetchedPolicyReports = await Promise.all(resources.map(async (resource, index) => {
           const { uid, namespace } = resource.metadata || {};
-          if (!uid || !namespace) return null;
+          if (!uid) return null;
 
-          const url = `/apis/wgpolicyk8s.io/v1alpha2/namespaces/${namespace}/policyreports/${uid}`;
+          const url = index === 0
+            ? `/apis/wgpolicyk8s.io/v1alpha2/namespaces/${namespace}/policyreports/${uid}`
+            : `/apis/wgpolicyk8s.io/v1alpha2/clusterpolicyreports/${uid}`;
+
           try {
             const response = await kubernetesApi.proxy({
-              clusterName,
+              clusterName: clusterOfClaim,
               path: url,
               init: { method: 'GET' },
             });
@@ -125,7 +161,7 @@ const KyvernoOverviewCard = () => {
           }
         }));
 
-        const filteredReports = policyReports.filter(report => report !== null) as PolicyReport[];
+        const filteredReports = fetchedPolicyReports.filter(report => report !== null) as PolicyReport[];
         setPolicyReports(filteredReports);
 
         const totalChecks = filteredReports.reduce((acc, report) => acc + (report?.results?.length || 0), 0);
@@ -155,41 +191,41 @@ const KyvernoOverviewCard = () => {
   }, [kubernetesApi, entity]);
 
   const renderTooltipContent = (type: 'pass' | 'fail' | 'warn' | 'error' | 'skip') => {
-    const relevantResults = policyReports.flatMap(report => report.results?.filter(result => result.result === type).map(result => ({
-      ...result,
-      kind: report.scope?.kind,
-      name: report.scope?.name,
-      namespace: report.scope?.namespace,
-    })) || []);
-    if (relevantResults.length === 0) return <></>;
-
-    return (
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>Kind</TableCell>
-            <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>Name</TableCell>
-            <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>Namespace</TableCell>
-            <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>Policy</TableCell>
-            {type !== 'pass' && <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>Rule</TableCell>}
-            {type !== 'pass' && <TableCell style={{ width: '100%' }}>Message</TableCell>}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {relevantResults.map((result, index) => (
-            <TableRow key={index} className={classes.tableRow}>
-              <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>{result.kind || ''}</TableCell>
-              <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>{result.name || ''}</TableCell>
-              <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>{result.namespace || ''}</TableCell>
-              <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>{result.policy || ''}</TableCell>
-              {type !== 'pass' && <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>{result.rule || ''}</TableCell>}
-              {type !== 'pass' && <TableCell style={{ width: '100%' }}>{result.message || ''}</TableCell>}
+      const relevantResults = policyReports.flatMap(report => report.results?.filter(result => result.result === type).map(result => ({
+        ...result,
+        kind: report.scope?.kind,
+        name: report.scope?.name,
+        namespace: report.scope?.namespace,
+      })) || []);
+      if (relevantResults.length === 0) return <></>;
+  
+      return (
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>Kind</TableCell>
+              <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>Name</TableCell>
+              <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>Namespace</TableCell>
+              <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>Policy</TableCell>
+              {type !== 'pass' && <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>Rule</TableCell>}
+              {type !== 'pass' && <TableCell style={{ width: '100%' }}>Message</TableCell>}
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    );
-  };
+          </TableHead>
+          <TableBody>
+            {relevantResults.map((result, index) => (
+              <TableRow key={index} className={classes.tableRow}>
+                <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>{result.kind || ''}</TableCell>
+                <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>{result.name || ''}</TableCell>
+                <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>{result.namespace || ''}</TableCell>
+                <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>{result.policy || ''}</TableCell>
+                {type !== 'pass' && <TableCell style={{ whiteSpace: 'nowrap', width: 'auto' }}>{result.rule || ''}</TableCell>}
+                {type !== 'pass' && <TableCell style={{ width: '100%' }}>{result.message || ''}</TableCell>}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      );
+    };
 
   return (
     <Card className={classes.card}>
@@ -260,4 +296,4 @@ const KyvernoOverviewCard = () => {
   );
 };
 
-export default KyvernoOverviewCard;
+export default KyvernoCrossplaneOverviewCard;

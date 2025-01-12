@@ -22,7 +22,7 @@ import { dark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 interface PolicyReport {
     metadata: {
         uid: string;
-        namespace: string;
+        namespace?: string;
     };
     scope: {
         kind: string;
@@ -81,10 +81,12 @@ const removeManagedFields = (resource: KubernetesObject) => {
     return resourceCopy;
 };
 
-const KyvernoPolicyReportsTable = () => {
+const KyvernoCrossplanePolicyReportsTable = () => {
     const { entity } = useEntity();
     const kubernetesApi = useApi(kubernetesApiRef);
-    const [resources, setResources] = useState<Array<{ resource: KubernetesObject, clusterName: string }>>([]);
+    const [resources, setResources] = useState<Array<{
+        metadata: any; resource: KubernetesObject 
+}>>([]);
     const [policyReports, setPolicyReports] = useState<PolicyReport[]>([]);
     const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
@@ -96,18 +98,58 @@ const KyvernoPolicyReportsTable = () => {
 
     useEffect(() => {
         const fetchResources = async () => {
-            setLoading(true);
-            const response = await kubernetesApi.getWorkloadsByEntity({ entity, auth: {} });
-            const fetchedResources = response.items.flatMap(item => 
-                item.resources.flatMap(resourceGroup => 
-                    resourceGroup.resources.map(resource => ({
-                        resource,
-                        clusterName: item.cluster.name
-                    }))
-                )
-            );
-            setResources(fetchedResources);
+          setLoading(true);
+          try {
+            const annotations = entity.metadata.annotations || {};
+            const claimPlural = annotations['terasky.backstage.io/claim-plural'];
+            const claimGroup = annotations['terasky.backstage.io/claim-group'];
+            const claimVersion = annotations['terasky.backstage.io/claim-version'];
+            const labelSelector = annotations['backstage.io/kubernetes-label-selector'];
+            const namespace = labelSelector.split(',').find((s: string) => s.startsWith('crossplane.io/claim-namespace'))?.split('=')[1];
+            const clusterOfClaim = annotations['backstage.io/managed-by-location'].split(": ")[1];
+
+            if (!claimPlural || !claimGroup || !claimVersion || !namespace || !clusterOfClaim) {
+              return;
+            }
+
+            const claimResourceName = entity.metadata.name;
+            const claimUrl = `/apis/${claimGroup}/${claimVersion}/namespaces/${namespace}/${claimPlural}/${claimResourceName}`;
+
+            const claimResponse = await kubernetesApi.proxy({
+              clusterName: clusterOfClaim,
+              path: claimUrl,
+              init: { method: 'GET' },
+            });
+            const claimResource = await claimResponse.json();
+
+            const compositePlural = annotations['terasky.backstage.io/composite-plural'];
+            const compositeGroup = annotations['terasky.backstage.io/composite-group'];
+            const compositeVersion = annotations['terasky.backstage.io/composite-version'];
+            const compositeName = annotations['terasky.backstage.io/composite-name'];
+            const clusterOfComposite = annotations['backstage.io/managed-by-location'].split(": ")[1];
+
+            if (!compositePlural || !compositeGroup || !compositeVersion || !compositeName || !clusterOfComposite) {
+              return;
+            }
+
+            const compositeUrl = `/apis/${compositeGroup}/${compositeVersion}/${compositePlural}/${compositeName}`;
+
+            const compositeResponse = await kubernetesApi.proxy({
+              clusterName: clusterOfComposite,
+              path: compositeUrl,
+              init: { method: 'GET' },
+            });
+            const compositeResource = await compositeResponse.json();
+
+            const fetchedResources = [claimResource, compositeResource];
+
+            setResources([claimResource, compositeResource]);
+            console.log(`fetchedResources: ${JSON.stringify(fetchedResources)}`);
             setLoading(false);
+          } catch (error) {
+            console.error('Failed to fetch resources:', error);
+            setLoading(false);
+          }
         };
 
         fetchResources();
@@ -116,11 +158,18 @@ const KyvernoPolicyReportsTable = () => {
     useEffect(() => {
         const fetchPolicyReports = async () => {
             setLoading(true);
-            const reports = await Promise.all(resources.map(async ({ resource, clusterName }) => {
-                const { uid, namespace } = resource.metadata || {};
-                if (!uid || !namespace) return null;
+            const annotations = entity.metadata.annotations || {};
+            const clusterName = annotations['backstage.io/managed-by-location'].split(": ")[1];
+            const reports = await Promise.all(resources.map(async (resource) => {
+                
+                console.log(resource)
+                if (!resource || !resource.metadata) return null;
+                const { uid, namespace } = resource.metadata;
+                if (!uid) return null;
 
-                const url = `/apis/wgpolicyk8s.io/v1alpha2/namespaces/${namespace}/policyreports/${uid}`;
+                const url = namespace
+                    ? `/apis/wgpolicyk8s.io/v1alpha2/namespaces/${namespace}/policyreports/${uid}`
+                    : `/apis/wgpolicyk8s.io/v1alpha2/clusterpolicyreports/${uid}`;
                 try {
                     const response = await kubernetesApi.proxy({
                         clusterName,
@@ -272,7 +321,7 @@ const KyvernoPolicyReportsTable = () => {
                                 </TableHead>
                                 <TableBody>
                                     {groupedReports[clusterName]
-                                        .filter(report => report.metadata.namespace && report.scope?.kind && report.scope?.name && report.summary)
+                                        .filter(report => report.metadata && report.scope?.kind && report.scope?.name && report.summary)
                                         .map((report: PolicyReport) => (
                                         <React.Fragment key={report.metadata.uid}>
                                             <TableRow onClick={() => handleRowClick(report.metadata.uid)}>
@@ -317,7 +366,7 @@ const KyvernoPolicyReportsTable = () => {
                                                                                 <StatusComponent status={result.result} />
                                                                             </TableCell>
                                                                             <TableCell style={{ whiteSpace: 'nowrap' }}>
-                                                                                <Button onClick={() => handlePolicyClick(result.policy, report.clusterName, report.metadata.namespace)}>
+                                                                                <Button onClick={() => handlePolicyClick(result.policy, report.clusterName, report.metadata.namespace || '')}>
                                                                                     {result.policy}
                                                                                 </Button>
                                                                             </TableCell>
@@ -377,4 +426,4 @@ const KyvernoPolicyReportsTable = () => {
     );
 };
 
-export default KyvernoPolicyReportsTable;
+export default KyvernoCrossplanePolicyReportsTable;

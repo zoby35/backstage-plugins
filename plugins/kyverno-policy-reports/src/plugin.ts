@@ -29,3 +29,22 @@ export const KyvernoOverviewCard = kyvernoPolicyReportsPlugin.provide(
     },
   }),
 );
+
+export const KyvernoCrossplaneOverviewCard = kyvernoPolicyReportsPlugin.provide(
+  createComponentExtension({
+    name: 'KyvernoCrossplaneOverviewCard',
+    component: {
+      lazy: () => import('./components/KyvernoCrossplaneOverviewCard').then(m => m.default),
+    },
+  }),
+);
+
+export const KyvernoCrossplanePolicyReportsTable = kyvernoPolicyReportsPlugin.provide(
+  createComponentExtension({
+    name: 'KyvernoCrossplanePolicyReportsTable',
+    component: {
+      lazy: () => import('./components/KyvernoCrossplanePolicyReportsTable').then(m => m.default),
+    },
+  }),
+);
+// KyvernoCrossplanePolicyReportsTable
