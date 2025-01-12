@@ -280,14 +280,183 @@ export class XRDTemplateEntityProvider implements EntityProvider {
         title: `${xrd.spec.claimNames.plural}.${xrd.spec.group}`,
         version: version.name,
       };
+      xrdOpenAPIDoc.servers = xrd.clusterDetails.map((cluster: any) => ({
+        url: cluster.url,
+        description: cluster.name,
+      }));
+      xrdOpenAPIDoc.tags = [
+        {
+          name: "Cluster Scoped Operations",
+          description: "Operations on the cluster level"
+        },
+        {
+          name: "Namespace Scoped Operations",
+          description: "Operations on the namespace level"
+        },
+        {
+          name: "Specific Object Scoped Operations",
+          description: "Operations on a specific resource"
+        }
+      ]
+      // TODO(vrabbi) Add Paths To API for XRD
+    xrdOpenAPIDoc.paths = {
+      [`/apis/${xrd.spec.group}/${version.name}/${xrd.spec.claimNames.plural}`]: {
+        get: {
+          tags: ["Cluster Scoped Operations"],
+          summary: `List all ${xrd.spec.claimNames.plural} in all namespaces`,
+          operationId: `list${xrd.spec.claimNames.plural}AllNamespaces`,
+          responses: {
+            "200": {
+              description: `List of ${xrd.spec.claimNames.plural} in all namespaces`,
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "array",
+                    items: {
+                      $ref: `#/components/schemas/Resource`
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      [`/apis/${xrd.spec.group}/${version.name}/namespaces/{namespace}/${xrd.spec.claimNames.plural}`]: {
+        get: {
+          tags: ["Namespace Scoped Operations"],
+          summary: `List all ${xrd.spec.claimNames.plural} in a namespace`,
+          operationId: `list${xrd.spec.claimNames.plural}`,
+          parameters: [
+            {
+              name: "namespace",
+              in: "path",
+              required: true,
+              schema: {
+                type: "string"
+              }
+            }
+          ],
+          responses: {
+            "200": {
+              description: `List of ${xrd.spec.claimNames.plural}`,
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "array",
+                    items: {
+                      $ref: `#/components/schemas/Resource`
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        post: {
+          tags: ["Namespace Scoped Operations"],
+          summary: "Create a resource",
+          operationId: "createResource",
+          parameters: [
+            { name: "namespace", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  $ref: `#/components/schemas/Resource`
+                }
+              },
+            },
+          },
+          responses: {
+            "201": { description: "Resource created" },
+          },
+        },
+      },
+      [`/apis/${xrd.spec.group}/${version.name}/namespaces/{namespace}/${xrd.spec.claimNames.plural}/{name}`]: {
+        get: {
+          tags: ["Specific Object Scoped Operations"],
+          summary: `Get a ${xrd.spec.claimNames.kind}`,
+          operationId: `get${xrd.spec.claimNames.kind}`,
+          parameters: [
+            { name: "namespace", in: "path", required: true, schema: { type: "string" } },
+            { name: "name", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": {
+              description: "Resource details",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    $ref: `#/components/schemas/Resource`
+                  },
+                },
+              },
+            },
+          },
+        },
+        put: {
+          tags: ["Specific Object Scoped Operations"],
+          summary: "Update a resource",
+          operationId: "updateResource",
+          parameters: [
+            { name: "namespace", in: "path", required: true, schema: { type: "string" } },
+            { name: "name", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  $ref: `#/components/schemas/Resource`
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Resource updated" },
+          },
+        },
+        delete: {
+          tags: ["Specific Object Scoped Operations"],
+          summary: "Delete a resource",
+          operationId: "deleteResource",
+          parameters: [
+            { name: "namespace", in: "path", required: true, schema: { type: "string" } },
+            { name: "name", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "Resource deleted" },
+          },
+        },
+      },
+    };
       xrdOpenAPIDoc.components = {
         schemas: {
           Resource: {
             type: "object",
             properties: version.schema.openAPIV3Schema.properties
           }
-        } 
-      }
+        },
+        securitySchemes: {
+          bearerHttpAuthentication: {
+            description: "Bearer token using a JWT",
+            type: "http",
+            scheme: "bearer",
+            bearerFormat: "JWT"
+          }
+        }
+      };
+      xrdOpenAPIDoc.security = [
+        {
+          bearerHttpAuthentication: []
+        }
+      ]
       return {
           apiVersion: 'backstage.io/v1alpha1',
           kind: 'API',

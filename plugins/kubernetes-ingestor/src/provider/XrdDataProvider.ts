@@ -106,6 +106,7 @@ export class XrdDataProvider {
             response.resources.map(resource => ({
               ...resource,
               clusterName: cluster.name,
+              clusterEndpoint: cluster.url,
             })),
           );
 
@@ -126,6 +127,7 @@ export class XrdDataProvider {
           }).map(resource => ({
             ...resource,
             clusterName: cluster.name, // Attach the cluster name to the resource
+            clusterEndpoint: cluster.url, // Attach the cluster endpoint to the resource
           }));
 
           allFetchedObjects = allFetchedObjects.concat(filteredObjects);
@@ -155,6 +157,7 @@ export class XrdDataProvider {
             response.resources.map(resource => ({
               ...resource,
               clusterName: cluster.name,
+              clusterEndpoint: cluster.url,
             })),
           );
 
@@ -162,11 +165,12 @@ export class XrdDataProvider {
           allFetchedObjects.forEach(xrd => {
             const xrdName = xrd.metadata.name;
             if (!xrdMap.has(xrdName)) {
-              xrdMap.set(xrdName, { ...xrd, clusters: [xrd.clusterName], compositions: [] });
+              xrdMap.set(xrdName, { ...xrd, clusters: [xrd.clusterName], clusterDetails: [{name: xrd.clusterName, url: xrd.clusterEndpoint}], compositions: [] });
             } else {
               const existingXrd = xrdMap.get(xrdName);
               if (!existingXrd.clusters.includes(xrd.clusterName)) {
                 existingXrd.clusters.push(xrd.clusterName);
+                existingXrd.clusterDetails.push({name: xrd.clusterName, url: xrd.clusterEndpoint});
               }
             }
           });
