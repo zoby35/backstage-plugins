@@ -66,7 +66,7 @@ import { DevpodComponent, isDevpodAvailable } from '@terasky/backstage-plugin-de
 import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
 import { EntityPickerFieldExtension, RepoUrlPickerFieldExtension } from '@backstage/plugin-scaffolder';
 import { ScaleOpsDashboard } from '@terasky/backstage-plugin-scaleops-frontend';
-import { KyvernoOverviewCard, KyvernoPolicyReportsTable } from '@terasky/backstage-plugin-kyverno-policy-reports';
+import { KyvernoCrossplaneOverviewCard, KyvernoCrossplanePolicyReportsTable, KyvernoOverviewCard, KyvernoPolicyReportsTable } from '@terasky/backstage-plugin-kyverno-policy-reports';
 
 const techdocsContent = (
   <EntityTechdocsContent>
@@ -163,6 +163,9 @@ const crossplaneOverviewContent = (
     <Grid item md={6}>
       < CrossplaneOverviewCard />
     </Grid>
+    <Grid item md={6}>
+      <KyvernoCrossplaneOverviewCard />
+    </Grid>
   </Grid>
 );
 const serviceEntityPage = (
@@ -219,11 +222,11 @@ const serviceEntityPage = (
     <EntityLayout.Route if={isScaleopsAvailable} path="/scaleops" title="Scale Ops">
       <ScaleOpsDashboard />
     </EntityLayout.Route>
-    <EntityLayout.Route path="/scaffolder" title="Crossplane Scaffolder">
+    <EntityLayout.Route path="/scaffolder" title="Entity Scaffolder">
         <EntityScaffolderContent
           templateGroupFilters={[
             {
-              title: 'Crossplane Claims',
+              title: 'Management Templates',
               filter: (entity, template) =>
                 template.metadata?.labels?.target === 'component' &&
                 entity.metadata?.annotations?.['backstage.io/managed-by-location']?.split(":")[0] === 'cluster origin',
@@ -248,20 +251,11 @@ const crossplaneEntityPage = (
     <EntityLayout.Route path="/" title="Overview">
       {crossplaneOverviewContent}
     </EntityLayout.Route>
-
-    <EntityLayout.Route path="/ci-cd" title="CI/CD">
-      {cicdContent}
+    <EntityLayout.Route if={isKubernetesAvailable} path="/kyverno-policy-reports" title="Kyverno Policy Reports">
+      <KyvernoCrossplanePolicyReportsTable />
     </EntityLayout.Route>
 
-    <EntityLayout.Route
-      path="/kubernetes"
-      title="Kubernetes"
-      if={isKubernetesAvailable}
-    >
-      <EntityKubernetesContent />
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/api" title="API">
+    <EntityLayout.Route path="/api" title="XRD API">
       <Grid container spacing={3} alignItems="stretch">
         <Grid item md={6}>
           <EntityProvidedApisCard />
@@ -272,34 +266,17 @@ const crossplaneEntityPage = (
       </Grid>
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/dependencies" title="Dependencies">
-      <Grid container spacing={3} alignItems="stretch">
-        <Grid item md={6}>
-          <EntityDependsOnComponentsCard variant="gridItem" />
-        </Grid>
-        <Grid item md={6}>
-          <EntityDependsOnResourcesCard variant="gridItem" />
-        </Grid>
-      </Grid>
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/docs" title="Docs">
-      {techdocsContent}
-    </EntityLayout.Route>
     <EntityLayout.Route if={isCrossplaneAvailable} path="/crossplane-resources" title="Crossplane Resources">
       <CrossplaneAllResourcesTable />
     </EntityLayout.Route>
     <EntityLayout.Route if={isCrossplaneAvailable} path="/crossplane-graph" title="Crossplane Graph">
       <CrossplaneResourceGraph />
     </EntityLayout.Route>
-    <EntityLayout.Route if={isScaleopsAvailable} path="/scaleops" title="Scale Ops">
-      <ScaleopsCard />
-    </EntityLayout.Route>
-    <EntityLayout.Route path="/scaffolder" title="Crossplane Scaffolder">
+    <EntityLayout.Route path="/scaffolder" title="Entity Scaffolder">
         <EntityScaffolderContent
           templateGroupFilters={[
             {
-              title: 'Crossplane Claims',
+              title: 'Management Templates',
               filter: (entity, template) =>
                 template.metadata?.labels?.target === 'component' &&
                 entity.metadata?.annotations?.['backstage.io/managed-by-location']?.split(":")[0] === 'cluster origin',
