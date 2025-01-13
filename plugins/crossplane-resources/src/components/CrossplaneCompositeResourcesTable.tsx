@@ -218,8 +218,12 @@ const CrossplaneCompositeResourcesTable = () => {
               <TableRow key={resource.metadata?.uid || `${resource.kind}-${Math.random()}`}>
                 <TableCell>{resource.kind}</TableCell>
                 <TableCell>{resource.metadata?.name}</TableCell>
-                <TableCell>{(resource as any).status?.conditions?.some((condition: any) => condition.type === 'Synced') ? 'Yes' : 'No'}</TableCell>
-                <TableCell>{(resource as any).status?.conditions?.some((condition: any) => condition.type === 'Ready') ? 'Yes' : 'No'}</TableCell>
+                <TableCell>
+                    {(resource as any).status?.conditions?.find((condition: any) => condition.type === 'Synced')?.status === 'True' ? 'Yes' : 'No'}
+                </TableCell>
+                <TableCell>
+                    {(resource as any).status?.conditions?.find((condition: any) => condition.type === 'Ready')?.status === 'True' ? 'Yes' : 'No'}
+                </TableCell>
                 <TableCell>
                   <Button onClick={() => handleViewYaml(resource)} disabled={!canViewYaml}>View YAML</Button>
                 </TableCell>

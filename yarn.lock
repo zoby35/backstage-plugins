@@ -13514,7 +13514,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@terasky/backstage-plugin-crossplane-resources-frontend@npm:^1.5.1, @terasky/backstage-plugin-crossplane-resources-frontend@workspace:plugins/crossplane-resources":
+"@terasky/backstage-plugin-crossplane-resources-frontend@npm:^1.5.2, @terasky/backstage-plugin-crossplane-resources-frontend@workspace:plugins/crossplane-resources":
   version: 0.0.0-use.local
   resolution: "@terasky/backstage-plugin-crossplane-resources-frontend@workspace:plugins/crossplane-resources"
   dependencies:
@@ -16148,7 +16148,7 @@ __metadata:
     "@material-ui/core": "npm:^4.12.2"
     "@material-ui/icons": "npm:^4.9.1"
     "@playwright/test": "npm:^1.32.3"
-    "@terasky/backstage-plugin-crossplane-resources-frontend": "npm:^1.5.1"
+    "@terasky/backstage-plugin-crossplane-resources-frontend": "npm:^1.5.2"
     "@terasky/backstage-plugin-devpod": "npm:1.0.3"
     "@terasky/backstage-plugin-entity-scaffolder-content": "npm:^1.0.3"
     "@terasky/backstage-plugin-kyverno-policy-reports": "npm:^1.0.0"

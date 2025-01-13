@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, Typography, Box, Grid } from '@material-ui/core';
+import { Card, CardContent, Typography, Box, Grid, Tooltip, makeStyles } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
 import { KubernetesObject } from '@backstage/plugin-kubernetes';
 import { kubernetesApiRef } from '@backstage/plugin-kubernetes-react';
@@ -13,7 +13,7 @@ import { green, red } from '@material-ui/core/colors';
 
 interface ExtendedKubernetesObject extends KubernetesObject {
     status?: {
-        conditions?: Array<{ type: string, status: string }>;
+        conditions?: Array<{ type: string, status: string, reason?: string, lastTransitionTime?: string, message?: string }>;
     };
     spec?: {
         resourceRef?: {
@@ -24,7 +24,18 @@ interface ExtendedKubernetesObject extends KubernetesObject {
         resourceRefs?: Array<any>;
     };
 }
-
+const useStyles = makeStyles((theme) => ({
+    button: {
+      margin: theme.spacing(1),
+    },
+    customWidth: {
+      maxWidth: 500,
+    },
+    noMaxWidth: {
+      maxWidth: 'none',
+    },
+  }));
+  
 const CrossplaneOverviewCard = () => {
     const { entity } = useEntity();
     const kubernetesApi = useApi(kubernetesApiRef);
@@ -98,6 +109,19 @@ const CrossplaneOverviewCard = () => {
         return status === 'True' ? <CheckCircleIcon style={{ color: green[500] }} /> : <CancelIcon style={{ color: red[500] }} />;
     };
 
+    const classes = useStyles();
+    const renderConditionTooltip = (condition: any) => (
+        <Card style={{ width: '400px', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)' }}>
+            <CardContent>
+                <Typography variant="subtitle1">Condition: {condition.type}</Typography>
+                <Typography variant="body2">Status: {condition.status}</Typography>
+                <Typography variant="body2">Reason: {condition.reason}</Typography>
+                <Typography variant="body2">Last Transition Time: {condition.lastTransitionTime}</Typography>
+                <Typography variant="body2" style={{ wordWrap: 'break-word', maxWidth: '380px', alignSelf: 'center', }}>Message: {condition.message}</Typography>
+            </CardContent>
+        </Card>
+    );
+
     return (
         <Card>
             <CardContent>
@@ -110,10 +134,16 @@ const CrossplaneOverviewCard = () => {
                                 <Typography variant="body2">{claim.kind}</Typography>
                             </Grid>
                             <Grid item xs={12} sm={6}>
-                                <Typography variant="subtitle1" style={{ fontWeight: 'bold', color: 'gray' }}>Synced</Typography>
-                                <Typography variant="body2">
-                                    {renderStatusIcon(claim.status?.conditions?.find((condition: any) => condition.type === 'Synced')?.status || 'Unknown')}
-                                </Typography>
+                                <Typography variant="subtitle1" style={{ fontWeight: 'bold', color: 'gray', width: '350px' }}>Synced</Typography>
+                                <Tooltip
+                                    //placement="left-start"
+                                    classes={{ tooltip: classes.customWidth }}
+                                    title={renderConditionTooltip(claim.status?.conditions?.find((condition: any) => condition.type === 'Synced') || {})}
+                                >
+                                    <Typography variant="body2">
+                                        {renderStatusIcon(claim.status?.conditions?.find((condition: any) => condition.type === 'Synced')?.status || 'Unknown')}
+                                    </Typography>
+                                </Tooltip>
                             </Grid>
                             <Grid item xs={12} sm={6}>
                                 <Typography variant="subtitle1" style={{ fontWeight: 'bold', color: 'gray' }}>Name</Typography>
@@ -121,9 +151,15 @@ const CrossplaneOverviewCard = () => {
                             </Grid>
                             <Grid item xs={12} sm={6}>
                                 <Typography variant="subtitle1" style={{ fontWeight: 'bold', color: 'gray' }}>Ready</Typography>
-                                <Typography variant="body2">
-                                    {renderStatusIcon(claim.status?.conditions?.find((condition: any) => condition.type === 'Ready')?.status || 'Unknown')}
-                                </Typography>
+                                <Tooltip
+                                    //placement="left-start"
+                                    classes={{ tooltip: classes.customWidth }}
+                                    title={renderConditionTooltip(claim.status?.conditions?.find((condition: any) => condition.type === 'Ready') || {})}
+                                >
+                                    <Typography variant="body2">
+                                        {renderStatusIcon(claim.status?.conditions?.find((condition: any) => condition.type === 'Ready')?.status || 'Unknown')}
+                                    </Typography>
+                                </Tooltip>
                             </Grid>
                             <Grid item xs={12} sm={6}>
                                 <Typography variant="subtitle1" style={{ fontWeight: 'bold', color: 'gray' }}>Namespace</Typography>
