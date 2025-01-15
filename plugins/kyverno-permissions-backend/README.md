@@ -1,4 +1,4 @@
-# kyverno-permissions
+# Kyverno Permissions
 Welcome to the kyverno-permissions backend plugin!
 
 [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-kyverno-permissions-backend/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-kyverno-permissions-backend)
