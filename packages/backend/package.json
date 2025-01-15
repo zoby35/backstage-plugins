@@ -49,6 +49,7 @@
     "@roadiehq/scaffolder-backend-module-utils": "^3.1.0",
     "@terasky/backstage-plugin-crossplane-permissions-backend": "^1.1.2",
     "@terasky/backstage-plugin-kubernetes-ingestor": "^1.5.2",
+    "@terasky/backstage-plugin-kyverno-permissions-backend": "^1.0.0",
     "@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils": "^1.1.1",
     "app": "link:../app",
     "better-sqlite3": "^9.0.0",
