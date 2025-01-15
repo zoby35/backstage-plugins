@@ -88,6 +88,14 @@ If you are also using the Crossplane Plugins and want Kyverno policy reports for
     </EntityLayout>
   );
   ```
+
+## Configuration
+* available config options:
+```yaml
+kyverno:
+  enablePermissions: false # Whether to enable permission checks for the kyverno plugin.
+```
+
 # Usage
 Once installed and configured, the kyverno-policy-reports plugin will provide components for visualizing Kyverno policy reports in the Backstage UI.
 

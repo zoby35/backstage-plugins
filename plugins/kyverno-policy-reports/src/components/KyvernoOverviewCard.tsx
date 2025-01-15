@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, Typography, Box, CircularProgress, Tooltip, Table, TableBody, TableCell, TableRow, TableHead } from '@material-ui/core';
-import { useApi } from '@backstage/core-plugin-api';
+import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import { kubernetesApiRef } from '@backstage/plugin-kubernetes-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { makeStyles, useTheme } from '@material-ui/core/styles';
@@ -9,6 +9,8 @@ import WarningIcon from '@material-ui/icons/Warning';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import SkipNextIcon from '@material-ui/icons/SkipNext';
 import CancelIcon from '@material-ui/icons/Cancel';
+import { usePermission } from '@backstage/plugin-permission-react';
+import { viewOverviewPermission } from '@terasky/backstage-plugin-kyverno-common';
 
 const useStyles = makeStyles((theme: any) => ({
   card: {
@@ -80,6 +82,12 @@ const KyvernoOverviewCard = () => {
   const theme = useTheme();
   const { entity } = useEntity();
   const kubernetesApi = useApi(kubernetesApiRef);
+  const config = useApi(configApiRef);
+  const enablePermissions = config.getOptionalBoolean('kyverno.enablePermissions') ?? false;
+  const canViewOverviewTemp = usePermission({ permission: viewOverviewPermission }).allowed;
+  const canViewOverview = !enablePermissions ? canViewOverviewTemp : true;
+
+
   const [loading, setLoading] = useState(true);
   const [overviewData, setOverviewData] = useState({
     totalResources: 0,
@@ -93,6 +101,10 @@ const KyvernoOverviewCard = () => {
   const [policyReports, setPolicyReports] = useState<PolicyReport[]>([]);
 
   useEffect(() => {
+    if (!canViewOverview) {
+      setLoading(false);
+      return;
+    }
     const fetchOverviewData = async () => {
       setLoading(true);
       try {
@@ -163,6 +175,7 @@ const KyvernoOverviewCard = () => {
     })) || []);
     if (relevantResults.length === 0) return <></>;
 
+    
     return (
       <Table>
         <TableHead>
@@ -190,7 +203,22 @@ const KyvernoOverviewCard = () => {
       </Table>
     );
   };
-
+  if (!canViewOverview) {
+    return (
+      <Card className={classes.card}>
+      <CardContent>
+        <Typography variant="h5" component="h1" align="left">
+          Kyverno Policy Overview
+        </Typography>
+      <Box m={2}>
+        <Typography variant="h5" gutterBottom>
+          You don't have permissions to view Kyverno Policy Reports
+        </Typography>
+      </Box>
+      </CardContent>
+      </Card>
+    );
+  }
   return (
     <Card className={classes.card}>
       <CardContent>

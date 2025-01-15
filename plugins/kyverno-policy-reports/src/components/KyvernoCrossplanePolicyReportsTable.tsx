@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableRow, Paper, IconButton, Box, Collapse, Typography, LinearProgress, Chip, Drawer, Button, useTheme } from '@material-ui/core';
-import { useApi } from '@backstage/core-plugin-api';
+import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import { KubernetesObject } from '@backstage/plugin-kubernetes';
 import { kubernetesApiRef } from '@backstage/plugin-kubernetes-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
@@ -18,6 +18,9 @@ import { saveAs } from 'file-saver';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { dark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { showKyvernoReportsPermission, viewPolicyYAMLPermission } from '@terasky/backstage-plugin-kyverno-common';
+import { usePermission } from '@backstage/plugin-permission-react';
+
 
 interface PolicyReport {
     metadata: {
@@ -95,8 +98,19 @@ const KyvernoCrossplanePolicyReportsTable = () => {
     const [policyYaml, setPolicyYaml] = useState<string | null>(null);
     const classes = useStyles();
     const theme = useTheme();
+    const config = useApi(configApiRef);
+    const enablePermissions = config.getOptionalBoolean('kyverno.enablePermissions') ?? false;
+    const canSeeReportsTemp = usePermission({ permission: showKyvernoReportsPermission }).allowed;
+    const canViewYamlTemp = usePermission({ permission: viewPolicyYAMLPermission }).allowed;
+    
+    const canSeeReports = !enablePermissions ? canSeeReportsTemp : true;
+    const canViewYaml = !enablePermissions ? canViewYamlTemp : true;
 
     useEffect(() => {
+        if (!canSeeReports) {
+            setLoading(false);
+            return;
+        }
         const fetchResources = async () => {
           setLoading(true);
           try {
@@ -141,10 +155,7 @@ const KyvernoCrossplanePolicyReportsTable = () => {
             });
             const compositeResource = await compositeResponse.json();
 
-            const fetchedResources = [claimResource, compositeResource];
-
             setResources([claimResource, compositeResource]);
-            console.log(`fetchedResources: ${JSON.stringify(fetchedResources)}`);
             setLoading(false);
           } catch (error) {
             console.error('Failed to fetch resources:', error);
@@ -153,16 +164,18 @@ const KyvernoCrossplanePolicyReportsTable = () => {
         };
 
         fetchResources();
-    }, [kubernetesApi, entity]);
+    }, [kubernetesApi, entity, canSeeReports]);
 
     useEffect(() => {
+        if (!canSeeReports) {
+            return;
+        }
         const fetchPolicyReports = async () => {
             setLoading(true);
             const annotations = entity.metadata.annotations || {};
             const clusterName = annotations['backstage.io/managed-by-location'].split(": ")[1];
             const reports = await Promise.all(resources.map(async (resource) => {
                 
-                console.log(resource)
                 if (!resource || !resource.metadata) return null;
                 const { uid, namespace } = resource.metadata;
                 if (!uid) return null;
@@ -191,7 +204,7 @@ const KyvernoCrossplanePolicyReportsTable = () => {
         if (resources.length > 0) {
             fetchPolicyReports();
         }
-    }, [resources, kubernetesApi]);
+    }, [resources, kubernetesApi, canSeeReports]);
 
     const handleRowClick = (uid: string) => {
         setExpandedRows(prev => {
@@ -291,6 +304,15 @@ const KyvernoCrossplanePolicyReportsTable = () => {
         }
     };
 
+    if (!canSeeReports) {
+        return (
+            <Box m={2}>
+                <Typography variant="h5" gutterBottom>
+                    You don't have permissions to view the Kyverno Policy Reports
+                </Typography>
+            </Box>
+        );
+    }
     return (
         <Box m={2}>
             <Typography variant="h5" gutterBottom>
@@ -366,9 +388,13 @@ const KyvernoCrossplanePolicyReportsTable = () => {
                                                                                 <StatusComponent status={result.result} />
                                                                             </TableCell>
                                                                             <TableCell style={{ whiteSpace: 'nowrap' }}>
-                                                                                <Button onClick={() => handlePolicyClick(result.policy, report.clusterName, report.metadata.namespace || '')}>
-                                                                                    {result.policy}
-                                                                                </Button>
+                                                                                {canViewYaml ? (
+                                                                                    <Button onClick={() => handlePolicyClick(result.policy, report.clusterName, report.metadata.namespace || '')}>
+                                                                                        {result.policy}
+                                                                                    </Button>
+                                                                                ) : (
+                                                                                    result.policy
+                                                                                )}
                                                                             </TableCell>
                                                                             <TableCell style={{ whiteSpace: 'nowrap' }}>{result.rule}</TableCell>
                                                                             <TableCell style={{ whiteSpace: 'nowrap' }}>

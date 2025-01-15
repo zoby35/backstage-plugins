@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableRow, Paper, IconButton, Box, Collapse, Typography, LinearProgress, Chip, Drawer, Button, useTheme } from '@material-ui/core';
-import { useApi } from '@backstage/core-plugin-api';
+import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import { KubernetesObject } from '@backstage/plugin-kubernetes';
 import { kubernetesApiRef } from '@backstage/plugin-kubernetes-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
@@ -18,6 +18,8 @@ import { saveAs } from 'file-saver';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { dark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { usePermission } from '@backstage/plugin-permission-react';
+import { showKyvernoReportsPermission, viewPolicyYAMLPermission } from '@terasky/backstage-plugin-kyverno-common';
 
 interface PolicyReport {
     metadata: {
@@ -93,8 +95,20 @@ const KyvernoPolicyReportsTable = () => {
     const [policyYaml, setPolicyYaml] = useState<string | null>(null);
     const classes = useStyles();
     const theme = useTheme();
+    const config = useApi(configApiRef);
+    const enablePermissions = config.getOptionalBoolean('kyverno.enablePermissions') ?? false;
+    const canSeeReportsTemp = usePermission({ permission: showKyvernoReportsPermission }).allowed;
+    const canViewYamlTemp = usePermission({ permission: viewPolicyYAMLPermission }).allowed;
+    
+    const canSeeReports = !enablePermissions ? canSeeReportsTemp : true;
+    const canViewYaml = !enablePermissions ? canViewYamlTemp : true;
 
     useEffect(() => {
+        if (!canSeeReports) {
+            setLoading(false);
+            return;
+        }
+
         const fetchResources = async () => {
             setLoading(true);
             const response = await kubernetesApi.getWorkloadsByEntity({ entity, auth: {} });
@@ -111,9 +125,13 @@ const KyvernoPolicyReportsTable = () => {
         };
 
         fetchResources();
-    }, [kubernetesApi, entity]);
+    }, [kubernetesApi, entity, canSeeReports]);
 
     useEffect(() => {
+        if (!canSeeReports) {
+            return;
+        }
+
         const fetchPolicyReports = async () => {
             setLoading(true);
             const reports = await Promise.all(resources.map(async ({ resource, clusterName }) => {
@@ -142,7 +160,7 @@ const KyvernoPolicyReportsTable = () => {
         if (resources.length > 0) {
             fetchPolicyReports();
         }
-    }, [resources, kubernetesApi]);
+    }, [resources, kubernetesApi, canSeeReports]);
 
     const handleRowClick = (uid: string) => {
         setExpandedRows(prev => {
@@ -242,6 +260,16 @@ const KyvernoPolicyReportsTable = () => {
         }
     };
 
+    if (!canSeeReports) {
+        return (
+            <Box m={2}>
+                <Typography variant="h5" gutterBottom>
+                    You don't have permissions to view the Kyverno Policy Reports
+                </Typography>
+            </Box>
+        );
+    }
+
     return (
         <Box m={2}>
             <Typography variant="h5" gutterBottom>
@@ -317,9 +345,13 @@ const KyvernoPolicyReportsTable = () => {
                                                                                 <StatusComponent status={result.result} />
                                                                             </TableCell>
                                                                             <TableCell style={{ whiteSpace: 'nowrap' }}>
-                                                                                <Button onClick={() => handlePolicyClick(result.policy, report.clusterName, report.metadata.namespace)}>
-                                                                                    {result.policy}
-                                                                                </Button>
+                                                                                {canViewYaml ? (
+                                                                                    <Button onClick={() => handlePolicyClick(result.policy, report.clusterName, report.metadata.namespace)}>
+                                                                                        {result.policy}
+                                                                                    </Button>
+                                                                                ) : (
+                                                                                    result.policy
+                                                                                )}
                                                                             </TableCell>
                                                                             <TableCell style={{ whiteSpace: 'nowrap' }}>{result.rule}</TableCell>
                                                                             <TableCell style={{ whiteSpace: 'nowrap' }}>
