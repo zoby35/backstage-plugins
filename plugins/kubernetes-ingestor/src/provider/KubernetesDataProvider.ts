@@ -5,6 +5,7 @@ import { CatalogApi } from '@backstage/catalog-client';
 import { PermissionEvaluator } from '@backstage/plugin-permission-common';
 import { DiscoveryService, BackstageCredentials } from '@backstage/backend-plugin-api';
 import { KubernetesObjectTypes } from '@backstage/plugin-kubernetes-node';
+import pluralize from 'pluralize';
 
 type ObjectToFetch = {
   group: string;
@@ -79,6 +80,11 @@ export class KubernetesDataProvider {
         ...customWorkloadTypes,
       ]);
 
+      const objectTypeMap = Array.from(objectTypesToFetch).reduce((acc, type) => {
+        acc[type.plural] = type;
+        return acc;
+      }, {} as Record<string, ObjectToFetch>);
+
       const excludedNamespaces = new Set(
         this.config.getOptionalStringArray('kubernetesIngestor.components.excludedNamespaces') || [
           'default',
@@ -112,6 +118,7 @@ export class KubernetesDataProvider {
                 plural: crd.plural,
                 objectType: 'customresources' as KubernetesObjectTypes,
               });
+              objectTypeMap[crd.plural] = {group: crd.group, apiVersion: crd.version, plural: crd.plural, objectType: 'customresources' as KubernetesObjectTypes};
             });
           }
 
@@ -135,23 +142,38 @@ export class KubernetesDataProvider {
 
               return !excludedNamespaces.has(resource.metadata.namespace);
             }).map(async resource => {
-              if (resource.spec?.compositionRef?.name) {
-                const composition = await this.fetchComposition(fetcher, cluster, token, resource.spec.compositionRef.name);
-                const usedFunctions = this.extractUsedFunctions(composition);
+                let type = response.type as string;
+                if (response.type === "customresources") {
+                  type = pluralize(resource.kind.toLowerCase());
+                } 
+                const objectType = objectTypeMap[type];
+                if (objectType.group === null  || objectType.apiVersion === null) {
+                  return {}
+                }
+                else
+                {
+                  if (resource.spec?.compositionRef?.name) {
+                    const composition = await this.fetchComposition(fetcher, cluster, token, resource.spec.compositionRef.name);
+                    const usedFunctions = this.extractUsedFunctions(composition);
 
-                return {
-                  ...resource,
-                  clusterName: cluster.name, // Attach the cluster name to the resource
-                  compositionData: {
-                    name: resource.spec.compositionRef.name,
-                    usedFunctions,
-                  },
+                    return {
+                      ...resource,
+                      apiVersion: `${objectType.group}/${objectType.apiVersion}`,
+                      kind: objectType.plural?.slice(0, -1),
+                      clusterName: cluster.name, // Attach the cluster name to the resource
+                      compositionData: {
+                        name: resource.spec.compositionRef.name,
+                        usedFunctions,
+                      },
+                    };
+                  }
+                  return {
+                    ...resource,
+                    apiVersion: `${objectType.group}/${objectType.apiVersion}`,
+                    kind: objectType.plural?.slice(0, -1),
+                    clusterName: cluster.name, // Attach the cluster name to the resource
+                  };
                 };
-              }
-              return {
-                ...resource,
-                clusterName: cluster.name, // Attach the cluster name to the resource
-              };
             })
           );
 

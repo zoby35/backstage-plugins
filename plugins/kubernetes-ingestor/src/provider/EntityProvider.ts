@@ -16,6 +16,7 @@ import {
   AuthService,
 } from '@backstage/backend-plugin-api';
 import yaml from 'js-yaml';
+import pluralize from 'pluralize';
 
 export class XRDTemplateEntityProvider implements EntityProvider {
   private readonly taskRunner: SchedulerServiceTaskRunner;
@@ -1084,13 +1085,17 @@ export class KubernetesEntityProvider implements EntityProvider {
         const crdMapping = await kubernetesDataProvider.fetchCRDMapping();
 
         const entities = kubernetesData.flatMap(k8s => {
-          if (k8s.spec?.resourceRef) {
+          if (k8s?.spec?.resourceRef) {
             this.logger.debug(`Processing Crossplane Claim: ${JSON.stringify(k8s)}`);
             return this.translateCrossplaneClaimToEntity(k8s, k8s.clusterName, crdMapping);
           } 
+          else if (k8s) {
             this.logger.debug(`Processing Kubernetes Object: ${JSON.stringify(k8s)}`);
             return this.translateKubernetesObjectsToEntities(k8s);
-          
+          }
+          else {
+            return [];
+          }
         });
 
         await this.connection.applyMutation({
@@ -1146,15 +1151,24 @@ export class KubernetesEntityProvider implements EntityProvider {
 
     // Add the Kubernetes label selector annotation if present
     if (!annotations['terasky.backstage.io/kubernetes-label-selector']) {
-      const commonLabels = this.findCommonLabels(resource);
-      if (commonLabels) {
-        customAnnotations['backstage.io/kubernetes-label-selector'] = commonLabels;
+      if (resource.kind.toLowerCase() === 'deployment' || resource.kind.toLowerCase() === 'statefulset' || resource.kind.toLowerCase() === 'daemonset' || resource.kind.toLowerCase() === 'cronjob') {
+        const commonLabels = this.findCommonLabels(resource);
+        if (commonLabels) {
+          customAnnotations['backstage.io/kubernetes-label-selector'] = commonLabels;
+        }
       }
-    }
-    else {
+    } else {
       customAnnotations['backstage.io/kubernetes-label-selector'] = annotations['terasky.backstage.io/kubernetes-label-selector'];
     }
-
+    const apiGroup = resource.apiVersion.split('/')[0];
+    const version = resource.apiVersion.split('/')[1];
+    const kindPlural = pluralize(resource.kind.toLowerCase());
+    const objectName = resource.metadata.name;
+    const customWorkloadUri = resource.metadata.namespace
+      ? `/apis/${apiGroup}/${version}/namespaces/${namespace}/${kindPlural}/${objectName}`
+      : `/apis/${apiGroup}/${version}/${kindPlural}/${objectName}`;
+    customAnnotations['terasky.backstage.io/custom-workload-uri'] = customWorkloadUri;
+    
     const componentEntity: Entity = {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Component',
@@ -1197,7 +1211,7 @@ export class KubernetesEntityProvider implements EntityProvider {
     // Extract CR values
     const [crGroup, crVersion] = claim.apiVersion.split('/');
     const crKind = claim.kind;
-    const crPlural = crdMapping[crKind] || ''; // Fetch plural from CRD mapping
+    const crPlural = crdMapping[crKind] || pluralize(claim.kind.toLowerCase()); // Fetch plural from CRD mapping
 
     // Extract Composite values from `spec.resourceRef`
     const compositeRef = claim.spec?.resourceRef || {};
