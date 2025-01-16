@@ -494,6 +494,12 @@ const systemPage = (
               clusters: [entity.metadata?.annotations?.['backstage.io/managed-by-location']?.split(": ")[1] ?? '']
             }
           )}
+          ScaffolderFieldExtensions={
+            <ScaffolderFieldExtensions>
+              <RepoUrlPickerFieldExtension />
+              <EntityPickerFieldExtension />
+            </ScaffolderFieldExtensions>
+          }
         />
     </EntityLayout.Route>
   </EntityLayout>
