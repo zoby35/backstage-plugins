@@ -41,11 +41,12 @@ const CrossplaneOverviewCard = () => {
     const kubernetesApi = useApi(kubernetesApiRef);
     const config = useApi(configApiRef);
     const enablePermissions = config.getOptionalBoolean('crossplane.enablePermissions') ?? false;
+    const { allowed: canListClaimsTemp } = usePermission({ permission: listClaimsPermission });
+    const canListClaims = enablePermissions ? canListClaimsTemp : true;
+
     const [claim, setClaim] = useState<ExtendedKubernetesObject | null>(null);
     const [managedResourcesCount, setManagedResourcesCount] = useState<number>(0);
-
-    const canListClaimsTemp = usePermission({ permission: listClaimsPermission }).allowed;
-    const canListClaims = enablePermissions ? canListClaimsTemp : true;
+    const classes = useStyles();
 
     useEffect(() => {
         if (!canListClaims) {
@@ -109,7 +110,6 @@ const CrossplaneOverviewCard = () => {
         return status === 'True' ? <CheckCircleIcon style={{ color: green[500] }} /> : <CancelIcon style={{ color: red[500] }} />;
     };
 
-    const classes = useStyles();
     const renderConditionTooltip = (condition: any) => (
         <Card style={{ width: '400px', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)' }}>
             <CardContent>
