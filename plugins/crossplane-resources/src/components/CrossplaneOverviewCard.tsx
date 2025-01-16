@@ -103,9 +103,21 @@ const CrossplaneOverviewCard = () => {
     }, [kubernetesApi, entity, canListClaims]);
 
     if (!canListClaims) {
-        return <Typography>You don't have permissions to view claim resources</Typography>;
-    }
-
+        return (
+          <Card style={{ width: '450px', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)' }}>
+          <CardContent>
+            <Typography variant="h5" component="h1" align="center">
+              Crossplane Overview
+            </Typography>
+          <Box m={2}>
+            <Typography  gutterBottom>
+              You don't have permissions to view claim resources
+            </Typography>
+          </Box>
+          </CardContent>
+          </Card>
+        );
+      }
     const renderStatusIcon = (status: string) => {
         return status === 'True' ? <CheckCircleIcon style={{ color: green[500] }} /> : <CancelIcon style={{ color: red[500] }} />;
     };
@@ -121,7 +133,7 @@ const CrossplaneOverviewCard = () => {
             </CardContent>
         </Card>
     );
-
+    
     return (
         <Card>
             <CardContent>

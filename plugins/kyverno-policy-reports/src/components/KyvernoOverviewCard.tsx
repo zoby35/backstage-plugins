@@ -238,6 +238,7 @@ const KyvernoOverviewCard = () => {
               Total Checks Run: {overviewData.totalChecks}
             </Typography>
             <Box className={classes.row}>
+            {overviewData.totalError > 0 ? (
               <Tooltip classes={{ tooltip: classes.tooltip }} title={overviewData.totalError > 0 ? renderTooltipContent('error') : <></>}>
                 <Box>
                   <ErrorIcon className={classes.icon} style={{ color: theme.palette.error.main }} />
@@ -246,6 +247,15 @@ const KyvernoOverviewCard = () => {
                   </Typography>
                 </Box>
               </Tooltip>
+            ):(
+              <Box>
+                <ErrorIcon className={classes.icon} style={{ color: theme.palette.error.main }} />
+                <Typography variant="body2" component="p" className={classes.error}>
+                  Error: {overviewData.totalError}
+                </Typography>
+              </Box>
+            )}
+            {overviewData.totalFail > 0 ? (
               <Tooltip classes={{ tooltip: classes.tooltip }} title={overviewData.totalFail > 0 ? renderTooltipContent('fail') : <></>}>
                 <Box>
                   <CancelIcon className={classes.icon} style={{ color: theme.palette.error.main }} />
@@ -254,6 +264,15 @@ const KyvernoOverviewCard = () => {
                   </Typography>
                 </Box>
               </Tooltip>
+              ):(
+                <Box>
+                  <CancelIcon className={classes.icon} style={{ color: theme.palette.error.main }} />
+                  <Typography variant="body2" component="p" className={classes.error}>
+                    Fail: {overviewData.totalFail}
+                  </Typography>
+                </Box>
+              )}
+              {overviewData.totalWarn > 0 ? (
               <Tooltip classes={{ tooltip: classes.tooltip }} title={overviewData.totalWarn > 0 ? renderTooltipContent('warn') : <></>}>
                 <Box>
                   <WarningIcon className={classes.icon} style={{ color: theme.palette.warning.main }} />
@@ -262,8 +281,17 @@ const KyvernoOverviewCard = () => {
                   </Typography>
                 </Box>
               </Tooltip>
+              ):(
+                <Box>
+                  <WarningIcon className={classes.icon} style={{ color: theme.palette.warning.main }} />
+                  <Typography variant="body2" component="p" className={classes.warning}>
+                    Warn: {overviewData.totalWarn}
+                  </Typography>
+                </Box>
+              )}
             </Box>
             <Box className={classes.row}>
+            {overviewData.totalSkip > 0 ? (
               <Tooltip classes={{ tooltip: classes.tooltip }} title={overviewData.totalSkip > 0 ? renderTooltipContent('skip') : <></>}>
                 <Box>
                   <SkipNextIcon className={classes.icon} style={{ color: theme.palette.info.main }} />
@@ -272,6 +300,15 @@ const KyvernoOverviewCard = () => {
                   </Typography>
                 </Box>
               </Tooltip>
+            ):(
+              <Box>
+                <SkipNextIcon className={classes.icon} style={{ color: theme.palette.info.main }} />
+                <Typography variant="body2" component="p" className={classes.info}>
+                  Skip: {overviewData.totalSkip}
+                </Typography>
+              </Box>
+              )}
+              {overviewData.totalPass > 0 ? (
               <Tooltip classes={{ tooltip: classes.tooltip }} title={overviewData.totalPass > 0 ? renderTooltipContent('pass') : <></>}>
                 <Box>
                   <CheckCircleIcon className={classes.icon} style={{ color: theme.palette.success.main }} />
@@ -280,6 +317,14 @@ const KyvernoOverviewCard = () => {
                   </Typography>
                 </Box>
               </Tooltip>
+              ):(
+                <Box>
+                  <CheckCircleIcon className={classes.icon} style={{ color: theme.palette.success.main }} />
+                  <Typography variant="body2" component="p" className={classes.success}>
+                    Pass: {overviewData.totalPass}
+                  </Typography>
+                </Box>
+                )}
             </Box>
           </>
         )}
