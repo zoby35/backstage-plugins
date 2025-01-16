@@ -5,7 +5,7 @@ In order for this plugin to work, you do need to give the ServiceAccount used in
 If you want a basic setup, supporting all features, and easy management, the following manifest can configure all the needed RBAC for the ServiceAccount, and the only step you must do is configure Backstage to use its token, which is documented bellow. For more specific configurations check the rest of the documentation bellow.
 
 ```bash
-kubectl apply -f - <<EOF
+kubectl apply --filename - <<EOF
 apiVersion: v1
 kind: Namespace
 metadata:
