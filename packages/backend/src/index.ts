@@ -63,8 +63,11 @@ backend.add(import('@backstage/plugin-scaffolder-backend-module-gitlab'));
 backend.add(import('@backstage/plugin-scaffolder-backend-module-bitbucket'));
 backend.add(import('@backstage/plugin-scaffolder-backend-module-azure'));
 backend.add(import('@backstage/plugin-auth-backend-module-github-provider'));
+backend.add(import('@backstage/plugin-auth-backend-module-microsoft-provider'));
 backend.add(import('@terasky/backstage-plugin-crossplane-permissions-backend'));
 backend.add(import('@backstage/plugin-catalog-backend-module-ldap'));
+backend.add(import('@backstage/plugin-catalog-backend-module-msgraph'));
 backend.add(import('@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils'));
 backend.add(import('@terasky/backstage-plugin-kyverno-permissions-backend'));
+
 backend.start();
