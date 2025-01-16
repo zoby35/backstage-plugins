@@ -37,11 +37,12 @@ import { CatalogGraphPage } from '@backstage/plugin-catalog-graph';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
 import { RbacPage } from '@backstage-community/plugin-rbac';
-import { githubAuthApiRef } from '@backstage/core-plugin-api';
+import { githubAuthApiRef, microsoftAuthApiRef } from '@backstage/core-plugin-api';
 import { themes, UnifiedThemeProvider } from '@backstage/theme';
 import { teraskyLightTheme, teraskyDarkTheme } from './theme/teraskyTheme';
 import LightIcon from '@material-ui/icons/WbSunny';
 import Brightness2Icon from '@material-ui/icons/Brightness2';
+import { configApiRef,  useApi } from '@backstage/core-plugin-api';
 
 const app = createApp({
   apis,
@@ -63,20 +64,50 @@ const app = createApp({
     });
   },
   components: {
-    SignInPage: props => (
-      <SignInPage
-        {...props}
-        providers={[
-          'guest',
-          {
-            id: 'github-auth-provider',
-            title: 'GitHub',
-            message: 'Sign in using GitHub',
-            apiRef: githubAuthApiRef,
-          },
-        ]}
-      />
-    ),
+    SignInPage: props => {
+      const configApi = useApi(configApiRef);
+      if (configApi.getString('auth.environment') === 'development') {
+        return (
+          <SignInPage
+            {...props}
+            providers={[
+              'guest',
+              {
+                id: 'github-auth-provider',
+                title: 'GitHub',
+                message: 'Sign in using GitHub',
+                apiRef: githubAuthApiRef,
+              },
+              {
+                id: 'microsoft-auth-provider',
+                title: 'Microsoft',
+                message: 'Sign in using EntraID',
+                apiRef: microsoftAuthApiRef,
+              },
+            ]}
+          />
+        );
+      }
+      return (
+        <SignInPage
+          {...props}
+          providers={[
+            {
+              id: 'github-auth-provider',
+              title: 'GitHub',
+              message: 'Sign in using GitHub',
+              apiRef: githubAuthApiRef,
+            },
+            {
+              id: 'microsoft-auth-provider',
+              title: 'Microsoft',
+              message: 'Sign in using EntraID',
+              apiRef: microsoftAuthApiRef,
+            },
+          ]}
+        />
+      );
+    }
   },
   themes: [{
     id: 'terasky-light',
