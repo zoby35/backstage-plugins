@@ -65,4 +65,9 @@ export const showResourceGraph = createPermission({
   attributes: { action: 'read' },
 });
 
-export const crossplanePermissions = [showEventsAdditionalResourcesPermission, viewYamlAdditionalResourcesPermission, listAdditionalResourcesPermission, showResourceGraph, showEventsManagedResourcesPermission, viewYamlManagedResourcesPermission, listManagedResourcesPermission, showEventsCompositeResourcesPermission, viewYamlCompositeResourcesPermission, listCompositeResourcesPermission, showEventsClaimsPermission, viewYamlClaimsPermission, listClaimsPermission];
+export const showOverview = createPermission({
+  name: 'crossplane.overview.view',
+  attributes: { action: 'read' },
+});
+
+export const crossplanePermissions = [showOverview, showEventsAdditionalResourcesPermission, viewYamlAdditionalResourcesPermission, listAdditionalResourcesPermission, showResourceGraph, showEventsManagedResourcesPermission, viewYamlManagedResourcesPermission, listManagedResourcesPermission, showEventsCompositeResourcesPermission, viewYamlCompositeResourcesPermission, listCompositeResourcesPermission, showEventsClaimsPermission, viewYamlClaimsPermission, listClaimsPermission];

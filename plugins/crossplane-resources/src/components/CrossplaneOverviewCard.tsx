@@ -5,7 +5,7 @@ import { KubernetesObject } from '@backstage/plugin-kubernetes';
 import { kubernetesApiRef } from '@backstage/plugin-kubernetes-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { usePermission } from '@backstage/plugin-permission-react';
-import { listClaimsPermission } from '@terasky/backstage-plugin-crossplane-common';
+import { showOverview } from '@terasky/backstage-plugin-crossplane-common';
 import { configApiRef } from '@backstage/core-plugin-api';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import CancelIcon from '@material-ui/icons/Cancel';
@@ -41,15 +41,14 @@ const CrossplaneOverviewCard = () => {
     const kubernetesApi = useApi(kubernetesApiRef);
     const config = useApi(configApiRef);
     const enablePermissions = config.getOptionalBoolean('crossplane.enablePermissions') ?? false;
-    const { allowed: canListClaimsTemp } = usePermission({ permission: listClaimsPermission });
-    const canListClaims = enablePermissions ? canListClaimsTemp : true;
-
+    const { allowed: canShowOverviewTemp } = usePermission({ permission: showOverview });
+    const canShowOverview = enablePermissions ? canShowOverviewTemp : true;
     const [claim, setClaim] = useState<ExtendedKubernetesObject | null>(null);
     const [managedResourcesCount, setManagedResourcesCount] = useState<number>(0);
     const classes = useStyles();
 
     useEffect(() => {
-        if (!canListClaims) {
+        if (!canShowOverview) {
             return;
         }
 
@@ -100,9 +99,9 @@ const CrossplaneOverviewCard = () => {
         };
 
         fetchResources();
-    }, [kubernetesApi, entity, canListClaims]);
+    }, [kubernetesApi, entity, canShowOverview]);
 
-    if (!canListClaims) {
+    if (!canShowOverview) {
         return (
           <Card style={{ width: '450px', boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)' }}>
           <CardContent>
