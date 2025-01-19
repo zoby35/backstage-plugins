@@ -1,4 +1,4 @@
-import { createBackendModule } from "@backstage/backend-plugin-api";
+import { coreServices, createBackendModule } from "@backstage/backend-plugin-api";
 import { scaffolderActionsExtensionPoint  } from '@backstage/plugin-scaffolder-node/alpha';
 import { createCrossplaneClaimAction } from "./actions/claim-templating";
 import { createCatalogInfoCleanerAction } from "./actions/catalog-info-cleaner";
@@ -11,10 +11,11 @@ export const scaffolderModule = createBackendModule({
   register({ registerInit }) {
     registerInit({
       deps: {
-        scaffolderActions: scaffolderActionsExtensionPoint
+        scaffolderActions: scaffolderActionsExtensionPoint,
+        config: coreServices.rootConfig,
       },
-      async init({ scaffolderActions}) {
-        scaffolderActions.addActions(createCrossplaneClaimAction());
+      async init({ scaffolderActions, config}) {
+        scaffolderActions.addActions(createCrossplaneClaimAction({config: config}));
         scaffolderActions.addActions(createCatalogInfoCleanerAction());
       }
     });

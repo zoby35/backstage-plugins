@@ -4,7 +4,7 @@ import yaml from 'js-yaml';
 import fs from 'fs-extra';
 import path from 'path';
 
-export function createCrossplaneClaimAction() {
+export function createCrossplaneClaimAction({config}: {config: any}) {
   return createTemplateAction<{
     parameters: Record<string, any>;
     nameParam: string;
@@ -104,7 +104,6 @@ export function createCrossplaneClaimAction() {
       ctx.logger.info(
         `Running example template with parameters: ${JSON.stringify(ctx.input.parameters)}`,
       );
-
       if (ctx.input.parameters[ctx.input.nameParam] === 'foo') {
         throw new Error(`myParameter cannot be 'foo'`);
       }
@@ -131,6 +130,26 @@ export function createCrossplaneClaimAction() {
         };
         removeEmpty(filteredParameters);
       }
+      const sourceInfo = {
+        pushToGit: ctx.input.parameters.pushToGit,
+        gitBranch: ctx.input.parameters.targetBranch || config.getOptionalString('kubernetesIngestor.crossplane.xrds.publishPhase.git.targetBranch'),
+        gitRepo: ctx.input.parameters.repoUrl || config.getOptionalString('kubernetesIngestor.crossplane.xrds.publishPhase.git.repoUrl'),
+        gitLayout: ctx.input.parameters.manifestLayout,
+        basePath: ctx.input.parameters.manifestLayout === 'custom' 
+          ? ctx.input.parameters.basePath 
+          : ctx.input.parameters.manifestLayout === 'namespace-scoped'
+            ? `${ctx.input.parameters[ctx.input.namespaceParam]}`
+            : `${ctx.input.clusters[0]}/${ctx.input.parameters[ctx.input.namespaceParam]}/${ctx.input.kind}`
+      }
+      let sourceFileUrl = '';
+      if (ctx.input.parameters.pushToGit && sourceInfo.gitRepo) {
+        const gitUrl = new URL("https://" + sourceInfo.gitRepo);
+        const owner = gitUrl.searchParams.get('owner');
+        const repo = gitUrl.searchParams.get('repo');
+        if (owner && repo) {
+          sourceFileUrl = `https://${gitUrl.host}/${owner}/${repo}/blob/${sourceInfo.gitBranch}/${sourceInfo.basePath}/${ctx.input.parameters[ctx.input.nameParam]}.yaml`;
+        }
+      }
 
       // Template the Kubernetes resource manifest
       const manifest = {
@@ -138,9 +157,11 @@ export function createCrossplaneClaimAction() {
         kind: ctx.input.kind,
         metadata: {
           annotations: {
+            'terasky.backstage.io/source-info': JSON.stringify(sourceInfo),
             'terasky.backstage.io/add-to-catalog': "true",
             'terasky.backstage.io/owner': ctx.input.parameters[ctx.input.ownerParam],
             'terasky.backstage.io/system': ctx.input.parameters[ctx.input.namespaceParam],
+            ...(sourceFileUrl && { 'terasky.backstage.io/source-file-url': sourceFileUrl }),
           },
           name: ctx.input.parameters[ctx.input.nameParam],
           namespace: ctx.input.parameters[ctx.input.namespaceParam],
