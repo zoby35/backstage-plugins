@@ -26,7 +26,15 @@ p, role:default/platformteam, crossplane.managed-resources.list, read, allow
 p, role:default/platformteam, crossplane.managed-resources.view-yaml, read, allow
 p, role:default/platformteam, crossplane.managed-resources.show-events, read, allow
 p, role:default/platformteam, crossplane.resource-graph.show, read, allow
+p, role:default/platformteam, crossplane.overview.view, read, allow
+p, role:default/platformteam, crossplane.additional-resources.list, read, allow
+p, role:default/platformteam, crossplane.additional-resources.view-yaml, read, allow
+p, role:default/platformteam, crossplane.additional-resources.show-events, read, allow
 p, role:default/platformteam, scaffolder.template.step.read, read, allow
 p, role:default/platformteam, scaffolder.template.parameter.read, read, allow
 p, role:default/platformteam, scaffolder.action.execute, use, allow
+p, role:default/platformteam, kyverno.overview.view, read, allow
+p, role:default/platformteam, kyverno.policy.view-yaml, read, allow
+p, role:default/platformteam, kyverno.reports.view, read, allow
+g, user:default/scott_terasky.com, role:default/platformteam
 g, user:default/scott, role:default/platformteam

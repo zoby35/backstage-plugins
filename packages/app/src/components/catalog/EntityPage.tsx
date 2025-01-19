@@ -67,6 +67,8 @@ import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
 import { EntityPickerFieldExtension, RepoUrlPickerFieldExtension } from '@backstage/plugin-scaffolder';
 import { ScaleOpsDashboard } from '@terasky/backstage-plugin-scaleops-frontend';
 import { KyvernoCrossplaneOverviewCard, KyvernoCrossplanePolicyReportsTable, KyvernoOverviewCard, KyvernoPolicyReportsTable } from '@terasky/backstage-plugin-kyverno-policy-reports';
+import { EntityAccentuateInfo, isAccentuateEnabled, EntityLayoutWrapper } from '@dweber019/backstage-plugin-accentuate';
+import { GitClaimUpdaterExtension } from '@terasky/backstage-plugin-crossplane-claim-updater';
 
 const techdocsContent = (
   <EntityTechdocsContent>
@@ -106,7 +108,13 @@ const entityWarningContent = (
         </Grid>
       </EntitySwitch.Case>
     </EntitySwitch>
-
+    <EntitySwitch>
+      <EntitySwitch.Case if={isAccentuateEnabled}>
+        <Grid item xs={12}>
+          <EntityAccentuateInfo />
+        </Grid>
+      </EntitySwitch.Case>
+    </EntitySwitch>
     <EntitySwitch>
       <EntitySwitch.Case if={hasRelationWarnings}>
         <Grid item xs={12}>
@@ -169,7 +177,7 @@ const crossplaneOverviewContent = (
   </Grid>
 );
 const serviceEntityPage = (
-  <EntityLayout>
+  <EntityLayoutWrapper>
     <EntityLayout.Route path="/" title="Overview">
       {overviewContent}
     </EntityLayout.Route>
@@ -240,14 +248,15 @@ const serviceEntityPage = (
             <ScaffolderFieldExtensions>
               <RepoUrlPickerFieldExtension />
               <EntityPickerFieldExtension />
+              <GitClaimUpdaterExtension />
             </ScaffolderFieldExtensions>
           }
         />
     </EntityLayout.Route>
-  </EntityLayout>
+  </EntityLayoutWrapper>
 );
 const crossplaneEntityPage = (
-  <EntityLayout>
+  <EntityLayoutWrapper>
     <EntityLayout.Route path="/" title="Overview">
       {crossplaneOverviewContent}
     </EntityLayout.Route>
@@ -290,11 +299,12 @@ const crossplaneEntityPage = (
             <ScaffolderFieldExtensions>
               <RepoUrlPickerFieldExtension />
               <EntityPickerFieldExtension />
+              <GitClaimUpdaterExtension />
             </ScaffolderFieldExtensions>
           }
         />
     </EntityLayout.Route>
-  </EntityLayout>
+  </EntityLayoutWrapper>
 );
 
 const websiteEntityPage = (

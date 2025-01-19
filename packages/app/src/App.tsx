@@ -43,6 +43,9 @@ import { teraskyLightTheme, teraskyDarkTheme } from './theme/teraskyTheme';
 import LightIcon from '@material-ui/icons/WbSunny';
 import Brightness2Icon from '@material-ui/icons/Brightness2';
 import { configApiRef,  useApi } from '@backstage/core-plugin-api';
+import { AccentuatePage } from '@dweber019/backstage-plugin-accentuate';
+import { GitClaimUpdaterExtension } from '@terasky/backstage-plugin-crossplane-claim-updater';
+import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
 
 const app = createApp({
   apis,
@@ -161,7 +164,11 @@ const routes = (
         <ReportIssue />
       </TechDocsAddons>
     </Route>
-    <Route path="/create" element={<ScaffolderPage />} />
+    <Route path="/create" element={<ScaffolderPage />}>
+      <ScaffolderFieldExtensions>
+        <GitClaimUpdaterExtension />
+      </ScaffolderFieldExtensions>
+    </Route>
     <Route path="/api-docs" element={<ApiExplorerPage />} />
     <Route
       path="/catalog-import"
@@ -177,6 +184,7 @@ const routes = (
     <Route path="/settings" element={<UserSettingsPage />} />
     <Route path="/catalog-graph" element={<CatalogGraphPage />} />
     <Route path="/rbac" element={<RbacPage />} />
+    <Route path="/accentuate" element={<AccentuatePage />} />
   </FlatRoutes>
 );
 

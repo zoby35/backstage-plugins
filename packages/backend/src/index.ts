@@ -7,6 +7,10 @@
  */
 
 import { createBackend } from '@backstage/backend-defaults';
+import {
+  accentuatePlugin,
+  catalogModuleAccentuateProcessor,
+} from '@dweber019/backstage-plugin-accentuate-backend';
 
 const backend = createBackend();
 
@@ -69,5 +73,7 @@ backend.add(import('@backstage/plugin-catalog-backend-module-ldap'));
 backend.add(import('@backstage/plugin-catalog-backend-module-msgraph'));
 backend.add(import('@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils'));
 backend.add(import('@terasky/backstage-plugin-kyverno-permissions-backend'));
+backend.add(accentuatePlugin);
+backend.add(catalogModuleAccentuateProcessor);
 
 backend.start();

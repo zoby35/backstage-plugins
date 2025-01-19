@@ -22,6 +22,7 @@ import {
   Link,
   SidebarSubmenu,
   SidebarSubmenuItem,
+
 } from '@backstage/core-components';
 import MenuIcon from '@material-ui/icons/Menu';
 import SearchIcon from '@material-ui/icons/Search';
@@ -30,6 +31,8 @@ import ListIcon from '@material-ui/icons/List';
 import { SiKubernetes } from "react-icons/si";
 import { SiOpenapiinitiative } from "react-icons/si";
 import { useApp } from '@backstage/core-plugin-api';
+import BrushIcon from '@material-ui/icons/Brush';
+import { Typography } from '@material-ui/core';
 
 const useSidebarLogoStyles = makeStyles({
   root: {
@@ -71,6 +74,9 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
         {/* Global nav, not org-specific */}
         <SidebarItem icon={ListIcon} text="Catalog" to={'/catalog'}>
           <SidebarSubmenu title="Catalog">
+            <Typography variant="subtitle2" style={{ padding: '32px 16px 16px 16px', fontWeight: 'bold' }}>
+              Application Components
+            </Typography>
             <SidebarSubmenuItem
               title="Domains"
               to="catalog?filters[kind]=domain"
@@ -93,6 +99,9 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
               icon={useApp().getSystemIcon('kind:resource')}
             />
             <SidebarDivider />
+            <Typography variant="subtitle2" style={{ padding: '32px 16px 16px 16px', fontWeight: 'bold' }}>
+              Documentation
+            </Typography>
             <SidebarSubmenuItem icon={LibraryBooks} to="docs" title="Tech Docs" />
             <SidebarSubmenuItem
               title="API Docs"
@@ -100,6 +109,9 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
               icon={useApp().getSystemIcon('kind:api')}
             />
             <SidebarDivider />
+            <Typography variant="subtitle2" style={{ padding: '32px 16px 16px 16px', fontWeight: 'bold' }}>
+              User Management
+            </Typography>
             <SidebarSubmenuItem
               title="Groups"
               to="catalog?filters[kind]=group"
@@ -110,14 +122,36 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
               to="catalog?filters[kind]=user"
               icon={useApp().getSystemIcon('kind:user')}
             />
+            <SidebarDivider />
+            <Typography variant="subtitle2" style={{ padding: '32px 16px 16px 16px', fontWeight: 'bold' }}>
+              Additional Resources
+            </Typography>
+            <SidebarSubmenuItem
+              title="Templates"
+              to="catalog?filters[kind]=template"
+              icon={useApp().getSystemIcon('kind:template')}
+            />
+            <SidebarSubmenuItem
+              title="Locations"
+              to="catalog?filters[kind]=location"
+              icon={useApp().getSystemIcon('kind:location')}
+            />
             
           </SidebarSubmenu>
         </SidebarItem>
         <SidebarItem icon={SiKubernetes} text="Kubernetes">
           <SidebarSubmenu title="Kubernetes">
-          <SidebarSubmenuItem title="Namespaces" to="catalog?filters[kind]=system&filters[type]=kubernetes-namespace" icon={SiKubernetes} />
-            <SidebarSubmenuItem title="Claims" to="catalog?filters[kind]=component&filters[type]=crossplane-claim" icon={SiKubernetes} />
+            <Typography variant="subtitle2" style={{ padding: '32px 16px 16px 16px', fontWeight: 'bold' }}>
+              Core Kubernetes
+            </Typography>
+            <SidebarSubmenuItem title="Namespaces" to="catalog?filters[kind]=system&filters[type]=kubernetes-namespace" icon={SiKubernetes} />
             <SidebarSubmenuItem title="Workloads" to="catalog?filters[kind]=component&filters[type]=service" icon={SiKubernetes} />
+            <SidebarDivider />
+            <Typography variant="subtitle2" style={{ padding: '32px 16px 16px 16px', fontWeight: 'bold' }}>
+              Crossplane
+            </Typography>
+            
+            <SidebarSubmenuItem title="Claims" to="catalog?filters[kind]=component&filters[type]=crossplane-claim" icon={SiKubernetes} />
             <SidebarSubmenuItem title="XRDs" to="catalog?filters[kind]=api&filters[owners]=group:default/kubernetes-auto-ingested" icon={SiOpenapiinitiative} />
           </SidebarSubmenu>
         </SidebarItem>
@@ -138,6 +172,7 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
       >
         <SidebarSettings />
       </SidebarGroup>
+      <SidebarItem icon={BrushIcon} to="accentuate" text="Entity Overrides" />
       <Administration />
     </Sidebar>
     {children}
