@@ -22,5 +22,6 @@ for folder in */ ; do
   else
     echo "Publishing $package_name@$package_version..."
     yarn --cwd "$folder" npm publish --access public --tolerate-republish
+    npm publish ${folder}/package.tgz --access public --provenance
   fi
 done
