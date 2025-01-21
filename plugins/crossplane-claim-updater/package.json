@@ -7,7 +7,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/terasky-oss/backstage-plugins",
+    "url": "git+https://github.com/TeraSky-OSS/backstage-plugins.git",
     "directory": "plugins/crossplane-claim-updater"
   },
   "homepage": "https://www.terasky.com",
