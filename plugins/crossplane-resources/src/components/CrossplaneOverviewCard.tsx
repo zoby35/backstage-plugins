@@ -54,6 +54,7 @@ const CrossplaneOverviewCard = () => {
 
         const fetchResources = async () => {
             const annotations = entity.metadata.annotations || {};
+            const claimName = annotations['terasky.backstage.io/claim-name'];
             const plural = annotations['terasky.backstage.io/claim-plural'];
             const group = annotations['terasky.backstage.io/claim-group'];
             const version = annotations['terasky.backstage.io/claim-version'];
@@ -68,7 +69,7 @@ const CrossplaneOverviewCard = () => {
                 return;
             }
 
-            const resourceName = entity.metadata.name;
+            const resourceName = claimName;
             const url = `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${resourceName}`;
 
             try {

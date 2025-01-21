@@ -136,6 +136,7 @@ const CrossplaneResourceGraph = () => {
 
         const fetchResources = async () => {
             const annotations = entity.metadata.annotations || {};
+            const claimName = annotations['terasky.backstage.io/claim-name'];
             const clusterOfClaim = annotations['backstage.io/managed-by-location'].split(": ")[1];
             const plural = annotations['terasky.backstage.io/claim-plural'];
             const group = annotations['terasky.backstage.io/claim-group'];
@@ -186,7 +187,7 @@ const CrossplaneResourceGraph = () => {
                 ).filter(resource => resource);
                 console.log(allResources);
                 // Fetch the claim resource
-                const resourceName = entity.metadata.name;
+                const resourceName = claimName;
                 const url = `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${resourceName}`;
 
                 try {
