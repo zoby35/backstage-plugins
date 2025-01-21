@@ -1114,18 +1114,48 @@ export class KubernetesEntityProvider implements EntityProvider {
   private translateKubernetesObjectsToEntities(resource: any): Entity[] {
     const namespace = resource.metadata.namespace || 'default';
     const annotations = resource.metadata.annotations || {};
-    const systemName = annotations['terasky.backstage.io/system'] || namespace;
+    const systemNamespaceModel = this.config.getOptionalString('kubernetesIngestor.mappings.namespaceModel')?.toLowerCase() || 'default';
+    let systemNamespaceValue = '';
+    if (systemNamespaceModel === 'cluster') {
+      systemNamespaceValue = resource.clusterName;
+    } else if (systemNamespaceModel === 'namespace') {
+      systemNamespaceValue = resource.metadata.namespace || 'default';
+    } else {
+      systemNamespaceValue = 'default';
+    }
+    const systemNameModel = this.config.getOptionalString('kubernetesIngestor.mappings.systemModel')?.toLowerCase() || 'namespace';
+    let systemNameValue = '';
+    if (systemNameModel === 'cluster') {
+      systemNameValue = resource.clusterName;
+    } else if (systemNameModel === 'namespace') {
+      systemNameValue = resource.metadata.namespace || resource.metadata.name;
+    } else if (systemNameModel === 'cluster-namespace') {
+      if (resource.metadata.namespace) {
+        systemNameValue = `${resource.clusterName}-${resource.metadata.namespace}`;
+      } else {
+        systemNameValue = `${resource.clusterName}`;
+      }
+    } else {
+      systemNameValue = 'default';
+    }
+    const systemReferencesNamespaceModel = this.config.getOptionalString('kubernetesIngestor.mappings.referencesNamespaceModel')?.toLowerCase() || 'default';
+    let systemReferencesNamespaceValue = '';
+    if (systemReferencesNamespaceModel === 'same') {
+      systemReferencesNamespaceValue = resource.metadata.name;
+    } else if (systemReferencesNamespaceModel === 'default') {
+      systemReferencesNamespaceValue = 'default';
+    }
 
     const systemEntity: Entity = {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'System',
       metadata: {
-        name: systemName,
-        namespace: annotations['terasky.backstage.io/backstage-namespace'] || 'default',
+        name: systemNameValue,
+        namespace: annotations['terasky.backstage.io/backstage-namespace'] || systemNamespaceValue,
         annotations: this.extractCustomAnnotations(annotations, resource.clusterName),
       },
       spec: {
-        owner: annotations['terasky.backstage.io/owner'] || 'kubernetes-auto-ingested',
+        owner: annotations['terasky.backstage.io/owner'] ? `${systemReferencesNamespaceValue}/${annotations['terasky.backstage.io/owner']}` : `${systemReferencesNamespaceValue}/kubernetes-auto-ingested`,
         type: annotations['terasky.backstage.io/system-type'] || 'kubernetes-namespace',
         ...(annotations['terasky.backstage.io/domain']
           ? { domain: annotations['terasky.backstage.io/domain'] }
@@ -1168,20 +1198,80 @@ export class KubernetesEntityProvider implements EntityProvider {
       ? `/apis/${apiGroup}/${version}/namespaces/${namespace}/${kindPlural}/${objectName}`
       : `/apis/${apiGroup}/${version}/${kindPlural}/${objectName}`;
     customAnnotations['terasky.backstage.io/custom-workload-uri'] = customWorkloadUri;
-    
+    const namespaceModel = this.config.getOptionalString('kubernetesIngestor.mappings.namespaceModel')?.toLowerCase() || 'default';
+    const nameModel = this.config.getOptionalString('kubernetesIngestor.mappings.nameModel')?.toLowerCase() || 'name';
+    const titleModel = this.config.getOptionalString('kubernetesIngestor.mappings.titleModel')?.toLowerCase() || 'name';
+    const systemModel = this.config.getOptionalString('kubernetesIngestor.mappings.systemModel')?.toLowerCase() || 'namespace';
+    const referencesNamespaceModel = this.config.getOptionalString('kubernetesIngestor.mappings.referencesNamespaceModel')?.toLowerCase() || 'default';
+    let systemValue = '';
+    let namespaceValue = '';
+    let nameValue = '';
+    let titleValue = '';
+    let referencesNamespaceValue = '';
+    if (namespaceModel === 'cluster') {
+      namespaceValue = resource.clusterName;
+    } else if (namespaceModel === 'namespace') {
+      namespaceValue = resource.metadata.namespace || 'default';
+    } else {
+      namespaceValue = 'default';
+    }
+    if (referencesNamespaceModel === 'same') {
+      referencesNamespaceValue = resource.metadata.namespace;
+    } else if (referencesNamespaceModel === 'default') {
+      referencesNamespaceValue = 'default';
+    }
+    if (nameModel === 'name-cluster') {
+      nameValue = `${resource.metadata.name}-${resource.clusterName}`;
+    } else if (nameModel === 'name-namespace') {
+      if (resource.metadata.namespace) {
+        nameValue = `${resource.metadata.name}-${resource.metadata.namespace}`;   
+      } else {
+        nameValue = `${resource.metadata.name}`;
+      }
+    } else {
+      nameValue = resource.metadata.name;
+    }
+    if (titleModel === 'name-cluster') {
+      titleValue = `${resource.metadata.name}-${resource.clusterName}`;
+    } else if (titleModel === 'name-namespace') {
+      if (resource.metadata.namespace) {
+        titleValue = `${resource.metadata.name}-${resource.metadata.namespace}`;
+      } else {
+        titleValue = `${resource.metadata.name}`;
+      }
+    } else {
+      titleValue = resource.metadata.name;
+    }
+    if (systemModel === 'cluster') {
+      systemValue = resource.clusterName;
+    } else if (systemModel === 'namespace') {
+      systemValue = resource.metadata.namespace || 'default';
+    } else if (systemModel === 'cluster-namespace') {
+      if (resource.metadata.namespace) {
+        systemValue = `${resource.clusterName}-${resource.metadata.namespace}`;
+      } else {
+        systemValue = `${resource.clusterName}`;
+      }
+    } else {
+      systemValue = 'default';
+    }
+
     const componentEntity: Entity = {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Component',
       metadata: {
-        name: resource.metadata.name,
-        namespace: annotations['terasky.backstage.io/backstage-namespace'] || 'default',
+        name: nameValue,
+        title: titleValue,
+        description: `${resource.kind} ${resource.metadata.name} from ${resource.clusterName}`,
+        namespace: annotations['terasky.backstage.io/backstage-namespace'] || namespaceValue,
         annotations: customAnnotations,
+        tags: [`cluster:${resource.clusterName}`, `kind:${resource.kind}`],
       },
       spec: {
         type: annotations['terasky.backstage.io/component-type'] || 'service',
         lifecycle: annotations['terasky.backstage.io/lifecycle'] || 'production',
-        owner: annotations['terasky.backstage.io/owner'] || 'kubernetes-auto-ingested',
-        system: systemName,
+        owner: annotations['terasky.backstage.io/owner'] ? `${referencesNamespaceModel}/${annotations['terasky.backstage.io/owner']}` : `${referencesNamespaceValue}/kubernetes-auto-ingested`,
+        system: `${referencesNamespaceValue}/${systemValue}`,
         dependsOn: annotations['terasky.backstage.io/dependsOn']?.split(','),
         providesApis: annotations['terasky.backstage.io/providesApis']?.split(','),
         consumesApis: annotations['terasky.backstage.io/consumesApis']?.split(','),
@@ -1205,63 +1295,6 @@ export class KubernetesEntityProvider implements EntityProvider {
     return null;
   }
 
-  private translateCrossplaneClaimToEntity(claim: any, clusterName: string, crdMapping: Record<string, string>): Entity {
-    const annotations = claim.metadata.annotations || {};
-
-    // Extract CR values
-    const [crGroup, crVersion] = claim.apiVersion.split('/');
-    const crKind = claim.kind;
-    const crPlural = crdMapping[crKind] || pluralize(claim.kind.toLowerCase()); // Fetch plural from CRD mapping
-
-    // Extract Composite values from `spec.resourceRef`
-    const compositeRef = claim.spec?.resourceRef || {};
-    const compositeKind = compositeRef.kind || '';
-    const compositeName = compositeRef.name || '';
-    const compositeGroup = compositeRef.apiVersion?.split('/')?.[0] || '';
-    const compositeVersion = compositeRef.apiVersion?.split('/')?.[1] || '';
-    const compositePlural = compositeKind ? crdMapping[compositeKind] || '' : ''; // Fetch plural for composite kind
-    const compositionData = claim.compositionData || {};
-    const compositionName = compositionData.name || '';
-    const compositionFunctions = compositionData.usedFunctions || [];
-    // Add Crossplane claim annotations
-    annotations['terasky.backstage.io/claim-kind'] = crKind;
-    annotations['terasky.backstage.io/claim-version'] = crVersion;
-    annotations['terasky.backstage.io/claim-group'] = crGroup;
-    annotations['terasky.backstage.io/claim-plural'] = crPlural;
-    annotations['terasky.backstage.io/crossplane-resource'] = "true";
-
-    annotations['terasky.backstage.io/composite-kind'] = compositeKind;
-    annotations['terasky.backstage.io/composite-name'] = compositeName;
-    annotations['terasky.backstage.io/composite-group'] = compositeGroup;
-    annotations['terasky.backstage.io/composite-version'] = compositeVersion;
-    annotations['terasky.backstage.io/composite-plural'] = compositePlural;
-    annotations['terasky.backstage.io/composition-name'] = compositionName;
-    annotations['terasky.backstage.io/composition-functions'] = compositionFunctions.join(',');
-    annotations['backstage.io/kubernetes-label-selector'] = `crossplane.io/claim-name=${claim.metadata.name},crossplane.io/claim-namespace=${claim.metadata.namespace},crossplane.io/composite=${compositeName}`
-
-    return {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'Component',
-      metadata: {
-        name: claim.metadata.name,
-        namespace: 'default',
-        annotations: {
-          ...annotations,
-          'terasky.backstage.io/component-type': 'crossplane-claim',
-          'backstage.io/managed-by-location': `cluster origin: ${clusterName}`,
-          'backstage.io/managed-by-origin-location': `cluster origin: ${clusterName}`,
-        },
-      },
-      spec: {
-        type: 'crossplane-claim',
-        lifecycle: annotations['terasky.backstage.io/lifecycle'] || 'production',
-        owner: annotations['terasky.backstage.io/owner'] || 'kubernetes-auto-ingested',
-        system: annotations['terasky.backstage.io/system'] || claim.metadata.namespace || 'default',
-        consumesApis: [`${claim.kind}-${claim.apiVersion.split('/').join('--')}`],
-      },
-    };
-  }
-
   private extractCustomAnnotations(annotations: Record<string, string>, clusterName: string): Record<string, string> {
     const customAnnotationsKey = 'terasky.backstage.io/component-annotations';
     const defaultAnnotations: Record<string, string> = {
@@ -1282,5 +1315,124 @@ export class KubernetesEntityProvider implements EntityProvider {
     }, defaultAnnotations);
 
     return customAnnotations;
+  }
+
+  private translateCrossplaneClaimToEntity(claim: any, clusterName: string, crdMapping: Record<string, string>): Entity {
+    const annotations = claim.metadata.annotations || {};
+
+    // Extract CR values
+    const [crGroup, crVersion] = claim.apiVersion.split('/');
+    const crKind = claim.kind;
+    const crPlural = crdMapping[crKind] || pluralize(claim.kind.toLowerCase()); // Fetch plural from CRD mapping
+
+    // Extract Composite values from `spec.resourceRef`
+    const compositeRef = claim.spec?.resourceRef || {};
+    const compositeKind = compositeRef.kind || '';
+    const compositeName = compositeRef.name || '';
+    const compositeGroup = compositeRef.apiVersion?.split('/')?.[0] || '';
+    const compositeVersion = compositeRef.apiVersion?.split('/')?.[1] || '';
+    const compositePlural = compositeKind ? crdMapping[compositeKind] || '' : ''; // Fetch plural for composite kind
+    const compositionData = claim.compositionData || {};
+    const compositionName = compositionData.name || '';
+    const compositionFunctions = compositionData.usedFunctions || [];
+    // Add Crossplane claim annotations
+    annotations['terasky.backstage.io/claim-name'] = claim.metadata.name;
+    annotations['terasky.backstage.io/claim-kind'] = crKind;
+    annotations['terasky.backstage.io/claim-version'] = crVersion;
+    annotations['terasky.backstage.io/claim-group'] = crGroup;
+    annotations['terasky.backstage.io/claim-plural'] = crPlural;
+    annotations['terasky.backstage.io/crossplane-resource'] = "true";
+
+    annotations['terasky.backstage.io/composite-kind'] = compositeKind;
+    annotations['terasky.backstage.io/composite-name'] = compositeName;
+    annotations['terasky.backstage.io/composite-group'] = compositeGroup;
+    annotations['terasky.backstage.io/composite-version'] = compositeVersion;
+    annotations['terasky.backstage.io/composite-plural'] = compositePlural;
+    annotations['terasky.backstage.io/composition-name'] = compositionName;
+    annotations['terasky.backstage.io/composition-functions'] = compositionFunctions.join(',');
+    annotations['backstage.io/kubernetes-label-selector'] = `crossplane.io/claim-name=${claim.metadata.name},crossplane.io/claim-namespace=${claim.metadata.namespace},crossplane.io/composite=${compositeName}`
+    const resourceAnnotations = claim.metadata.annotations || {};
+    const customAnnotations = this.extractCustomAnnotations(resourceAnnotations, clusterName);
+    const namespaceModel = this.config.getOptionalString('kubernetesIngestor.mappings.namespaceModel')?.toLowerCase() || 'default';
+    const nameModel = this.config.getOptionalString('kubernetesIngestor.mappings.nameModel')?.toLowerCase() || 'name';
+    const titleModel = this.config.getOptionalString('kubernetesIngestor.mappings.titleModel')?.toLowerCase() || 'name';
+    const systemModel = this.config.getOptionalString('kubernetesIngestor.mappings.systemModel')?.toLowerCase() || 'namespace';
+    const referencesNamespaceModel = this.config.getOptionalString('kubernetesIngestor.mappings.referencesNamespaceModel')?.toLowerCase() || 'default';
+    let systemValue = '';
+    let namespaceValue = '';
+    let nameValue = '';
+    let titleValue = '';
+    let referencesNamespaceValue = '';
+    if (namespaceModel === 'cluster') {
+      namespaceValue = clusterName;
+    } else if (namespaceModel === 'namespace') {
+      namespaceValue = claim.metadata.namespace || 'default';
+    } else {
+      namespaceValue = 'default';
+    }
+    if (referencesNamespaceModel === 'same') {
+      referencesNamespaceValue = claim.metadata.namespace || 'default';
+    } else if (referencesNamespaceModel === 'default') {
+      referencesNamespaceValue = 'default';
+    }
+    if (nameModel === 'name-cluster') {
+      nameValue = `${claim.metadata.name}-${clusterName}`;
+    } else if (nameModel === 'name-namespace') {
+      if (claim.metadata.namespace) {
+        nameValue = `${claim.metadata.name}-${claim.metadata.namespace}`;
+      } else {
+        nameValue = `${claim.metadata.name}`;
+      }
+    } else {
+      nameValue = claim.metadata.name;
+    }
+    if (titleModel === 'name-cluster') {
+      titleValue = `${claim.metadata.name}-${clusterName}`;
+    } else if (titleModel === 'name-namespace') {
+      if (claim.metadata.namespace) {
+        titleValue = `${claim.metadata.name}-${claim.metadata.namespace}`;
+      } else {
+        titleValue = `${claim.metadata.name}`;
+      }
+    } else {
+      titleValue = claim.metadata.name;
+    }
+    if (systemModel === 'cluster') {
+      systemValue = clusterName;
+    } else if (systemModel === 'namespace') {
+      systemValue = claim.metadata.namespace || 'default';
+    } else if (systemModel === 'cluster-namespace') {
+      if (claim.metadata.namespace) {
+        systemValue = `${clusterName}-${claim.metadata.namespace}`;
+      } else {
+        systemValue = `${clusterName}`;
+      }
+    } else {
+      systemValue = 'default';
+    }
+
+    return {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'Component',
+      metadata: {
+        name: nameValue,
+        title: titleValue,
+        description: `${claim.kind} ${claim.metadata.name} from ${clusterName}`,
+        tags: [`cluster:${clusterName}`, `kind:${claim.kind}`, 'crossplane-claim'],
+        namespace: namespaceValue,
+        annotations: {
+          ...annotations,
+          'terasky.backstage.io/component-type': 'crossplane-claim',
+          ...customAnnotations,
+        },
+      },
+      spec: {
+        type: 'crossplane-claim',
+        lifecycle: annotations['terasky.backstage.io/lifecycle'] || 'production',
+        owner: annotations['terasky.backstage.io/owner'] ? `${referencesNamespaceModel}/${annotations['terasky.backstage.io/owner']}` : `${referencesNamespaceValue}/kubernetes-auto-ingested`,
+        system: annotations['terasky.backstage.io/system'] || `${referencesNamespaceValue}/${systemValue}`,
+        consumesApis: [`${referencesNamespaceValue}/${claim.kind}-${claim.apiVersion.split('/').join('--')}`],
+      },
+    };
   }
 }

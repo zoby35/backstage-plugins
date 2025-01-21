@@ -36,6 +36,20 @@ Add the plugin to your Backstage project by running:
 * available config options:
 ```yaml
 kubernetesIngestor:
+  # Mappings of kubernetes resource metadata to backstage entity metadata 
+  # The list bellow are the default values when the mappings are not set in the app-config.yaml
+  # The recommended values are:
+  # namespaceModel: 'cluster' # cluster, namespace, default
+  # nameModel: 'name-cluster' # name-cluster, name-namespace, name
+  # titleModel: 'name' # name, name-cluster, name-namespace
+  # systemModel: 'cluster-namespace' # cluster, namespace, cluster-namespace, default
+  # referencesNamespaceModel: 'default' # default, same
+  mappings:
+    namespaceModel: 'cluster' # cluster, namespace, default
+    nameModel: 'name-cluster' # name-cluster, name-namespace, name
+    titleModel: 'name' # name, name-cluster, name-namespace
+    systemModel: 'namespace' # cluster, namespace, cluster-namespace, default
+    referencesNamespaceModel: 'default' # default, same
   components:
     # Whether to enable creation of backstage components for Kubernetes workloads
     enabled: true
