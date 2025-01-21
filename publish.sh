@@ -21,7 +21,8 @@ for folder in */ ; do
     echo "Package $package_name@$package_version already exists. Skipping publish."
   else
     echo "Publishing $package_name@$package_version..."
-    yarn --cwd "$folder" npm publish --access public --tolerate-republish
-    npm publish ${folder}/package.tgz --access public --provenance
+    cd "$folder"
+    npm publish --access public --provenance
+    cd ..
   fi
 done

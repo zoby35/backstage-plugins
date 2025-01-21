@@ -13,7 +13,8 @@ jobs:
       id-token: write
     env:
       NODE_OPTIONS: --max-old-space-size=4096
-
+      NPM_CONFIG_PROVENANCE: true
+      
     runs-on: ubuntu-latest
     strategy:
       matrix:
