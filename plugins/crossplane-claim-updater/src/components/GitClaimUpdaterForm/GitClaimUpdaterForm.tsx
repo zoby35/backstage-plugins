@@ -371,7 +371,7 @@ export const GitClaimUpdaterForm = ({
       {!formContext?.formData?.entity && (
         <TextField
           label="Source File URL"
-          helperText="The URL to the YAML file in your repository"
+          helperText="The URL to the YAML file in your repository if not available in the entity annotations"
           value={manualSourceUrl}
           onChange={(e: ChangeEvent<HTMLInputElement>) => setManualSourceUrl(e.target.value)}
           fullWidth
