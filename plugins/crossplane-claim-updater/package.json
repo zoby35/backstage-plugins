@@ -1,76 +1,76 @@
 {
-    "name": "@terasky/backstage-plugin-crossplane-claim-updater",
-    "description": "The crossplane claim updater plugin for Backstage",
-    "version": "0.2.0",
-    "main": "src/index.ts",
-    "types": "src/index.ts",
-    "license": "Apache-2.0",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/terasky-oss/backstage-plugins",
-        "directory": "plugins/crossplane-claim-updater"
-    },
-    "homepage": "https://www.terasky.com",
-    "publishConfig": {
-        "access": "public",
-        "main": "dist/index.esm.js",
-        "types": "dist/index.d.ts"
-    },
-    "backstage": {
-        "role": "frontend-plugin",
-        "pluginId": "crossplane-claim-updater",
-        "pluginPackages": [
-            "@terasky/backstage-plugin-crossplane-claim-updater"
-        ]
-    },
-    "sideEffects": false,
-    "scripts": {
-        "start": "backstage-cli package start",
-        "build": "backstage-cli package build",
-        "lint": "backstage-cli package lint",
-        "test": "backstage-cli package test",
-        "clean": "backstage-cli package clean",
-        "prepack": "backstage-cli package prepack",
-        "postpack": "backstage-cli package postpack"
-    },
-    "dependencies": {
-        "@backstage/core-components": "0.16.1",
-        "@backstage/core-plugin-api": "1.10.1",
-        "@backstage/errors": "1.2.5",
-        "@backstage/plugin-catalog-react": "1.14.2",
-        "@backstage/plugin-scaffolder": "1.27.1",
-        "@backstage/plugin-scaffolder-react": "1.14.1",
-        "@backstage/theme": "0.6.2",
-        "@material-ui/core": "4.9.13",
-        "@material-ui/icons": "4.9.1",
-        "@material-ui/lab": "4.0.0-alpha.61",
-        "@mui/material": "6.1.10",
-        "ansi-to-react": "6.1.6",
-        "dayjs": "1.11.13",
-        "git-url-parse": "16.0.0",
-        "lodash": "4.17.21",
-        "react-use": "17.2.4",
-        "zod": "3.23.8"
-    },
-    "peerDependencies": {
-        "react": "^16.13.1 || ^17.0.0 || ^18.0.0"
-    },
-    "devDependencies": {
-        "@backstage/catalog-model": "^1.7.2",
-        "@backstage/cli": "0.29.0",
-        "@backstage/core-app-api": "1.15.2",
-        "@backstage/dev-utils": "1.1.4",
-        "@backstage/test-utils": "1.7.2",
-        "@testing-library/jest-dom": "6.0.0",
-        "@testing-library/react": "14.0.0",
-        "@testing-library/user-event": "14.0.0",
-        "@types/git-url-parse": "9.0.1",
-        "@types/lodash": "4.17.13",
-        "msw": "1.3.5",
-        "react": "^16.13.1 || ^17.0.0 || ^18.0.0",
-        "typescript": "^5.7.2"
-    },
-    "files": [
-        "dist"
+  "name": "@terasky/backstage-plugin-crossplane-claim-updater",
+  "description": "The crossplane claim updater plugin for Backstage",
+  "version": "0.2.0",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/terasky-oss/backstage-plugins",
+    "directory": "plugins/crossplane-claim-updater"
+  },
+  "homepage": "https://www.terasky.com",
+  "publishConfig": {
+    "access": "public",
+    "main": "dist/index.esm.js",
+    "types": "dist/index.d.ts"
+  },
+  "backstage": {
+    "role": "frontend-plugin",
+    "pluginId": "crossplane-claim-updater",
+    "pluginPackages": [
+      "@terasky/backstage-plugin-crossplane-claim-updater"
     ]
+  },
+  "sideEffects": false,
+  "scripts": {
+    "start": "backstage-cli package start",
+    "build": "backstage-cli package build",
+    "lint": "backstage-cli package lint",
+    "test": "backstage-cli package test",
+    "clean": "backstage-cli package clean",
+    "prepack": "backstage-cli package prepack",
+    "postpack": "backstage-cli package postpack"
+  },
+  "dependencies": {
+    "@backstage/core-components": "^0.16.3",
+    "@backstage/core-plugin-api": "^1.10.3",
+    "@backstage/errors": "^1.2.7",
+    "@backstage/plugin-catalog-react": "^1.15.1",
+    "@backstage/plugin-scaffolder": "^1.27.4",
+    "@backstage/plugin-scaffolder-react": "^1.14.3",
+    "@backstage/theme": "^0.6.3",
+    "@material-ui/core": "4.9.13",
+    "@material-ui/icons": "4.9.1",
+    "@material-ui/lab": "4.0.0-alpha.61",
+    "@mui/material": "6.1.10",
+    "ansi-to-react": "6.1.6",
+    "dayjs": "1.11.13",
+    "git-url-parse": "16.0.0",
+    "lodash": "4.17.21",
+    "react-use": "17.2.4",
+    "zod": "3.23.8"
+  },
+  "peerDependencies": {
+    "react": "^16.13.1 || ^17.0.0 || ^18.0.0"
+  },
+  "devDependencies": {
+    "@backstage/catalog-model": "^1.7.3",
+    "@backstage/cli": "^0.29.5",
+    "@backstage/core-app-api": "^1.15.4",
+    "@backstage/dev-utils": "^1.1.6",
+    "@backstage/test-utils": "^1.7.4",
+    "@testing-library/jest-dom": "6.0.0",
+    "@testing-library/react": "14.0.0",
+    "@testing-library/user-event": "14.0.0",
+    "@types/git-url-parse": "9.0.1",
+    "@types/lodash": "4.17.13",
+    "msw": "1.3.5",
+    "react": "^16.13.1 || ^17.0.0 || ^18.0.0",
+    "typescript": "^5.7.2"
+  },
+  "files": [
+    "dist"
+  ]
 }
