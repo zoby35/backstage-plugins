@@ -14566,7 +14566,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@terasky/backstage-plugin-kyverno-common@npm:^1.0.0, @terasky/backstage-plugin-kyverno-common@workspace:plugins/kyverno-common":
+"@terasky/backstage-plugin-kyverno-common@npm:^1.0.1, @terasky/backstage-plugin-kyverno-common@workspace:plugins/kyverno-common":
   version: 0.0.0-use.local
   resolution: "@terasky/backstage-plugin-kyverno-common@workspace:plugins/kyverno-common"
   dependencies:
@@ -14589,7 +14589,7 @@ __metadata:
     "@backstage/plugin-auth-backend": "npm:^0.24.2"
     "@backstage/plugin-auth-backend-module-guest-provider": "npm:^0.2.4"
     "@backstage/plugin-permission-node": "npm:^0.8.7"
-    "@terasky/backstage-plugin-kyverno-common": "npm:^1.0.0"
+    "@terasky/backstage-plugin-kyverno-common": "npm:^1.0.1"
     "@types/express": "npm:^4.17.1"
     "@types/supertest": "npm:^2.0.12"
     express: "npm:^4.17.1"
@@ -14620,7 +14620,7 @@ __metadata:
     "@material-ui/core": "npm:^4.9.13"
     "@material-ui/icons": "npm:^4.9.1"
     "@material-ui/lab": "npm:^4.0.0-alpha.61"
-    "@terasky/backstage-plugin-kyverno-common": "npm:^1.0.0"
+    "@terasky/backstage-plugin-kyverno-common": "npm:^1.0.1"
     "@testing-library/jest-dom": "npm:^6.0.0"
     "@testing-library/react": "npm:^14.0.0"
     "@testing-library/user-event": "npm:^14.0.0"

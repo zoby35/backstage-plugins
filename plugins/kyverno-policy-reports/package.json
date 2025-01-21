@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/terasky-oss/backstage-plugins",
+    "url": "git+https://github.com/TeraSky-OSS/backstage-plugins.git",
     "directory": "plugins/kyverno-policy-reports"
   },
   "homepage": "https://terasky.com",
@@ -43,7 +43,7 @@
     "@material-ui/core": "^4.9.13",
     "@material-ui/icons": "^4.9.1",
     "@material-ui/lab": "^4.0.0-alpha.61",
-    "@terasky/backstage-plugin-kyverno-common": "^1.0.0",
+    "@terasky/backstage-plugin-kyverno-common": "^1.0.1",
     "dagre": "^0.8.5",
     "file-saver": "^2.0.5",
     "js-yaml": "^4.1.0",
