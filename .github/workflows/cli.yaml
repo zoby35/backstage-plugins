@@ -53,7 +53,7 @@ jobs:
         run: |
           for binary in dist/backstage-config-generator_*; do
             if [[ -f "$binary" && -x "$binary" ]]; then
-              cosign sign-blob -a run_id="$GITHUB_RUN_ID" -a run_attempt="$GITHUB_RUN_ATTEMPT" "$binary"
+              cosign sign-blob --output-signature "dist/${binary}.sig" --output-certificate "dist/${binary}.cert" --oidc-issuer=https://token.actions.githubusercontent.com "$binary"
             fi
           done
 
@@ -70,7 +70,7 @@ jobs:
           COSIGN_EXPERIMENTAL: 1
         run: |
           for sbom in dist/*.sbom.json; do
-            cosign sign-blob -a run_id="$GITHUB_RUN_ID" -a run_attempt="$GITHUB_RUN_ATTEMPT" "$sbom"
+            cosign sign-blob --output-signature "dist/${sbom}.sig" --output-certificate "dist/${sbom}.cert" --oidc-issuer=https://token.actions.githubusercontent.com "$sbom"
           done
 
       - name: Generate Release Notes
