@@ -35,7 +35,10 @@ jobs:
           # Create a temporary semver tag
           git tag "v${VERSION}"
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
-
+      - name: Tidy
+        run: |
+          cd cli/backstage-config-generator
+          go mod tidy
       - name: Run GoReleaser
         run: goreleaser release --clean
         env:

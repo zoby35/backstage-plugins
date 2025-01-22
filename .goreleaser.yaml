@@ -1,9 +1,5 @@
 project_name: backstage-config-generator
 
-before:
-  hooks:
-    - cd cli/backstage-config-generator && go mod tidy
-
 builds:
   - env:
       - CGO_ENABLED=0
