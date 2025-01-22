@@ -6,10 +6,14 @@ on:
       - 'CLI-*'
 
 jobs:
-  goreleaser:
+  release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Needed to create and update GitHub releases
+      id-token: write  # Required for keyless signing with Cosign
+
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -20,58 +24,74 @@ jobs:
           go-version: '1.21'
           cache: true
 
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@v3.1.1
+      - name: Extract Version from Tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/CLI-}" >> $GITHUB_ENV
 
-      - name: Install Syft
-        uses: anchore/sbom-action/download-syft@v0
-        
-      - name: Setup GoReleaser
-        uses: goreleaser/goreleaser-action@v5
-        with:
-          install-only: true
-
-      - name: Set version from tag
+      - name: Install Tools
         run: |
-          # Extract version from tag (remove 'CLI-' prefix)
-          VERSION=${GITHUB_REF#refs/tags/CLI-}
-          # Create a temporary semver tag
-          git tag "v${VERSION}"
-          echo "VERSION=${VERSION}" >> $GITHUB_ENV
-      - name: Tidy
-        run: |
-          cd cli/backstage-config-generator
-          go mod tidy
-      - name: Run GoReleaser
-        run: goreleaser release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ env.VERSION }}
+          go install github.com/sigstore/cosign/cmd/cosign@latest
+          go install github.com/anchore/syft/cmd/syft@latest
 
-      - name: Sign the artifacts
+      - name: Build Binaries
+        run: |
+          platforms=("linux/amd64" "linux/arm64" "darwin/amd64" "darwin/arm64" "windows/amd64")
+          for platform in "${platforms[@]}"; do
+            os="${platform%/*}"
+            arch="${platform#*/}"
+            output="dist/backstage-config-generator_${os}_${arch}"
+            [ "$os" == "windows" ] && output="${output}.exe"
+            GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -o "$output" ./cli/backstage-config-generator
+          done
+
+      - name: Sign Binaries with Cosign (Keyless)
         env:
           COSIGN_EXPERIMENTAL: 1
         run: |
-          for artifact in dist/backstage-config-generator_*; do
-            if [[ -f "$artifact" && -x "$artifact" ]]; then
-              cosign sign-blob --yes "$artifact" > "${artifact}.sig"
-              cosign verify-blob --yes "$artifact" --signature "${artifact}.sig"
+          for binary in dist/backstage-config-generator_*; do
+            if [[ -f "$binary" && -x "$binary" ]]; then
+              cosign sign-blob --oidc-issuer=https://token.actions.githubusercontent.com --output-signature "$binary.sig" --output-certificate "$binary.cert" "$binary"
             fi
           done
 
-      - name: Generate SBOM
-        uses: anchore/sbom-action@v0
-        with:
-          path: dist/
-          format: spdx-json
-          artifact-name: sbom.spdx.json
+      - name: Generate SBOMs for Binaries
+        run: |
+          for binary in dist/backstage-config-generator_*; do
+            if [[ -f "$binary" ]]; then
+              syft packages file:"$binary" -o spdx-json > "$binary.sbom.json"
+            fi
+          done
 
-      - name: Sign SBOM
+      - name: Sign SBOMs with Cosign (Keyless)
         env:
           COSIGN_EXPERIMENTAL: 1
         run: |
-          cosign sign-blob --yes sbom.spdx.json > sbom.spdx.json.sig
-          cosign verify-blob --yes sbom.spdx.json --signature sbom.spdx.json.sig
+          for sbom in dist/*.sbom.json; do
+            cosign sign-blob --oidc-issuer=https://token.actions.githubusercontent.com --output-signature "$sbom.sig" --output-certificate "$sbom.cert" "$sbom"
+          done
 
-permissions:
-  contents: write
+      - name: Generate Release Notes
+        id: changelog
+        run: |
+          echo "## Changes" > changelog.md
+          git log --pretty=format:"- %s" $(git describe --tags --abbrev=0)..HEAD >> changelog.md
+          echo "::set-output name=notes::$(cat changelog.md)"
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: ${{ github.ref_name }}
+          body: ${{ steps.changelog.outputs.notes }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: ./dist
+          asset_name: $(basename "$asset")
+          asset_content_type: application/octet-stream
