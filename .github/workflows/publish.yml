@@ -33,7 +33,7 @@ jobs:
 
       - run: yarn workspaces foreach -A install
       - run: yarn lint --since origin/main
-      - run: yarn workspaces foreach -W --include 'plugins/**' run tsc
+      - run: yarn tsc
         continue-on-error: true
       - run: yarn workspaces foreach -W --include 'plugins/**' run build
       - run: yarn tsc
