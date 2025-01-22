@@ -60,7 +60,7 @@ jobs:
       - name: Generate SBOMs for Binaries
         run: |
           for binary in dist/backstage-config-generator_*; do
-            if [[ -f "$binary" ]]; then
+            if [[ -f "$binary" && -x "$binary" ]]; then
               syft packages file:"$binary" -o spdx-json > "$binary.sbom.json"
             fi
           done
