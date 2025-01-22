@@ -28,21 +28,24 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF#refs/tags/CLI-}" >> $GITHUB_ENV
 
-      - name: Install Tools
-        run: |
-          go install github.com/sigstore/cosign/cmd/cosign@latest
-          go install github.com/anchore/syft/cmd/syft@latest
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.1.1
+
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@v0
 
       - name: Build Binaries
         run: |
           platforms=("linux/amd64" "linux/arm64" "darwin/amd64" "darwin/arm64" "windows/amd64")
+          cd cli/backstage-config-generator
           for platform in "${platforms[@]}"; do
             os="${platform%/*}"
             arch="${platform#*/}"
-            output="dist/backstage-config-generator_${os}_${arch}"
-            [ "$os" == "windows" ] && output="${output}.exe"
-            GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -o "$output" ./cli/backstage-config-generator
+            output="../../dist/backstage-config-generator_${os}_${arch}"
+            [ "$os" == "windows" ] && output="../../${output}.exe"
+            GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -o "$output"
           done
+          cd ../../
 
       - name: Sign Binaries with Cosign (Keyless)
         env:
