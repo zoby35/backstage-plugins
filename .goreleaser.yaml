@@ -38,9 +38,9 @@ changelog:
 
 release:
   prerelease: auto
-  name_template: "CLI-{{ trimprefix .Tag \"CLI-\" }}"
+  name_template: "CLI-{{ .Version }}"
   header: |
-    # Backstage Config Generator CLI {{ trimprefix .Tag "CLI-" }}
+    # Backstage Config Generator CLI {{ .Version }}
     
     ## Release Notes
 
@@ -60,9 +60,3 @@ signs:
 
 sboms:
   - artifacts: archive
-
-# Add this section to handle non-semver tags
-git:
-  ignore_tags:
-    - "21-01-2025_2"
-  prerelease_suffix: ""
