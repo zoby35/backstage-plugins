@@ -35,7 +35,7 @@ jobs:
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
       - name: Run GoReleaser
-        run: goreleaser release --skip-validate
+        run: goreleaser release --skip=validate,semver
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ env.VERSION }}
