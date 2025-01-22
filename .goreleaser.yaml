@@ -38,6 +38,11 @@ changelog:
 
 release:
   prerelease: auto
+  name_template: "CLI-{{ .Version }}"
+  header: |
+    # Backstage Config Generator CLI {{ .Version }}
+    
+    ## Release Notes
 
 signs:
   - cmd: cosign

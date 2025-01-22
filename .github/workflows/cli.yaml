@@ -5,10 +5,6 @@ on:
     tags:
       - 'CLI-*'
 
-permissions:
-  contents: write
-  id-token: write # Needed for sigstore keyless signing
-
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
@@ -32,10 +28,17 @@ jobs:
         with:
           install-only: true
 
+      - name: Set version from tag
+        run: |
+          # Extract version from tag (remove 'CLI-' prefix)
+          VERSION=${GITHUB_REF#refs/tags/CLI-}
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
       - name: Run GoReleaser
         run: goreleaser release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ env.VERSION }}
 
       - name: Sign the artifacts
         env:
@@ -61,3 +64,7 @@ jobs:
         run: |
           cosign sign-blob --yes sbom.spdx.json > sbom.spdx.json.sig
           cosign verify-blob --yes sbom.spdx.json --signature sbom.spdx.json.sig
+
+permissions:
+  contents: write
+  id-token: write
