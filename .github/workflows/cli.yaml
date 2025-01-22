@@ -53,7 +53,7 @@ jobs:
         run: |
           for binary in dist/backstage-config-generator_*; do
             if [[ -f "$binary" && -x "$binary" ]]; then
-              cosign sign-blob --output-signature "dist/${binary}.sig" --output-certificate "dist/${binary}.cert" --oidc-issuer=https://token.actions.githubusercontent.com "$binary"
+              cosign sign-blob --yes --output-signature "dist/${binary}.sig" --output-certificate "dist/${binary}.cert" --oidc-issuer=https://token.actions.githubusercontent.com "$binary"
             fi
           done
 
