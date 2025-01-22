@@ -70,7 +70,7 @@ jobs:
           COSIGN_EXPERIMENTAL: 1
         run: |
           for sbom in dist/*.sbom.json; do
-            cosign sign-blob --output-signature "${sbom}.sig" --output-certificate "${sbom}.cert" --oidc-issuer=https://token.actions.githubusercontent.com "$sbom"
+            cosign sign-blob --yes --output-signature "${sbom}.sig" --output-certificate "${sbom}.cert" --oidc-issuer=https://token.actions.githubusercontent.com "$sbom"
           done
 
       - name: Generate Release Notes
