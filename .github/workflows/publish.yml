@@ -81,9 +81,9 @@ jobs:
         run: |
           images=""
           for tag in ${TAGS}; do
-            images+="${tag}@${DIGEST} "
+            image="${tag}@${DIGEST}"
+            cosign sign --yes --output-signature "${tag}.sig" --output-certificate "${tag}.cert" --oidc-issuer=https://token.actions.githubusercontent.com ${image}
           done
-          cosign sign --yes ${images}
 
       - name: Generate release notes
         run: |
