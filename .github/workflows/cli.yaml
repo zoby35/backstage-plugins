@@ -46,12 +46,13 @@ jobs:
             GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -o "$output"
           done
           cd ../../
+          ls -lah dist
 
       - name: Sign Binaries with Cosign (Keyless)
         env:
           COSIGN_EXPERIMENTAL: 1
         run: |
-          for binary in dist/backstage-config-generator_*; do
+          for binary in dist/backstage-config-generator*; do
             if [[ -f "$binary" && -x "$binary" ]]; then
               cosign sign-blob --yes --output-signature "${binary}.sig" --output-certificate "${binary}.cert" --oidc-issuer=https://token.actions.githubusercontent.com "$binary"
             fi
@@ -59,7 +60,7 @@ jobs:
 
       - name: Generate SBOMs for Binaries
         run: |
-          for binary in dist/backstage-config-generator_*; do
+          for binary in dist/backstage-config-generator*; do
             if [[ -f "$binary" && -x "$binary" ]]; then
               syft packages file:"$binary" -o spdx-json > "$binary.sbom.json"
             fi
@@ -78,6 +79,10 @@ jobs:
         run: |
           echo "## Changes" > changelog.md
           git log --pretty=format:"- %s" $(git describe --tags --abbrev=0)..HEAD >> changelog.md
+          cat hack/release-notes.md >> temp.md
+          sed -i 's/CLI-0.0.1/${{ github.ref_name }}/' temp.md
+          cat temp.md >> changelog.md
+          rm temp.md
           echo "::set-output name=notes::$(cat changelog.md)"
 
       - name: Create GitHub Release
