@@ -139,9 +139,13 @@
     --certificate-identity-regexp='https://github.com/TeraSky-OSS/backstage-plugins/\.github/workflows/cli.yaml.+'
   ```
 
-  ### Install
+  ### Install (Requires Admin Privileges)
   ```powershell
+  New-Item -ItemType Directory -Path 'C:\Program Files\backstage-config-generator\' -force
   Move-Item -Path .\backstage-config-generator.exe -Destination "C:\Program Files\backstage-config-generator\backstage-config-generator.exe"
+  ```
+  ### Add To Path (Requires Admin Privileges)
+  ```powershell
   [System.Environment]::SetEnvironmentVariable("Path", $Env:Path + ";C:\Program Files\backstage-config-generator\", [System.EnvironmentVariableTarget]::Machine)
   ```
 </details>
