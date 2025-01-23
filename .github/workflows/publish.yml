@@ -2,9 +2,9 @@ name: NodeJS CI And Plugin Publishing
 
 on:
   push:
-    branches: [main]
-    paths:
-      - 'plugins/**'
+    tags:
+      - '*'
+      - '!CLI-*'
 
 jobs:
   build:
@@ -43,3 +43,12 @@ jobs:
         env:
           YARN_NPM_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Generate release notes
+        run: |
+          ./hack/generate-version-table.sh > RELEASE_NOTES.md
+          sed -i 's/RELEASE_VERSION/v${GITHUB_REF#refs/tags/}/g' RELEASE_NOTES.md
+      - name: Create GitHub Release
+        id: create-release
+        uses: ncipollo/release-action@v1
+        with:
+          bodyFile: RELEASE_NOTES.md
