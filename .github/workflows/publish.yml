@@ -79,10 +79,10 @@ jobs:
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
           TAGS: ${{ steps.docker_meta.outputs.tags }}
         run: |
-          images=""
+          mkdir -p dist
           for tag in ${TAGS}; do
             image="${tag}@${DIGEST}"
-            cosign sign --yes --output-signature "${tag}.sig" --output-certificate "${tag}.cert" --oidc-issuer=https://token.actions.githubusercontent.com ${image}
+            cosign sign --yes --output-signature "dist/${DIGEST}.sig" --output-certificate "dist/${DIGEST}.cert" --oidc-issuer=https://token.actions.githubusercontent.com ${image}
           done
 
       - name: Generate release notes
@@ -94,3 +94,4 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           bodyFile: RELEASE_NOTES.md
+          artifacts: dist/*
