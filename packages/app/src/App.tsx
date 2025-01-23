@@ -164,7 +164,13 @@ const routes = (
         <ReportIssue />
       </TechDocsAddons>
     </Route>
-    <Route path="/create" element={<ScaffolderPage />}>
+    <Route path="/create" element={
+      <ScaffolderPage
+        templateFilter={template =>
+          template.metadata?.labels?.target === 'component' ?? false
+        } 
+      />
+      }>
       <ScaffolderFieldExtensions>
         <GitClaimUpdaterExtension />
       </ScaffolderFieldExtensions>
