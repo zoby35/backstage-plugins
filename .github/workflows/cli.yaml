@@ -89,5 +89,5 @@ jobs:
         id: create-release
         uses: ncipollo/release-action@v1
         with:
-          body: ${{ steps.changelog.outputs.notes }}
+          bodyFile: changelog.md
           artifacts: dist/*
