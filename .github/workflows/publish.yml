@@ -88,7 +88,7 @@ jobs:
       - name: Generate release notes
         run: |
           ./hack/generate-version-table.sh > RELEASE_NOTES.md
-          sed -i 's/RELEASE_VERSION/v${GITHUB_REF#refs/tags/}/g' RELEASE_NOTES.md
+          sed -i 's/RELEASE_VERSION/${{ github.ref_name }}/g' RELEASE_NOTES.md
       - name: Create GitHub Release
         id: create-release
         uses: ncipollo/release-action@v1
