@@ -42,7 +42,7 @@ jobs:
             os="${platform%/*}"
             arch="${platform#*/}"
             output="../../dist/backstage-config-generator_${os}_${arch}"
-            [ "$os" == "windows" ] && output="../../${output}.exe"
+            [ "$os" == "windows" ] && output="../../dist/backstage-config-generator.exe"
             GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -o "$output"
           done
           cd ../../
