@@ -1264,7 +1264,12 @@ export class KubernetesEntityProvider implements EntityProvider {
         title: titleValue,
         description: `${resource.kind} ${resource.metadata.name} from ${resource.clusterName}`,
         namespace: annotations['terasky.backstage.io/backstage-namespace'] || namespaceValue,
-        annotations: customAnnotations,
+        annotations: {
+          ...customAnnotations,
+          ...(systemModel === 'cluster-namespace' || namespaceModel === 'cluster' || nameModel === 'name-cluster' ? {
+            'backstage.io/kubernetes-cluster': resource.clusterName,
+          } : {})
+        },
         tags: [`cluster:${resource.clusterName}`, `kind:${resource.kind}`],
       },
       spec: {
@@ -1423,6 +1428,9 @@ export class KubernetesEntityProvider implements EntityProvider {
         annotations: {
           ...annotations,
           'terasky.backstage.io/component-type': 'crossplane-claim',
+          ...(systemModel === 'cluster-namespace' || namespaceModel === 'cluster' || nameModel === 'name-cluster' ? {
+            'backstage.io/kubernetes-cluster': clusterName,
+          } : {}),
           ...customAnnotations,
         },
       },

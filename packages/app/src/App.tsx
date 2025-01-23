@@ -167,7 +167,7 @@ const routes = (
     <Route path="/create" element={
       <ScaffolderPage
         templateFilter={template =>
-          template.metadata?.labels?.target === 'component' ?? false
+          template.metadata?.labels?.target === 'component'
         } 
       />
       }>
