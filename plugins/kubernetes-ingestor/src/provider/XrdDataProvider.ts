@@ -28,6 +28,10 @@ export class XrdDataProvider {
   auth: AuthService;
   httpAuth: HttpAuthService;
 
+  private getAnnotationPrefix(): string {
+    return this.config.getOptionalString('kubernetesIngestor.annotationPrefix') || 'terasky.backstage.io';
+  }
+
   constructor(
     logger: LoggerService,
     config: Config,
@@ -109,13 +113,13 @@ export class XrdDataProvider {
               clusterEndpoint: cluster.url,
             })),
           );
-
+          const prefix = this.getAnnotationPrefix();
           const filteredObjects = fetchedResources.filter(resource => {
-            if (resource.metadata.annotations?.['terasky.backstage.io/exclude-from-catalog']) {
+            if (resource.metadata.annotations?.[`${prefix}/exclude-from-catalog`]) {
               return false;
             }
 
-            if (!ingestAllXRDs && !resource.metadata.annotations?.['terasky.backstage.io/add-to-catalog']) {
+            if (!ingestAllXRDs && !resource.metadata.annotations?.[`${prefix}/add-to-catalog`]) {
               return false;
             }
 

@@ -28,6 +28,10 @@ export class XRDTemplateEntityProvider implements EntityProvider {
   discovery: DiscoveryService;
   auth: AuthService;
   httpAuth: HttpAuthService;
+  
+  private getAnnotationPrefix(): string {
+    return this.config.getOptionalString('kubernetesIngestor.annotationPrefix') || 'terasky.backstage.io';
+  }
 
   constructor(
     taskRunner: SchedulerServiceTaskRunner,
@@ -108,7 +112,11 @@ export class XRDTemplateEntityProvider implements EntityProvider {
 
     return xrd.spec.versions.map((version: { name: any }) => {
       const parameters = this.extractParameters(version, clusters, xrd);
+      const prefix = this.getAnnotationPrefix();
       const steps = this.extractSteps(version, xrd);
+      const clusterTags = clusters.map((cluster: any) => `cluster:${cluster}`);
+      const tags = ['crossplane', ...clusterTags];
+      
       if (this.config.getOptionalString('kubernetesIngestor.crossplane.xrds.publishPhase.target')?.toLowerCase() === 'yaml') {
         return {
           apiVersion: 'scaffolder.backstage.io/v1beta3',
@@ -117,10 +125,15 @@ export class XRDTemplateEntityProvider implements EntityProvider {
             name: `${xrd.metadata.name}-${version.name}`,
             title: `${xrd.spec.claimNames.kind}`,
             description: `A template to create a ${xrd.metadata.name} instance`,
+            labels: {
+              forEntity: "system",
+              source: "crossplane",
+            },
+            tags: tags,
             annotations: {
               'backstage.io/managed-by-location': `cluster origin: ${xrd.clusterName}`,
               'backstage.io/managed-by-origin-location': `cluster origin: ${xrd.clusterName}`,
-              'terasky.backstage.io/crossplane-claim': 'true',
+              [`${prefix}/crossplane-claim`]: 'true',
             },
           },
           spec: {
@@ -146,9 +159,10 @@ export class XRDTemplateEntityProvider implements EntityProvider {
             name: `${xrd.metadata.name}-${version.name}`,
             title: `${xrd.spec.claimNames.kind}`,
             description: `A template to create a ${xrd.metadata.name} instance`,
+            tags: tags,
             labels: {
               forEntity: "system",
-              language: "python",
+              source: "crossplane",
             },
             annotations: {
               'backstage.io/managed-by-location': `cluster origin: ${xrd.clusterName}`,
@@ -182,6 +196,11 @@ export class XRDTemplateEntityProvider implements EntityProvider {
             name: `${xrd.metadata.name}-${version.name}`,
             title: `${xrd.spec.claimNames.kind}`,
             description: `A template to create a ${xrd.metadata.name} instance`,
+            tags: tags,
+            labels: {
+              forEntity: "system",
+              source: "crossplane",
+            },
             annotations: {
               'backstage.io/managed-by-location': `cluster origin: ${xrd.clusterName}`,
               'backstage.io/managed-by-origin-location': `cluster origin: ${xrd.clusterName}`,
@@ -214,6 +233,11 @@ export class XRDTemplateEntityProvider implements EntityProvider {
             name: `${xrd.metadata.name}-${version.name}`,
             title: `${xrd.spec.claimNames.kind}`,
             description: `A template to create a ${xrd.metadata.name} instance`,
+            tags: tags,
+            labels: {
+              forEntity: "system",
+              source: "crossplane",
+            },
             annotations: {
               'backstage.io/managed-by-location': `cluster origin: ${xrd.clusterName}`,
               'backstage.io/managed-by-origin-location': `cluster origin: ${xrd.clusterName}`,
@@ -246,6 +270,11 @@ export class XRDTemplateEntityProvider implements EntityProvider {
             name: `${xrd.metadata.name}-${version.name}`,
             title: `${xrd.spec.claimNames.kind}`,
             description: `A template to create a ${xrd.metadata.name} instance`,
+            tags: tags,
+            labels: {
+              forEntity: "system",
+              source: "crossplane",
+            },
             annotations: {
               'backstage.io/managed-by-location': `cluster origin: ${xrd.clusterName}`,
               'backstage.io/managed-by-origin-location': `cluster origin: ${xrd.clusterName}`,
@@ -1145,20 +1174,20 @@ export class KubernetesEntityProvider implements EntityProvider {
     } else if (systemReferencesNamespaceModel === 'default') {
       systemReferencesNamespaceValue = 'default';
     }
-
+    const prefix = this.getAnnotationPrefix();
     const systemEntity: Entity = {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'System',
       metadata: {
         name: systemNameValue,
-        namespace: annotations['terasky.backstage.io/backstage-namespace'] || systemNamespaceValue,
+        namespace: annotations[`${prefix}/backstage-namespace`] || systemNamespaceValue,
         annotations: this.extractCustomAnnotations(annotations, resource.clusterName),
       },
       spec: {
-        owner: annotations['terasky.backstage.io/owner'] ? `${systemReferencesNamespaceValue}/${annotations['terasky.backstage.io/owner']}` : `${systemReferencesNamespaceValue}/kubernetes-auto-ingested`,
-        type: annotations['terasky.backstage.io/system-type'] || 'kubernetes-namespace',
-        ...(annotations['terasky.backstage.io/domain']
-          ? { domain: annotations['terasky.backstage.io/domain'] }
+        owner: annotations[`${prefix}/owner`] ? `${systemReferencesNamespaceValue}/${annotations[`${prefix}/owner`]}` : `${systemReferencesNamespaceValue}/kubernetes-auto-ingested`,
+        type: annotations[`${prefix}/system-type`] || 'kubernetes-namespace',
+        ...(annotations[`${prefix}/domain`]
+          ? { domain: annotations[`${prefix}/domain`] }
           : {}),
       },
     };
@@ -1166,13 +1195,13 @@ export class KubernetesEntityProvider implements EntityProvider {
     const customAnnotations = this.extractCustomAnnotations(annotations, resource.clusterName);
 
     // Add logic for source-location
-    if (annotations['terasky.backstage.io/source-code-repo-url']) {
-      const repoUrl = `url:${  annotations['terasky.backstage.io/source-code-repo-url']}`;
+    if (annotations[`${prefix}/source-code-repo-url`]) {
+      const repoUrl = `url:${  annotations[`${prefix}/source-code-repo-url`]}`;
       customAnnotations['backstage.io/source-location'] = repoUrl;
 
       // Construct techdocs-ref
-      const branch = annotations['terasky.backstage.io/source-branch'] || 'main';
-      const techdocsPath = annotations['terasky.backstage.io/techdocs-path'];
+      const branch = annotations[`${prefix}/source-branch`] || 'main';
+      const techdocsPath = annotations[`${prefix}/techdocs-path`];
 
       if (techdocsPath) {
         customAnnotations['backstage.io/techdocs-ref'] = `${repoUrl}/blob/${branch}/${techdocsPath}`;
@@ -1180,7 +1209,7 @@ export class KubernetesEntityProvider implements EntityProvider {
     }
 
     // Add the Kubernetes label selector annotation if present
-    if (!annotations['terasky.backstage.io/kubernetes-label-selector']) {
+    if (!annotations[`${prefix}/kubernetes-label-selector`]) {
       if (resource.kind.toLowerCase() === 'deployment' || resource.kind.toLowerCase() === 'statefulset' || resource.kind.toLowerCase() === 'daemonset' || resource.kind.toLowerCase() === 'cronjob') {
         const commonLabels = this.findCommonLabels(resource);
         if (commonLabels) {
@@ -1188,7 +1217,7 @@ export class KubernetesEntityProvider implements EntityProvider {
         }
       }
     } else {
-      customAnnotations['backstage.io/kubernetes-label-selector'] = annotations['terasky.backstage.io/kubernetes-label-selector'];
+      customAnnotations['backstage.io/kubernetes-label-selector'] = annotations[`${prefix}/kubernetes-label-selector`];
     }
     const apiGroup = resource.apiVersion.split('/')[0];
     const version = resource.apiVersion.split('/')[1];
@@ -1197,7 +1226,7 @@ export class KubernetesEntityProvider implements EntityProvider {
     const customWorkloadUri = resource.metadata.namespace
       ? `/apis/${apiGroup}/${version}/namespaces/${namespace}/${kindPlural}/${objectName}`
       : `/apis/${apiGroup}/${version}/${kindPlural}/${objectName}`;
-    customAnnotations['terasky.backstage.io/custom-workload-uri'] = customWorkloadUri;
+    customAnnotations[`${prefix}/custom-workload-uri`] = customWorkloadUri;
     const namespaceModel = this.config.getOptionalString('kubernetesIngestor.mappings.namespaceModel')?.toLowerCase() || 'default';
     const nameModel = this.config.getOptionalString('kubernetesIngestor.mappings.nameModel')?.toLowerCase() || 'name';
     const titleModel = this.config.getOptionalString('kubernetesIngestor.mappings.titleModel')?.toLowerCase() || 'name';
@@ -1263,7 +1292,7 @@ export class KubernetesEntityProvider implements EntityProvider {
         name: nameValue,
         title: titleValue,
         description: `${resource.kind} ${resource.metadata.name} from ${resource.clusterName}`,
-        namespace: annotations['terasky.backstage.io/backstage-namespace'] || namespaceValue,
+        namespace: annotations[`${prefix}/backstage-namespace`] || namespaceValue,
         annotations: {
           ...customAnnotations,
           ...(systemModel === 'cluster-namespace' || namespaceModel === 'cluster' || nameModel === 'name-cluster' ? {
@@ -1273,13 +1302,13 @@ export class KubernetesEntityProvider implements EntityProvider {
         tags: [`cluster:${resource.clusterName}`, `kind:${resource.kind}`],
       },
       spec: {
-        type: annotations['terasky.backstage.io/component-type'] || 'service',
-        lifecycle: annotations['terasky.backstage.io/lifecycle'] || 'production',
-        owner: annotations['terasky.backstage.io/owner'] ? `${referencesNamespaceModel}/${annotations['terasky.backstage.io/owner']}` : `${referencesNamespaceValue}/kubernetes-auto-ingested`,
+        type: annotations[`${prefix}/component-type`] || 'service',
+        lifecycle: annotations[`${prefix}/lifecycle`] || 'production',
+        owner: annotations[`${prefix}/owner`] ? `${referencesNamespaceModel}/${annotations[`${prefix}/owner`]}` : `${referencesNamespaceValue}/kubernetes-auto-ingested`,
         system: `${referencesNamespaceValue}/${systemValue}`,
-        dependsOn: annotations['terasky.backstage.io/dependsOn']?.split(','),
-        providesApis: annotations['terasky.backstage.io/providesApis']?.split(','),
-        consumesApis: annotations['terasky.backstage.io/consumesApis']?.split(','),
+        dependsOn: annotations[`${prefix}/dependsOn`]?.split(','),
+        providesApis: annotations[`${prefix}/providesApis`]?.split(','),
+        consumesApis: annotations[`${prefix}/consumesApis`]?.split(','),
       },
     };
 
@@ -1301,7 +1330,8 @@ export class KubernetesEntityProvider implements EntityProvider {
   }
 
   private extractCustomAnnotations(annotations: Record<string, string>, clusterName: string): Record<string, string> {
-    const customAnnotationsKey = 'terasky.backstage.io/component-annotations';
+    const prefix = this.getAnnotationPrefix();
+    const customAnnotationsKey = `${prefix}/component-annotations`;
     const defaultAnnotations: Record<string, string> = {
       'backstage.io/managed-by-location': `cluster origin: ${clusterName}`,
       'backstage.io/managed-by-origin-location': `cluster origin: ${clusterName}`,
@@ -1323,6 +1353,7 @@ export class KubernetesEntityProvider implements EntityProvider {
   }
 
   private translateCrossplaneClaimToEntity(claim: any, clusterName: string, crdMapping: Record<string, string>): Entity {
+    const prefix = this.getAnnotationPrefix();
     const annotations = claim.metadata.annotations || {};
 
     // Extract CR values
@@ -1341,20 +1372,20 @@ export class KubernetesEntityProvider implements EntityProvider {
     const compositionName = compositionData.name || '';
     const compositionFunctions = compositionData.usedFunctions || [];
     // Add Crossplane claim annotations
-    annotations['terasky.backstage.io/claim-name'] = claim.metadata.name;
-    annotations['terasky.backstage.io/claim-kind'] = crKind;
-    annotations['terasky.backstage.io/claim-version'] = crVersion;
-    annotations['terasky.backstage.io/claim-group'] = crGroup;
-    annotations['terasky.backstage.io/claim-plural'] = crPlural;
-    annotations['terasky.backstage.io/crossplane-resource'] = "true";
+    annotations[`${prefix}/claim-name`] = claim.metadata.name;
+    annotations[`${prefix}/claim-kind`] = crKind;
+    annotations[`${prefix}/claim-version`] = crVersion;
+    annotations[`${prefix}/claim-group`] = crGroup;
+    annotations[`${prefix}/claim-plural`] = crPlural;
+    annotations[`${prefix}/crossplane-resource`] = "true";
 
-    annotations['terasky.backstage.io/composite-kind'] = compositeKind;
-    annotations['terasky.backstage.io/composite-name'] = compositeName;
-    annotations['terasky.backstage.io/composite-group'] = compositeGroup;
-    annotations['terasky.backstage.io/composite-version'] = compositeVersion;
-    annotations['terasky.backstage.io/composite-plural'] = compositePlural;
-    annotations['terasky.backstage.io/composition-name'] = compositionName;
-    annotations['terasky.backstage.io/composition-functions'] = compositionFunctions.join(',');
+    annotations[`${prefix}/composite-kind`] = compositeKind;
+    annotations[`${prefix}/composite-name`] = compositeName;
+    annotations[`${prefix}/composite-group`] = compositeGroup;
+    annotations[`${prefix}/composite-version`] = compositeVersion;
+    annotations[`${prefix}/composite-plural`] = compositePlural;
+    annotations[`${prefix}/composition-name`] = compositionName;
+    annotations[`${prefix}/composition-functions`] = compositionFunctions.join(',');
     annotations['backstage.io/kubernetes-label-selector'] = `crossplane.io/claim-name=${claim.metadata.name},crossplane.io/claim-namespace=${claim.metadata.namespace},crossplane.io/composite=${compositeName}`
     const resourceAnnotations = claim.metadata.annotations || {};
     const customAnnotations = this.extractCustomAnnotations(resourceAnnotations, clusterName);
@@ -1427,7 +1458,7 @@ export class KubernetesEntityProvider implements EntityProvider {
         namespace: namespaceValue,
         annotations: {
           ...annotations,
-          'terasky.backstage.io/component-type': 'crossplane-claim',
+          [`${prefix}/component-type`]: 'crossplane-claim',
           ...(systemModel === 'cluster-namespace' || namespaceModel === 'cluster' || nameModel === 'name-cluster' ? {
             'backstage.io/kubernetes-cluster': clusterName,
           } : {}),
@@ -1436,11 +1467,15 @@ export class KubernetesEntityProvider implements EntityProvider {
       },
       spec: {
         type: 'crossplane-claim',
-        lifecycle: annotations['terasky.backstage.io/lifecycle'] || 'production',
-        owner: annotations['terasky.backstage.io/owner'] ? `${referencesNamespaceModel}/${annotations['terasky.backstage.io/owner']}` : `${referencesNamespaceValue}/kubernetes-auto-ingested`,
-        system: annotations['terasky.backstage.io/system'] || `${referencesNamespaceValue}/${systemValue}`,
+        lifecycle: annotations[`${prefix}/lifecycle`] || 'production',
+        owner: annotations[`${prefix}/owner`] ? `${referencesNamespaceModel}/${annotations[`${prefix}/owner`]}` : `${referencesNamespaceValue}/kubernetes-auto-ingested`,
+        system: annotations[`${prefix}/system`] || `${referencesNamespaceValue}/${systemValue}`,
         consumesApis: [`${referencesNamespaceValue}/${claim.kind}-${claim.apiVersion.split('/').join('--')}`],
       },
     };
+  }
+
+  private getAnnotationPrefix(): string {
+    return this.config.getOptionalString('kubernetesIngestor.annotationPrefix') || 'terasky.backstage.io';
   }
 }

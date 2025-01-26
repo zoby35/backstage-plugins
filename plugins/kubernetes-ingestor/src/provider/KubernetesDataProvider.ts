@@ -21,6 +21,10 @@ export class KubernetesDataProvider {
   permissions: PermissionEvaluator;
   discovery: DiscoveryService;
 
+  private getAnnotationPrefix(): string {
+    return this.config.getOptionalString('kubernetesIngestor.annotationPrefix') || 'terasky.backstage.io';
+  }
+
   constructor(
     logger: LoggerService,
     config: Config,
@@ -129,15 +133,15 @@ export class KubernetesDataProvider {
             objectTypesToFetch,
             customResources: [],
           });
-
+          const prefix = this.getAnnotationPrefix();
           const filteredObjects = fetchedObjects.responses.flatMap(response =>
             response.resources.filter(resource => {
-              if (resource.metadata.annotations?.['terasky.backstage.io/exclude-from-catalog']) {
+              if (resource.metadata.annotations?.[`${prefix}/exclude-from-catalog`]) {
                 return false;
               }
 
               if (onlyIngestAnnotatedResources) {
-                return resource.metadata.annotations?.['terasky.backstage.io/add-to-catalog'];
+                return resource.metadata.annotations?.[`${prefix}/add-to-catalog`];
               }
 
               return !excludedNamespaces.has(resource.metadata.namespace);
