@@ -95,7 +95,7 @@ jobs:
           echo "| Image | Version |" >> RELEASE_NOTES.md
           echo "| ----- | ------- |" >> RELEASE_NOTES.md
           for tag in ${{ steps.docker_meta.outputs.tags }}; do
-            echo "| ${{ tag }} | ${{ github.ref_name }} |" >> RELEASE_NOTES.md
+            echo "| ${tag} | ${{ github.ref_name }} |" >> RELEASE_NOTES.md
           done
           echo "  " >> RELEASE_NOTES.md
           echo "## Validating Signatures" >> RELEASE_NOTES.md
