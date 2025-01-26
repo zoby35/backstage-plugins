@@ -166,8 +166,15 @@ const routes = (
     </Route>
     <Route path="/create" element={
       <ScaffolderPage
+        groups={[
+          {
+            title: 'Crossplane Claims',
+            filter: (template) => template.metadata?.labels?.source === 'crossplane',
+          },
+
+        ]}
         templateFilter={template =>
-          template.metadata?.labels?.target === 'component'
+          template.metadata?.labels?.target !== 'component'
         } 
       />
       }>
