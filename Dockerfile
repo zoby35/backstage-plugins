@@ -7,6 +7,8 @@
 
 FROM cgr.dev/chainguard/wolfi-base:latest
 LABEL org.opencontainers.image.source="https://github.com/TeraSky-OSS/backstage-plugins"
+LABEL org.opencontainers.image.licenses=Apache-2.0
+LABEL org.opencontainers.image.description="Demo App for TeraSky OSS Backstage Plugins"
 
 ENV NODE_VERSION 20=~20.14
 ENV PYTHON_VERSION 3.12=~3.12
