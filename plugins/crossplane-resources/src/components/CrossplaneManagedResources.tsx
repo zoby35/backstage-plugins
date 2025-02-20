@@ -14,12 +14,17 @@ import { usePermission } from '@backstage/plugin-permission-react';
 import { listManagedResourcesPermission, viewYamlManagedResourcesPermission, showEventsManagedResourcesPermission } from '@terasky/backstage-plugin-crossplane-common';
 import { dark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import pluralize from 'pluralize';
+import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown';
+import KeyboardArrowRightIcon from '@material-ui/icons/KeyboardArrowRight';
+import { makeStyles } from '@material-ui/core/styles';
+import Collapse from '@material-ui/core/Collapse';
 
 interface ExtendedKubernetesObject extends KubernetesObject {
     spec?: {
         providerConfigRef?: {
             name?: string;
         };
+        resourceRefs?: any[];
     };
 }
 
@@ -36,6 +41,38 @@ const removeManagedFields = (resource: KubernetesObject) => {
     return resourceCopy;
 };
 
+const useStyles = makeStyles((theme) => ({
+    nestedTableContainer: {
+        marginLeft: theme.spacing(4),
+        marginRight: theme.spacing(2),
+        marginBottom: theme.spacing(2),
+        backgroundColor: theme.palette.background.default,
+        borderRadius: theme.shape.borderRadius,
+        border: `1px solid ${theme.palette.divider}`,
+    },
+    expandIcon: {
+        marginRight: theme.spacing(1),
+        padding: 4,
+    },
+    nestedRow: {
+        '& > td': {
+            borderBottom: 'none',
+            paddingBottom: 0,
+            paddingTop: 0,
+        }
+    },
+    resourceTypeCell: {
+        display: 'flex',
+        alignItems: 'center',
+    },
+    nestedTable: {
+        '& th': {
+            backgroundColor: theme.palette.background.paper,
+            fontWeight: theme.typography.fontWeightMedium,
+        },
+    }
+}));
+
 const CrossplaneManagedResources = () => {
     const { entity } = useEntity();
     const kubernetesApi = useApi(kubernetesApiRef);
@@ -50,6 +87,9 @@ const CrossplaneManagedResources = () => {
     const [events, setEvents] = useState<Array<any>>([]);
     const [order, setOrder] = useState<'asc' | 'desc'>('asc');
     const [orderBy, setOrderBy] = useState<string>('name');
+    const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+    const [nestedResources, setNestedResources] = useState<Record<string, ExtendedKubernetesObject[]>>({});
+    const classes = useStyles();
 
     const canListManagedResourcesTemp = usePermission({ permission: listManagedResourcesPermission }).allowed;
     const canViewYamlTemp = usePermission({ permission: viewYamlManagedResourcesPermission }).allowed;
@@ -192,6 +232,49 @@ const CrossplaneManagedResources = () => {
         return 0;
     });
 
+    const fetchNestedResources = async (resource: ExtendedKubernetesObject) => {
+        const resourceRefs = resource.spec?.resourceRefs || [];
+        const clusterOfComposite = entity.metadata.annotations?.['backstage.io/managed-by-location'].split(": ")[1];
+
+        if (!clusterOfComposite) return [];
+
+        const managedResources = await Promise.all(resourceRefs.map(async (ref: any) => {
+            const [apiGroup, apiVersion] = ref.apiVersion.split('/');
+            const kindPlural = pluralize(ref.kind.toLowerCase());
+            const resourceUrl = `/apis/${apiGroup}/${apiVersion}/${kindPlural}/${ref.name}`;
+            const resourceResponse = await kubernetesApi.proxy({
+                clusterName: clusterOfComposite,
+                path: resourceUrl,
+                init: { method: 'GET' },
+            });
+            return await resourceResponse.json();
+        }));
+
+        return managedResources;
+    };
+
+    const handleRowExpand = async (resource: ExtendedKubernetesObject) => {
+        const resourceId = resource.metadata?.uid || '';
+        const newExpandedRows = new Set(expandedRows);
+
+        if (expandedRows.has(resourceId)) {
+            newExpandedRows.delete(resourceId);
+            setExpandedRows(newExpandedRows);
+            return;
+        }
+
+        newExpandedRows.add(resourceId);
+        setExpandedRows(newExpandedRows);
+
+        if (!nestedResources[resourceId] && resource.spec?.resourceRefs) {
+            const nested = await fetchNestedResources(resource);
+            setNestedResources(prev => ({
+                ...prev,
+                [resourceId]: nested
+            }));
+        }
+    };
+
     if (!canListManagedResources) {
         return <Typography>You don't have permissions to view managed resources</Typography>;
     }
@@ -258,19 +341,99 @@ const CrossplaneManagedResources = () => {
                         </TableHead>
                         <TableBody>
                             {sortedResources.map(resource => (
-                                <TableRow key={resource.metadata?.uid || `${resource.kind}-${Math.random()}`}>
-                                    <TableCell>{resource.kind}</TableCell>
-                                    <TableCell>{resource.metadata?.name}</TableCell>
-                                    <TableCell>{(resource as any).status?.conditions?.some((condition: any) => condition.type === 'Synced') ? 'Yes' : 'No'}</TableCell>
-                                    <TableCell>{(resource as any).status?.conditions?.some((condition: any) => condition.type === 'Ready') ? 'Yes' : 'No'}</TableCell>
-                                    <TableCell>{resource.spec?.providerConfigRef?.name || 'N/A'}</TableCell>
-                                    <TableCell>
-                                        <Button onClick={() => handleViewYaml(resource)} disabled={!canViewYaml}>View YAML</Button>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Button onClick={() => handleGetEvents(resource)} disabled={!canShowEvents}>Show Events</Button>
-                                    </TableCell>
-                                </TableRow>
+                                <React.Fragment key={resource.metadata?.uid || `${resource.kind}-${Math.random()}`}>
+                                    <TableRow>
+                                        <TableCell>
+                                            <div className={classes.resourceTypeCell}>
+                                                {resource.spec?.resourceRefs && (
+                                                    <IconButton
+                                                        className={classes.expandIcon}
+                                                        size="small"
+                                                        onClick={() => handleRowExpand(resource)}
+                                                    >
+                                                        {expandedRows.has(resource.metadata?.uid || '') ? 
+                                                            <KeyboardArrowDownIcon /> : 
+                                                            <KeyboardArrowRightIcon />
+                                                        }
+                                                    </IconButton>
+                                                )}
+                                                {resource.kind}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{resource.metadata?.name}</TableCell>
+                                        <TableCell>{(resource as any).status?.conditions?.some((condition: any) => condition.type === 'Synced') ? 'Yes' : 'No'}</TableCell>
+                                        <TableCell>{(resource as any).status?.conditions?.some((condition: any) => condition.type === 'Ready') ? 'Yes' : 'No'}</TableCell>
+                                        <TableCell>{resource.spec?.providerConfigRef?.name || 'N/A'}</TableCell>
+                                        <TableCell>
+                                            <Button onClick={() => handleViewYaml(resource)} disabled={!canViewYaml}>View YAML</Button>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Button onClick={() => handleGetEvents(resource)} disabled={!canShowEvents}>Show Events</Button>
+                                        </TableCell>
+                                    </TableRow>
+                                    {expandedRows.has(resource.metadata?.uid || '') && resource.spec?.resourceRefs && (
+                                        <TableRow className={classes.nestedRow}>
+                                            <TableCell colSpan={7}>
+                                                <Collapse in={expandedRows.has(resource.metadata?.uid || '')} timeout="auto">
+                                                    <Box className={classes.nestedTableContainer}>
+                                                        <Table size="small" className={classes.nestedTable}>
+                                                            <TableHead>
+                                                                <TableRow>
+                                                                    <TableCell>Type</TableCell>
+                                                                    <TableCell>Name</TableCell>
+                                                                    <TableCell>Synced</TableCell>
+                                                                    <TableCell>Ready</TableCell>
+                                                                    <TableCell>Provider Config</TableCell>
+                                                                    <TableCell>Kubernetes YAML</TableCell>
+                                                                    <TableCell>Kubernetes Events</TableCell>
+                                                                </TableRow>
+                                                            </TableHead>
+                                                            <TableBody>
+                                                                {(nestedResources[resource.metadata?.uid || ''] || []).map(nestedResource => (
+                                                                    <TableRow key={nestedResource.metadata?.uid}>
+                                                                        <TableCell>{nestedResource.kind}</TableCell>
+                                                                        <TableCell>{nestedResource.metadata?.name}</TableCell>
+                                                                        <TableCell>
+                                                                            {(nestedResource as any).status?.conditions?.some(
+                                                                                (condition: any) => condition.type === 'Synced'
+                                                                            ) ? 'Yes' : 'No'}
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            {(nestedResource as any).status?.conditions?.some(
+                                                                                (condition: any) => condition.type === 'Ready'
+                                                                            ) ? 'Yes' : 'No'}
+                                                                        </TableCell>
+                                                                        <TableCell>{nestedResource.spec?.providerConfigRef?.name || 'N/A'}</TableCell>
+                                                                        <TableCell>
+                                                                            <Button 
+                                                                                variant="outlined" 
+                                                                                size="small"
+                                                                                onClick={() => handleViewYaml(nestedResource)} 
+                                                                                disabled={!canViewYaml}
+                                                                            >
+                                                                                View YAML
+                                                                            </Button>
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            <Button 
+                                                                                variant="outlined"
+                                                                                size="small"
+                                                                                onClick={() => handleGetEvents(nestedResource)} 
+                                                                                disabled={!canShowEvents}
+                                                                            >
+                                                                                Show Events
+                                                                            </Button>
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                ))}
+                                                            </TableBody>
+                                                        </Table>
+                                                    </Box>
+                                                </Collapse>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </React.Fragment>
                             ))}
                         </TableBody>
                     </Table>
