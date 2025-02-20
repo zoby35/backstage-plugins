@@ -2,6 +2,7 @@ import { coreServices, createBackendModule } from "@backstage/backend-plugin-api
 import { scaffolderActionsExtensionPoint  } from '@backstage/plugin-scaffolder-node/alpha';
 import { createCrossplaneClaimAction } from "./actions/claim-templating";
 import { createCatalogInfoCleanerAction } from "./actions/catalog-info-cleaner";
+import { createCrdTemplateAction } from "./actions/crd-templating";
 /**
  * A backend module that registers the action into the scaffolder
  */
@@ -17,6 +18,7 @@ export const scaffolderModule = createBackendModule({
       async init({ scaffolderActions, config}) {
         scaffolderActions.addActions(createCrossplaneClaimAction({config: config}));
         scaffolderActions.addActions(createCatalogInfoCleanerAction());
+        scaffolderActions.addActions(createCrdTemplateAction());
       }
     });
   },
