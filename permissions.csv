@@ -7,6 +7,8 @@ p, role:default/platformteam, catalog.location.create, create, allow
 p, role:default/platformteam, catalog.location.delete, delete, allow
 p, role:default/platformteam, catalog.location.analyze, use, allow
 p, role:default/platformteam, kubernetes.proxy, use, allow
+p, role:default/platformteam, kubernetes.resources.read, read, allow
+p, role:default/platformteam, kubernetes.clusters.read, read, allow
 p, role:default/platformteam, policy-entity, read, allow
 p, role:default/platformteam, policy-entity, create, allow
 p, role:default/platformteam, policy-entity, update, allow
@@ -36,5 +38,4 @@ p, role:default/platformteam, scaffolder.action.execute, use, allow
 p, role:default/platformteam, kyverno.overview.view, read, allow
 p, role:default/platformteam, kyverno.policy.view-yaml, read, allow
 p, role:default/platformteam, kyverno.reports.view, read, allow
-g, user:default/scott_terasky.com, role:default/platformteam
-g, user:default/scott, role:default/platformteam
+g, group:default/all_users, role:default/platformteam
