@@ -270,7 +270,34 @@ const CrossplaneUsedResourcesTable = () => {
         if (resource.kind === 'Composition') {
             return 'N/A';
         }
-        return resource.spec?.package || 'N/A';
+        const packageName = resource.spec?.package || 'N/A';
+        
+        if ((resource.kind === 'Function' || resource.kind === 'Provider') && packageName.startsWith('xpkg.upbound.io/')) {
+            // Remove the 'xpkg.upbound.io/' prefix
+            const [_, path] = packageName.split('xpkg.upbound.io/');
+            // Split the remaining path into components
+            const [org, nameWithVersion] = path.split('/');
+            // Split name and version
+            const [name, version] = nameWithVersion.split(':');
+            
+            const resourceType = resource.kind === 'Function' ? 'functions' : 'providers';
+            // Only include version in URL if it's not in the format 'v' followed by a single number
+            const versionPath = /^v\d$/.test(version) ? '' : `/${version}`;
+            const marketplaceUrl = `https://marketplace.upbound.io/${resourceType}/${org}/${name}${versionPath}`;
+            
+            return (
+                <a 
+                    href={marketplaceUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={{ color: 'inherit', textDecoration: 'underline' }}
+                >
+                    {packageName}
+                </a>
+            );
+        }
+        
+        return packageName;
     };
 
     const sortedResources = resources.sort((a, b) => {
