@@ -17,6 +17,7 @@ import {
 } from '@backstage/backend-plugin-api';
 import yaml from 'js-yaml';
 import pluralize from 'pluralize';
+import { CRDDataProvider } from './CRDDataProvider';
 
 export class XRDTemplateEntityProvider implements EntityProvider {
   private readonly taskRunner: SchedulerServiceTaskRunner;
@@ -81,23 +82,36 @@ export class XRDTemplateEntityProvider implements EntityProvider {
         this.auth,
         this.httpAuth,
       );
+
+      const crdDataProvider = new CRDDataProvider(
+        this.logger,
+        this.config,
+        this.catalogApi,
+        this.discovery,
+        this.permissions,
+      );
+
+      let allEntities: Entity[] = [];
+
       if (this.config.getOptionalBoolean('kubernetesIngestor.crossplane.xrds.enabled')) {
         const xrdData = await templateDataProvider.fetchXRDObjects();
-        const entities = xrdData.flatMap(xrd =>
-          this.translateXRDVersionsToTemplates(xrd),
-        );
-        const APIEntites = xrdData.flatMap(xrd =>
-          this.translateXRDVersionsToAPI(xrd),
-        );
-        const allEntities = entities.concat(APIEntites);
-        await this.connection.applyMutation({
-          type: 'full',
-          entities: allEntities.map(entity => ({
-            entity,
-            locationKey: `provider:${this.getProviderName()}`,
-          })),
-        });
+        const xrdEntities = xrdData.flatMap(xrd => this.translateXRDVersionsToTemplates(xrd));
+        const APIEntities = xrdData.flatMap(xrd => this.translateXRDVersionsToAPI(xrd));
+        allEntities = allEntities.concat(xrdEntities, APIEntities);
       }
+
+      // Add CRD template generation
+      const crdData = await crdDataProvider.fetchCRDObjects();
+      const crdEntities = crdData.flatMap(crd => this.translateCRDToTemplate(crd));
+      allEntities = allEntities.concat(crdEntities);
+
+      await this.connection.applyMutation({
+        type: 'full',
+        entities: allEntities.map(entity => ({
+          entity,
+          locationKey: `provider:${this.getProviderName()}`,
+        })),
+      });
     } catch (error) {
       this.logger.error(`Failed to run XRDTemplateEntityProvider: ${error}`);
     }
@@ -725,229 +739,166 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       }
     }
 
-    const publishParameters = {
-      title: "Creation Settings",
-      properties: {
-        pushToGit: {
-          title: "Push Manifest to GitOps Repository",
-          type: "boolean",
-          default: true
-        }
-      },
-      dependencies: {
-        pushToGit: {
-          oneOf: [
-            {
-              properties: {
-                pushToGit: {
-                  enum: [
-                    false
-                  ]
+    const publishParameters = this.config.getOptionalBoolean('kubernetesIngestor.crossplane.xrds.publishPhase.allowRepoSelection')
+      ? {
+        title: "Creation Settings",
+        properties: {
+          pushToGit: {
+            title: "Push Manifest to GitOps Repository",
+            type: "boolean",
+            default: true
+          }
+        },
+        dependencies: {
+          pushToGit: {
+            oneOf: [
+              {
+                properties: {
+                  pushToGit: { enum: [false] }
                 }
-              }
-            },
-            {
-              properties: {
-                pushToGit: {
-                  enum: [
-                    true
-                  ]
-                },
-                repoUrl: {
-                  content: {
-                    type: "string"
+              },
+              {
+                properties: {
+                  pushToGit: { enum: [true] },
+                  repoUrl: {
+                    content: { type: "string" },
+                    description: "Name of repository",
+                    "ui:field": "RepoUrlPicker",
+                    "ui:options": {
+                      allowedHosts: allowedHosts
+                    }
                   },
-                  description: "Name of repository",
-                  "ui:field": "RepoUrlPicker",
-                  "ui:options": {
-                    allowedHosts: allowedHosts
+                  targetBranch: {
+                    type: "string",
+                    description: "Target Branch for the PR",
+                    default: "main"
+                  },
+                  manifestLayout: {
+                    type: "string",
+                    description: "Layout of the manifest",
+                    default: "cluster-scoped",
+                    "ui:help": "Choose how the manifest should be generated in the repo.\n* Cluster-scoped - a manifest is created for each selected cluster under the root directory of the clusters name\n* namespace-scoped - a manifest is created for the resource under the root directory with the namespace name\n* custom - a manifest is created under the specified base path",
+                    enum: ["cluster-scoped", "namespace-scoped", "custom"]
                   }
                 },
-                targetBranch: {
-                  type: "string",
-                  description: "Target Branch for the PR",
-                  default: "main"
-                },
-                manifestLayout: {
-                  type: "string",
-                  description: "Layout of the manifest",
-                  default: "cluster-scoped",
-                  "ui:help": "Choose how the manifest should be generated in the repo.\n* Cluster-scoped - a manifest is created for each selected cluster under the root directory of the clusters name\n* namespace-scoped - a manifest is created for the resource under the root directory with the namespace name\n* custom - a manifest is created under the specified base path",
-                  enum: [
-                    "cluster-scoped",
-                    "namespace-scoped",
-                    "custom"
-                  ]
-                }
-              },
-              dependencies: {
-                manifestLayout: {
-                  oneOf: [
-                    {
-                      properties: {
-                        manifestLayout: {
-                          enum: [
-                            "cluster-scoped"
-                          ]
-                        },
-                        clusters: {
-                          title: "Target Clusters",
-                          description: "The target clusters to apply the resource to",
-                          type: "array",
-                          minItems: 1,
-                          items: {
-                            enum: clusters,
-                            type: 'string',
+                dependencies: {
+                  manifestLayout: {
+                    oneOf: [
+                      {
+                        properties: {
+                          manifestLayout: { enum: ["cluster-scoped"] },
+                          clusters: {
+                            title: "Target Clusters",
+                            description: "The target clusters to apply the resource to",
+                            type: "array",
+                            minItems: 1,
+                            items: {
+                              enum: clusters,
+                              type: 'string',
+                            },
+                            uniqueItems: true,
+                            'ui:widget': 'checkboxes',
                           },
-                          uniqueItems: true,
-                          'ui:widget': 'checkboxes',
                         },
+                        required: ["clusters"]
                       },
-                      type: 'object',
-                      required: [
-                        "clusters"
-                      ]
-                    },
-                    {
-                      properties: {
-                        manifestLayout: {
-                          enum: [
-                            "custom"
-                          ]
+                      {
+                        properties: {
+                          manifestLayout: { enum: ["custom"] },
+                          basePath: {
+                            type: "string",
+                            description: "Base path in GitOps repository to push the manifest to"
+                          }
                         },
-                        basePath: {
-                          type: "string",
-                          description: "Base path in GitOps repository to push the manifest to"
-                        }
+                        required: ["basePath"]
                       },
-                      required: [
-                        "basePath"
-                      ]
-                    },
-                    {
-                      properties: {
-                        manifestLayout: {
-                          enum: [
-                            "namespace-scoped"
-                          ]
+                      {
+                        properties: {
+                          manifestLayout: { enum: ["namespace-scoped"] }
                         }
                       }
-                    }
-                  ]
+                    ]
+                  }
                 }
               }
-            }
-          ]
+            ]
+          }
         }
       }
-    };
-    const publishParametersNoGitSelection = {
-      title: "Creation Settings",
-      properties: {
-        pushToGit: {
-          title: "Push Manifest to GitOps Repository",
-          type: "boolean",
-          default: true
-        }
-      },
-      dependencies: {
-        pushToGit: {
-          oneOf: [
-            {
-              properties: {
-                pushToGit: {
-                  enum: [
-                    false
-                  ]
-                }
-              }
-            },
-            {
-              properties: {
-                pushToGit: {
-                  enum: [
-                    true
-                  ]
-                },
-                manifestLayout: {
-                  type: "string",
-                  description: "Layout of the manifest",
-                  default: "cluster-scoped",
-                  "ui:help": "Choose how the manifest should be generated in the repo.\n* Cluster-scoped - a manifest is created for each selected cluster under the root directory of the clusters name\n* namespace-scoped - a manifest is created for the resource under the root directory with the namespace name\n* custom - a manifest is created under the specified base path",
-                  enum: [
-                    "cluster-scoped",
-                    "namespace-scoped",
-                    "custom"
-                  ]
+      : {
+        title: "Creation Settings",
+        properties: {
+          pushToGit: {
+            title: "Push Manifest to GitOps Repository",
+            type: "boolean",
+            default: true
+          }
+        },
+        dependencies: {
+          pushToGit: {
+            oneOf: [
+              {
+                properties: {
+                  pushToGit: { enum: [false] }
                 }
               },
-              dependencies: {
-                manifestLayout: {
-                  oneOf: [
-                    {
-                      properties: {
-                        manifestLayout: {
-                          enum: [
-                            "cluster-scoped"
-                          ]
-                        },
-                        clusters: {
-                          title: "Target Clusters",
-                          description: "The target clusters to apply the resource to",
-                          type: "array",
-                          minItems: 1,
-                          items: {
-                            enum: clusters,
-                            type: 'string',
+              {
+                properties: {
+                  pushToGit: { enum: [true] },
+                  manifestLayout: {
+                    type: "string",
+                    description: "Layout of the manifest",
+                    default: "cluster-scoped",
+                    "ui:help": "Choose how the manifest should be generated in the repo.\n* Cluster-scoped - a manifest is created for each selected cluster under the root directory of the clusters name\n* namespace-scoped - a manifest is created for the resource under the root directory with the namespace name\n* custom - a manifest is created under the specified base path",
+                    enum: ["cluster-scoped", "namespace-scoped", "custom"]
+                  }
+                },
+                dependencies: {
+                  manifestLayout: {
+                    oneOf: [
+                      {
+                        properties: {
+                          manifestLayout: { enum: ["cluster-scoped"] },
+                          clusters: {
+                            title: "Target Clusters",
+                            description: "The target clusters to apply the resource to",
+                            type: "array",
+                            minItems: 1,
+                            items: {
+                              enum: clusters,
+                              type: 'string',
+                            },
+                            uniqueItems: true,
+                            'ui:widget': 'checkboxes',
                           },
-                          uniqueItems: true,
-                          'ui:widget': 'checkboxes',
                         },
+                        required: ["clusters"]
                       },
-                      type: 'object',
-                      required: [
-                        "clusters"
-                      ]
-                    },
-                    {
-                      properties: {
-                        manifestLayout: {
-                          enum: [
-                            "custom"
-                          ]
+                      {
+                        properties: {
+                          manifestLayout: { enum: ["custom"] },
+                          basePath: {
+                            type: "string",
+                            description: "Base path in GitOps repository to push the manifest to"
+                          }
                         },
-                        basePath: {
-                          type: "string",
-                          description: "Base path in GitOps repository to push the manifest to"
-                        }
+                        required: ["basePath"]
                       },
-                      required: [
-                        "basePath"
-                      ]
-                    },
-                    {
-                      properties: {
-                        manifestLayout: {
-                          enum: [
-                            "namespace-scoped"
-                          ]
+                      {
+                        properties: {
+                          manifestLayout: { enum: ["namespace-scoped"] }
                         }
                       }
-                    }
-                  ]
+                    ]
+                  }
                 }
               }
-            }
-          ]
+            ]
+          }
         }
-      }
-    };
-    if (this.config.getOptionalBoolean('kubernetesIngestor.crossplane.xrds.publishPhase.allowRepoSelection')) {
-      return additionalParameters ? [mainParameterGroup, additionalParameters, crossplaneParameters, publishParameters] : [mainParameterGroup, crossplaneParameters, publishParameters];
-    }
-    
-      return additionalParameters ? [mainParameterGroup, additionalParameters, crossplaneParameters, publishParametersNoGitSelection] : [mainParameterGroup, crossplaneParameters, publishParametersNoGitSelection];
-    
+      };
+
+    return [mainParameterGroup, additionalParameters, crossplaneParameters, publishParameters];
   }
 
   private extractSteps(version: any, xrd: any): any[] {
@@ -1054,6 +1005,383 @@ export class XRDTemplateEntityProvider implements EntityProvider {
     return [...defaultSteps, ...additionalSteps];
   }
 
+  private translateCRDToTemplate(crd: any): Entity[] {
+    if (!crd?.metadata || !crd?.spec?.versions) {
+      throw new Error('Invalid CRD object');
+    }
+
+    const clusters = crd.clusters || ["default"];
+    
+    // Find the stored version
+    const storedVersion = crd.spec.versions.find((version: any) => version.storage === true);
+    if (!storedVersion) {
+      this.logger.warn(`No stored version found for CRD ${crd.metadata.name}, skipping template generation`);
+      return [];
+    }
+
+    const parameters = this.extractCRDParameters(storedVersion, clusters, crd);
+    const steps = this.extractCRDSteps(storedVersion, crd);
+    const clusterTags = clusters.map((cluster: any) => `cluster:${cluster}`);
+    const tags = ['kubernetes-crd', ...clusterTags];
+
+    return [{
+      apiVersion: 'scaffolder.backstage.io/v1beta3',
+      kind: 'Template',
+      metadata: {
+        name: `${crd.spec.names.singular}-${storedVersion.name}`,
+        title: `${crd.spec.names.kind}`,
+        description: `A template to create a ${crd.spec.names.kind} instance`,
+        tags: tags,
+        labels: {
+          forEntity: "system",
+          source: "kubernetes",
+        },
+        annotations: {
+          'backstage.io/managed-by-location': `cluster origin: ${crd.clusterName}`,
+          'backstage.io/managed-by-origin-location': `cluster origin: ${crd.clusterName}`,
+        },
+      },
+      spec: {
+        type: crd.spec.names.singular,
+        parameters,
+        steps,
+        output: {
+          links: [
+            {
+              title: 'Download YAML Manifest',
+              url: 'data:application/yaml;charset=utf-8,${{ steps.generateManifest.output.manifest }}'
+            },
+            {
+              title: 'Open Pull Request',
+              if: '${{ parameters.pushToGit }}',
+              url: '${{ steps["create-pull-request"].output.remoteUrl }}'
+            }
+          ]
+        },
+      },
+    }];
+  }
+
+  private extractCRDParameters(version: any, clusters: string[], crd: any): any[] {
+    const mainParameterGroup = {
+      title: 'Resource Metadata',
+      required: ['name'],
+      properties: {
+        name: {
+          title: 'Name',
+          description: 'The name of the resource',
+          pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+          maxLength: 63,
+          type: 'string',
+        },
+        ...(crd.spec.scope === 'Namespaced' ? {
+          namespace: {
+            title: 'Namespace',
+            description: 'The namespace in which to create the resource',
+            pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+            maxLength: 63,
+            type: 'string',
+          }
+        } : {}),
+      },
+      type: 'object',
+    };
+
+    const processProperties = (properties: Record<string, any>): Record<string, any> => {
+      const processedProperties: Record<string, any> = {};
+
+      for (const [key, value] of Object.entries(properties)) {
+        const typedValue = value as Record<string, any>;
+        if (typedValue.type === 'object' && typedValue.properties) {
+          const subProperties = processProperties(typedValue.properties);
+          // Remove required fields for nested objects
+          const { required: _, ...restValue } = typedValue;
+          processedProperties[key] = { ...restValue, properties: subProperties };
+        } else {
+          // Remove required field if present
+          const { required: _, ...restValue } = typedValue;
+          processedProperties[key] = restValue;
+        }
+      }
+
+      return processedProperties;
+    };
+
+    const processedSpec = version.schema?.openAPIV3Schema?.properties?.spec
+      ? processProperties(version.schema.openAPIV3Schema.properties.spec.properties)
+      : {};
+
+    const specParameters = {
+      title: 'Resource Spec',
+      properties: processedSpec,
+      type: 'object',
+    };
+
+    const publishPhaseTarget = this.config.getOptionalString('kubernetesIngestor.genericCRDTemplates.publishPhase.target')?.toLowerCase();
+    const allowedTargets = this.config.getOptionalStringArray('kubernetesIngestor.genericCRDTemplates.publishPhase.allowedTargets');
+
+    let allowedHosts: string[] = [];
+    if (allowedTargets) {
+      allowedHosts = allowedTargets;
+    } else {
+      switch (publishPhaseTarget) {
+        case 'github':
+          allowedHosts = ['github.com'];
+          break;
+        case 'gitlab':
+          allowedHosts = ['gitlab.com'];
+          break;
+        case 'bitbucket':
+          allowedHosts = ['only-bitbucket-server-is-allowed'];
+          break;
+        default:
+          allowedHosts = [];
+      }
+    }
+
+    const publishParameters = this.config.getOptionalBoolean('kubernetesIngestor.genericCRDTemplates.publishPhase.allowRepoSelection')
+      ? {
+        title: "Creation Settings",
+        properties: {
+          pushToGit: {
+            title: "Push Manifest to GitOps Repository",
+            type: "boolean",
+            default: true
+          }
+        },
+        dependencies: {
+          pushToGit: {
+            oneOf: [
+              {
+                properties: {
+                  pushToGit: { enum: [false] }
+                }
+              },
+              {
+                properties: {
+                  pushToGit: { enum: [true] },
+                  repoUrl: {
+                    content: { type: "string" },
+                    description: "Name of repository",
+                    "ui:field": "RepoUrlPicker",
+                    "ui:options": {
+                      allowedHosts: allowedHosts
+                    }
+                  },
+                  targetBranch: {
+                    type: "string",
+                    description: "Target Branch for the PR",
+                    default: "main"
+                  },
+                  manifestLayout: {
+                    type: "string",
+                    description: "Layout of the manifest",
+                    default: "cluster-scoped",
+                    "ui:help": "Choose how the manifest should be generated in the repo.\n* Cluster-scoped - a manifest is created for each selected cluster under the root directory of the clusters name\n* namespace-scoped - a manifest is created for the resource under the root directory with the namespace name\n* custom - a manifest is created under the specified base path",
+                    enum: ["cluster-scoped", "namespace-scoped", "custom"]
+                  }
+                },
+                dependencies: {
+                  manifestLayout: {
+                    oneOf: [
+                      {
+                        properties: {
+                          manifestLayout: { enum: ["cluster-scoped"] },
+                          clusters: {
+                            title: "Target Clusters",
+                            description: "The target clusters to apply the resource to",
+                            type: "array",
+                            minItems: 1,
+                            items: {
+                              enum: clusters,
+                              type: 'string',
+                            },
+                            uniqueItems: true,
+                            'ui:widget': 'checkboxes',
+                          },
+                        },
+                        required: ["clusters"]
+                      },
+                      {
+                        properties: {
+                          manifestLayout: { enum: ["custom"] },
+                          basePath: {
+                            type: "string",
+                            description: "Base path in GitOps repository to push the manifest to"
+                          }
+                        },
+                        required: ["basePath"]
+                      },
+                      {
+                        properties: {
+                          manifestLayout: { enum: ["namespace-scoped"] }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+      : {
+        title: "Creation Settings",
+        properties: {
+          pushToGit: {
+            title: "Push Manifest to GitOps Repository",
+            type: "boolean",
+            default: true
+          }
+        },
+        dependencies: {
+          pushToGit: {
+            oneOf: [
+              {
+                properties: {
+                  pushToGit: { enum: [false] }
+                }
+              },
+              {
+                properties: {
+                  pushToGit: { enum: [true] },
+                  manifestLayout: {
+                    type: "string",
+                    description: "Layout of the manifest",
+                    default: "cluster-scoped",
+                    "ui:help": "Choose how the manifest should be generated in the repo.\n* Cluster-scoped - a manifest is created for each selected cluster under the root directory of the clusters name\n* namespace-scoped - a manifest is created for the resource under the root directory with the namespace name\n* custom - a manifest is created under the specified base path",
+                    enum: ["cluster-scoped", "namespace-scoped", "custom"]
+                  }
+                },
+                dependencies: {
+                  manifestLayout: {
+                    oneOf: [
+                      {
+                        properties: {
+                          manifestLayout: { enum: ["cluster-scoped"] },
+                          clusters: {
+                            title: "Target Clusters",
+                            description: "The target clusters to apply the resource to",
+                            type: "array",
+                            minItems: 1,
+                            items: {
+                              enum: clusters,
+                              type: 'string',
+                            },
+                            uniqueItems: true,
+                            'ui:widget': 'checkboxes',
+                          },
+                        },
+                        required: ["clusters"]
+                      },
+                      {
+                        properties: {
+                          manifestLayout: { enum: ["custom"] },
+                          basePath: {
+                            type: "string",
+                            description: "Base path in GitOps repository to push the manifest to"
+                          }
+                        },
+                        required: ["basePath"]
+                      },
+                      {
+                        properties: {
+                          manifestLayout: { enum: ["namespace-scoped"] }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      };
+
+    return [mainParameterGroup, specParameters, publishParameters];
+  }
+
+  private extractCRDSteps(version: any, crd: any): any[] {
+    const baseStepsYaml = `
+    - id: generateManifest
+      name: Generate Kubernetes Resource Manifest
+      action: terasky:crd-template
+      input:
+        parameters: \${{ parameters }}
+        nameParam: name
+        namespaceParam: ${crd.spec.scope === 'Namespaced' ? 'namespace' : undefined}
+        excludeParams: ['pushToGit','basePath','manifestLayout','_editData', 'targetBranch', 'repoUrl', 'clusters', 'name', 'namespace']
+        apiVersion: ${crd.spec.group}/${version.name}
+        kind: ${crd.spec.names.kind}
+        clusters: \${{ parameters.clusters if parameters.manifestLayout === 'cluster-scoped' and parameters.pushToGit else ['temp'] }}
+        removeEmptyParams: true
+    - id: moveNamespacedManifest
+      name: Move and Rename Manifest
+      if: \${{ parameters.manifestLayout === 'namespace-scoped' }}
+      action: fs:rename
+      input:
+        files:
+          - from: \${{ steps.generateManifest.output.filePaths[0] }}
+            to: "./\${{ parameters.namespace }}/\${{ steps.generateManifest.input.kind }}/\${{ steps.generateManifest.output.filePaths[0].split('/').pop() }}"
+    - id: moveCustomManifest
+      name: Move and Rename Manifest
+      if: \${{ parameters.manifestLayout === 'custom' }}
+      action: fs:rename
+      input:
+        files:
+          - from: \${{ steps.generateManifest.output.filePaths[0] }}
+            to: "./\${{ parameters.basePath }}/\${{ parameters.name }}.yaml"
+  `;
+
+    const publishPhaseTarget = this.config.getOptionalString('kubernetesIngestor.genericCRDTemplates.publishPhase.target')?.toLowerCase();
+    let action = '';
+    switch (publishPhaseTarget) {
+      case 'gitlab':
+        action = 'publish:gitlab:merge-request';
+        break;
+      case 'bitbucket':
+        action = 'publish:bitbucketServer:pull-request';
+        break;
+      case 'github':
+      default:
+        action = 'publish:github:pull-request';
+        break;
+    }
+
+    let defaultStepsYaml = baseStepsYaml;
+
+    if (publishPhaseTarget !== 'yaml') {
+      if (this.config.getOptionalBoolean('kubernetesIngestor.genericCRDTemplates.publishPhase.allowRepoSelection')) {
+        defaultStepsYaml += `
+    - id: create-pull-request
+      name: create-pull-request
+      action: ${action}
+      if: \${{ parameters.pushToGit }}
+      input:
+        repoUrl: \${{ parameters.repoUrl }}
+        branchName: create-\${{ parameters.name }}-resource
+        title: Create ${crd.spec.names.kind} Resource \${{ parameters.name }}
+        description: Create ${crd.spec.names.kind} Resource \${{ parameters.name }}
+        targetBranchName: \${{ parameters.targetBranch }}
+      `;
+      } else {
+        defaultStepsYaml += `
+    - id: create-pull-request
+      name: create-pull-request
+      action: ${action}
+      if: \${{ parameters.pushToGit }}
+      input:
+        repoUrl: ${this.config.getOptionalString('kubernetesIngestor.genericCRDTemplates.publishPhase.git.repoUrl')}
+        branchName: create-\${{ parameters.name }}-resource
+        title: Create ${crd.spec.names.kind} Resource \${{ parameters.name }}
+        description: Create ${crd.spec.names.kind} Resource \${{ parameters.name }}
+        targetBranchName: ${this.config.getOptionalString('kubernetesIngestor.genericCRDTemplates.publishPhase.git.targetBranch')}
+      `;
+      }
+    }
+
+    return yaml.load(defaultStepsYaml) as any[];
+  }
 }
 
 export class KubernetesEntityProvider implements EntityProvider {
@@ -1305,7 +1633,7 @@ export class KubernetesEntityProvider implements EntityProvider {
         type: annotations[`${prefix}/component-type`] || 'service',
         lifecycle: annotations[`${prefix}/lifecycle`] || 'production',
         owner: annotations[`${prefix}/owner`] ? `${referencesNamespaceModel}/${annotations[`${prefix}/owner`]}` : `${referencesNamespaceValue}/kubernetes-auto-ingested`,
-        system: `${referencesNamespaceValue}/${systemValue}`,
+        system: annotations[`${prefix}/system`] || `${referencesNamespaceValue}/${systemValue}`,
         dependsOn: annotations[`${prefix}/dependsOn`]?.split(','),
         providesApis: annotations[`${prefix}/providesApis`]?.split(','),
         consumesApis: annotations[`${prefix}/consumesApis`]?.split(','),

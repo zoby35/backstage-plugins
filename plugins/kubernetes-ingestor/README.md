@@ -99,6 +99,21 @@ kubernetesIngestor:
       ingestAllXRDs: true
       # Will convert default values from the XRD into placeholders in the UI instead of always adding them to the generated manifest.
       convertDefaultValuesToPlaceholders: true
+  genericCRDTemplates:
+    # Settings related to the final steps of a software template
+    publishPhase:
+      # Base URLs of Git servers you want to allow publishing to
+      allowedTargets: ['github.com', 'gitlab.com']
+      # What to publish to. currently supports github, gitlab, bitbucket, and YAML (provides a link to download the file)
+      target: github
+      git:
+        # Follows the backstage standard format which is github.com?owner=<REPO OWNER>&repo=<REPO NAME>
+        repoUrl: 
+        targetBranch: main
+      # Whether the user should be able to select the repo they want to push the manifest to or not
+      allowRepoSelection: true
+    crds:
+      - certificates.cert-manager.io
 ```
 
 ## Usage
