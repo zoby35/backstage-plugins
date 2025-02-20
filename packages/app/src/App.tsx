@@ -171,6 +171,10 @@ const routes = (
             title: 'Crossplane Claims',
             filter: (template) => template.metadata?.labels?.source === 'crossplane',
           },
+          {
+            title: 'General CRDs',
+            filter: (template) => template.metadata?.labels?.source === 'kubernetes',
+          },
 
         ]}
         templateFilter={template =>
