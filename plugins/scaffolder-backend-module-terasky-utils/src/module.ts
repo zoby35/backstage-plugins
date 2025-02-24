@@ -18,7 +18,7 @@ export const scaffolderModule = createBackendModule({
       async init({ scaffolderActions, config}) {
         scaffolderActions.addActions(createCrossplaneClaimAction({config: config}));
         scaffolderActions.addActions(createCatalogInfoCleanerAction());
-        scaffolderActions.addActions(createCrdTemplateAction());
+        scaffolderActions.addActions(createCrdTemplateAction({config: config}));
       }
     });
   },
