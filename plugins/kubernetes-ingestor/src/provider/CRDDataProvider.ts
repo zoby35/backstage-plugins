@@ -53,8 +53,14 @@ export class CRDDataProvider {
         return [];
       }
 
-      const crdTargets = this.config.getOptionalStringArray('kubernetesIngestor.genericCRDTemplates.crds') || [];
-      if (crdTargets.length === 0) {
+      const crdTargets = this.config.getOptionalStringArray('kubernetesIngestor.genericCRDTemplates.crds');
+      const labelSelector = this.config.getOptionalConfig('kubernetesIngestor.genericCRDTemplates.crdLabelSelector');
+      if (!crdTargets && !labelSelector) {
+        return [];
+      }
+
+      if (crdTargets && labelSelector) {
+        this.logger.warn('Both CRD targets and label selector are configured. Only one should be used. Using CRD targets.');
         return [];
       }
 
@@ -68,42 +74,77 @@ export class CRDDataProvider {
         }
 
         try {
-          for (const crdTarget of crdTargets) {
-            const parts = crdTarget.split('.');
-            const plural = parts[0];
-            const group = parts.slice(1).join('.');
+          const objectTypesToFetch: Set<ObjectToFetch> = new Set([
+            {
+              group: 'apiextensions.k8s.io',
+              apiVersion: 'v1',
+              plural: 'customresourcedefinitions',
+              objectType: 'customresources' as KubernetesObjectTypes,
+            },
+          ]);
+          
+          let labelSelectorString = '';
+          if (labelSelector) {
+            const key = labelSelector.getString('key');
+            const value = labelSelector.getString('value');
+            labelSelectorString = `${key}=${value}`;
+          }
 
-            const objectTypesToFetch: Set<ObjectToFetch> = new Set([
-              {
-                group: 'apiextensions.k8s.io',
-                apiVersion: 'v1',
-                plural: 'customresourcedefinitions',
-                objectType: 'customresources' as KubernetesObjectTypes,
-              },
-            ]);
+          const fetchedObjects = await fetcher.fetchObjectsForService({
+            serviceId: 'crdServiceId',
+            clusterDetails: cluster,
+            credential: { type: 'bearer token', token },
+            objectTypesToFetch,
+            labelSelector: labelSelectorString,
+            customResources: [],
+          });
 
-            const fetchedObjects = await fetcher.fetchObjectsForService({
-              serviceId: 'crdServiceId',
-              clusterDetails: cluster,
-              credential: { type: 'bearer token', token },
-              objectTypesToFetch,
-              labelSelector: ``,
-              customResources: [],
-            });
+          if (crdTargets) {
+            // Process specific CRD targets
+            for (const crdTarget of crdTargets) {
+              const parts = crdTarget.split('.');
+              const plural = parts[0];
+              const group = parts.slice(1).join('.');
 
-            const filteredCRDs = fetchedObjects.responses
+              const filteredCRDs = fetchedObjects.responses
+                .flatMap(response => response.resources)
+                .filter(crd => 
+                  crd.spec.group === group && 
+                  crd.spec.names.plural === plural
+                )
+                .map(crd => ({
+                  ...crd,
+                  clusterName: cluster.name,
+                  clusterEndpoint: cluster.url,
+                }));
+
+              filteredCRDs.forEach(crd => {
+                const crdKey = `${crd.spec.group}/${crd.spec.names.plural}`;
+                if (!crdMap.has(crdKey)) {
+                  crdMap.set(crdKey, {
+                    ...crd,
+                    clusters: [cluster.name],
+                    clusterDetails: [{name: cluster.name, url: cluster.url}],
+                  });
+                } else {
+                  const existingCrd = crdMap.get(crdKey);
+                  if (!existingCrd.clusters.includes(cluster.name)) {
+                    existingCrd.clusters.push(cluster.name);
+                    existingCrd.clusterDetails.push({name: cluster.name, url: cluster.url});
+                  }
+                }
+              });
+            }
+          } else {
+            // Process CRDs based on label selector
+            const labeledCRDs = fetchedObjects.responses
               .flatMap(response => response.resources)
-              .filter(crd => 
-                crd.spec.group === group && 
-                crd.spec.names.plural === plural
-              )
               .map(crd => ({
                 ...crd,
                 clusterName: cluster.name,
                 clusterEndpoint: cluster.url,
               }));
-
-            filteredCRDs.forEach(crd => {
+            labeledCRDs.forEach(crd => {
               const crdKey = `${crd.spec.group}/${crd.spec.names.plural}`;
               if (!crdMap.has(crdKey)) {
                 crdMap.set(crdKey, {

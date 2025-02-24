@@ -14844,7 +14844,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@terasky/backstage-plugin-crossplane-claim-updater@npm:^0.2.3, @terasky/backstage-plugin-crossplane-claim-updater@workspace:plugins/crossplane-claim-updater":
+"@terasky/backstage-plugin-crossplane-claim-updater@npm:^1.0.0, @terasky/backstage-plugin-crossplane-claim-updater@workspace:plugins/crossplane-claim-updater":
   version: 0.0.0-use.local
   resolution: "@terasky/backstage-plugin-crossplane-claim-updater@workspace:plugins/crossplane-claim-updater"
   dependencies:
@@ -15025,7 +15025,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@terasky/backstage-plugin-kubernetes-ingestor@npm:^1.7.2, @terasky/backstage-plugin-kubernetes-ingestor@workspace:plugins/kubernetes-ingestor":
+"@terasky/backstage-plugin-kubernetes-ingestor@npm:^1.9.0, @terasky/backstage-plugin-kubernetes-ingestor@workspace:plugins/kubernetes-ingestor":
   version: 0.0.0-use.local
   resolution: "@terasky/backstage-plugin-kubernetes-ingestor@workspace:plugins/kubernetes-ingestor"
   dependencies:
@@ -15136,7 +15136,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils@npm:^1.2.4, @terasky/backstage-plugin-scaffolder-backend-module-terasky-utils@workspace:plugins/scaffolder-backend-module-terasky-utils":
+"@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils@npm:^1.4.0, @terasky/backstage-plugin-scaffolder-backend-module-terasky-utils@workspace:plugins/scaffolder-backend-module-terasky-utils":
   version: 0.0.0-use.local
   resolution: "@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils@workspace:plugins/scaffolder-backend-module-terasky-utils"
   dependencies:
@@ -17734,7 +17734,7 @@ __metadata:
     "@material-ui/core": "npm:^4.12.2"
     "@material-ui/icons": "npm:^4.9.1"
     "@playwright/test": "npm:^1.32.3"
-    "@terasky/backstage-plugin-crossplane-claim-updater": "npm:^0.2.3"
+    "@terasky/backstage-plugin-crossplane-claim-updater": "npm:^1.0.0"
     "@terasky/backstage-plugin-crossplane-resources-frontend": "npm:^1.7.0"
     "@terasky/backstage-plugin-devpod": "npm:^1.0.7"
     "@terasky/backstage-plugin-entity-scaffolder-content": "npm:^1.0.7"
@@ -18470,9 +18470,9 @@ __metadata:
     "@dweber019/backstage-plugin-accentuate-backend": "npm:^1.0.3"
     "@roadiehq/scaffolder-backend-module-utils": "npm:^3.3.0"
     "@terasky/backstage-plugin-crossplane-permissions-backend": "npm:^1.1.6"
-    "@terasky/backstage-plugin-kubernetes-ingestor": "npm:^1.7.2"
+    "@terasky/backstage-plugin-kubernetes-ingestor": "npm:^1.9.0"
     "@terasky/backstage-plugin-kyverno-permissions-backend": "npm:^1.0.4"
-    "@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils": "npm:^1.2.4"
+    "@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils": "npm:^1.4.0"
     app: "link:../app"
     better-sqlite3: "npm:^9.0.0"
     node-gyp: "npm:^10.0.0"

@@ -1,8 +1,8 @@
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
-  name: update-claim-manifest
-  title: Update Claim Manifest
+  name: update-kubernetes-manifest
+  title: Update Kubernetes Manifest
   labels:
     target: component
   description: A template to update a claim manifest in Git based on the registered OpenAPI Schema of the XRD

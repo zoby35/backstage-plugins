@@ -4,8 +4,9 @@ import yaml from 'js-yaml';
 import fs from 'fs-extra';
 import path from 'path';
 
-export function createCrdTemplateAction() {
+export function createCrdTemplateAction({config}: {config: any}) {
   return createTemplateAction<{
+    ownerParam: any;
     parameters: Record<string, any>;
     nameParam: string;
     namespaceParam?: string;
@@ -13,7 +14,7 @@ export function createCrdTemplateAction() {
     apiVersion: string;
     kind: string;
     removeEmptyParams?: boolean;
-    clusters?: string[];
+    clusters: string[];
   }>({
     id: 'terasky:crd-template',
     description: 'Templates a CRD manifest based on input parameters',
@@ -37,6 +38,7 @@ export function createCrdTemplateAction() {
             title: 'Template parameter to map to the namespace of the resource',
             description: "Template parameter to map to the namespace of the resource",
             type: 'string',
+            default: 'namespace'
           },
           excludeParams: { 
             title: 'Template parameters to exclude from the manifest',
@@ -70,6 +72,12 @@ export function createCrdTemplateAction() {
             items: {
               type: 'string',
             },
+            minItems: 1,
+          },
+          ownerParam: {
+            title: 'Template parameter to map to the owner of the claim',
+            description: "Template parameter to map to the owner of the claim",
+            type: 'string',
           },
         },
       },
@@ -119,7 +127,26 @@ export function createCrdTemplateAction() {
         };
         removeEmpty(filteredParameters);
       }
-
+      const sourceInfo = {
+        pushToGit: ctx.input.parameters.pushToGit,
+        gitBranch: ctx.input.parameters.targetBranch || config.getOptionalString('kubernetesIngestor.crossplane.xrds.publishPhase.git.targetBranch'),
+        gitRepo: ctx.input.parameters.repoUrl || config.getOptionalString('kubernetesIngestor.crossplane.xrds.publishPhase.git.repoUrl'),
+        gitLayout: ctx.input.parameters.manifestLayout,
+        basePath: ctx.input.parameters.manifestLayout === 'custom' 
+          ? ctx.input.parameters.basePath 
+          : ctx.input.parameters.manifestLayout === 'namespace-scoped'
+            ? `${ctx.input.parameters[ctx.input.namespaceParam || 'namespace']}`
+            : `${ctx.input.clusters[0]}/${ctx.input.parameters[ctx.input.namespaceParam || 'namespace']}/${ctx.input.kind}`
+      }
+      let sourceFileUrl = '';
+      if (ctx.input.parameters.pushToGit && sourceInfo.gitRepo) {
+        const gitUrl = new URL("https://" + sourceInfo.gitRepo);
+        const owner = gitUrl.searchParams.get('owner');
+        const repo = gitUrl.searchParams.get('repo');
+        if (owner && repo) {
+          sourceFileUrl = `https://${gitUrl.host}/${owner}/${repo}/blob/${sourceInfo.gitBranch}/${sourceInfo.basePath}/${ctx.input.parameters[ctx.input.nameParam]}.yaml`;
+        }
+      }
       // Template the Kubernetes resource manifest
       const manifest = {
         apiVersion: ctx.input.apiVersion,
@@ -129,6 +156,13 @@ export function createCrdTemplateAction() {
           ...(ctx.input.namespaceParam && {
             namespace: ctx.input.parameters[ctx.input.namespaceParam],
           }),
+          annotations: {
+            'terasky.backstage.io/source-info': JSON.stringify(sourceInfo),
+            'terasky.backstage.io/add-to-catalog': "true",
+            'terasky.backstage.io/owner': ctx.input.parameters[ctx.input.ownerParam],
+            'terasky.backstage.io/system': ctx.input.parameters[ctx.input.namespaceParam || 'namespace'],
+            ...(sourceFileUrl && { 'terasky.backstage.io/source-file-url': sourceFileUrl }),
+          },
         },
         spec: filteredParameters,
       };
@@ -138,28 +172,18 @@ export function createCrdTemplateAction() {
 
       // Handle cluster-specific paths or default path
       const filePaths: string[] = [];
-      if (ctx.input.clusters && ctx.input.clusters.length > 0) {
-        for (const cluster of ctx.input.clusters) {
-          const clusterPath = path.join(
-            cluster,
-            ctx.input.parameters[ctx.input.nameParam],
-            'manifest.yaml'
-          );
-          const destFilepath = resolveSafeChildPath(ctx.workspacePath, clusterPath);
-          fs.outputFileSync(destFilepath, manifestYaml);
-          filePaths.push(clusterPath);
-          ctx.logger.info(`Manifest written to ${destFilepath}`);
-        }
-      } else {
+      ctx.input.clusters.forEach(cluster => {
         const filePath = path.join(
-          ctx.input.parameters[ctx.input.nameParam],
-          'manifest.yaml'
+          cluster,
+          ctx.input.parameters[ctx.input.namespaceParam || 'namespace'],
+          ctx.input.kind,
+          `${ctx.input.parameters[ctx.input.nameParam]}.yaml`
         );
         const destFilepath = resolveSafeChildPath(ctx.workspacePath, filePath);
         fs.outputFileSync(destFilepath, manifestYaml);
-        filePaths.push(filePath);
         ctx.logger.info(`Manifest written to ${destFilepath}`);
-      }
+        filePaths.push(destFilepath);
+      });
 
       // Output the manifest and file paths
       ctx.output('manifest', manifestYaml);
