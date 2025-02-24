@@ -112,6 +112,9 @@ kubernetesIngestor:
         targetBranch: main
       # Whether the user should be able to select the repo they want to push the manifest to or not
       allowRepoSelection: true
+    crdLabelSelector:
+      key: terasky.backstage.io/generate-form
+      value: "true"
     crds:
       - certificates.cert-manager.io
 ```
