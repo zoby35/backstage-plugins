@@ -98,7 +98,7 @@ export class KubernetesDataProvider {
       );
 
       const ingestAllCrossplaneClaims = this.config.getOptionalBoolean('kubernetesIngestor.crossplane.claims.ingestAllClaims') ?? false;
-
+      
       let allFetchedObjects: any[] = [];
 
       const onlyIngestAnnotatedResources =
@@ -123,6 +123,25 @@ export class KubernetesDataProvider {
                 objectType: 'customresources' as KubernetesObjectTypes,
               });
               objectTypeMap[crd.plural] = {group: crd.group, apiVersion: crd.version, plural: crd.plural, objectType: 'customresources' as KubernetesObjectTypes};
+            });
+          }
+
+          if (this.config.getOptionalConfig('kubernetesIngestor.genericCRDTemplates.crdLabelSelector') ||
+              this.config.getOptionalStringArray('kubernetesIngestor.genericCRDTemplates.crds')) {
+            const genericCRDs = await this.fetchGenericCRDs(fetcher, cluster, token);
+            genericCRDs.forEach(crd => {
+              objectTypesToFetch.add({
+                group: crd.group,
+                apiVersion: crd.version,
+                plural: crd.plural,
+                objectType: 'customresources' as KubernetesObjectTypes,
+              });
+              objectTypeMap[crd.plural] = {
+                group: crd.group,
+                apiVersion: crd.version,
+                plural: crd.plural,
+                objectType: 'customresources' as KubernetesObjectTypes
+              };
             });
           }
 
@@ -336,6 +355,45 @@ export class KubernetesDataProvider {
     return claimCRDs.responses
       .flatMap((response: { resources: any; }) => response.resources)
       .filter((resource: { spec: { names: { categories: string | string[]; }; }; }) => resource?.spec?.names?.categories?.includes('claim'))
+      .map((crd: { spec: { group: any; versions: { name: any; }[]; names: { plural: any; }; }; }) => ({
+        group: crd.spec.group,
+        version: crd.spec.versions[0]?.name || '',
+        plural: crd.spec.names.plural,
+      }));
+  }
+
+  private async fetchGenericCRDs(fetcher: any, cluster: any, token: string): Promise<{ group: string; version: string; plural: string }[]> {
+    const labelSelector = this.config.getOptionalConfig('kubernetesIngestor.genericCRDTemplates.crdLabelSelector');
+    const specificCRDs = this.config.getOptionalStringArray('kubernetesIngestor.genericCRDTemplates.crds') || [];
+    
+    const crds = await fetcher.fetchObjectsForService({
+      serviceId: cluster.name,
+      clusterDetails: cluster,
+      credential: { type: 'bearer token', token },
+      objectTypesToFetch: new Set([
+        {
+          group: 'apiextensions.k8s.io',
+          apiVersion: 'v1',
+          plural: 'customresourcedefinitions',
+          objectType: 'customresources' as KubernetesObjectTypes,
+        },
+      ]),
+      customResources: [],
+    });
+
+    return crds.responses
+      .flatMap((response: { resources: any; }) => response.resources)
+      .filter((crd: any) => {
+        if (labelSelector) {
+          const key = labelSelector.getString('key');
+          const value = labelSelector.getString('value');
+          return crd.metadata?.labels?.[key] === value;
+        }
+        if (specificCRDs.length > 0) {
+          return specificCRDs.includes(crd.metadata.name);
+        }
+        return false;
+      })
       .map((crd: { spec: { group: any; versions: { name: any; }[]; names: { plural: any; }; }; }) => ({
         group: crd.spec.group,
         version: crd.spec.versions[0]?.name || '',
