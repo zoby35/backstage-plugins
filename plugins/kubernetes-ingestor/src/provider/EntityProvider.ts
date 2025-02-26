@@ -1951,6 +1951,10 @@ export class KubernetesEntityProvider implements EntityProvider {
         namespace: annotations[`${prefix}/backstage-namespace`] || namespaceValue,
         annotations: {
           ...annotations,
+          'terasky.backstage.io/kubernetes-resource-kind': resource.kind,
+          'terasky.backstage.io/kubernetes-resource-name': resource.metadata.name,
+          'terasky.backstage.io/kubernetes-resource-api-version': resource.apiVersion,
+          'terasky.backstage.io/kubernetes-resource-namespace': resource.metadata.namespace || '',
           ...customAnnotations,
           ...(systemModel === 'cluster-namespace' || namespaceModel === 'cluster' || nameModel === 'name-cluster' ? {
             'backstage.io/kubernetes-cluster': resource.clusterName,
