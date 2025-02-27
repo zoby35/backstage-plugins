@@ -59,12 +59,15 @@ To install and configure the `kubernetes-resources` frontend plugin in your Back
   ```
   * Add to Entity Page (packages/app/src/components/catalog/EntityPage.tsx)
   ```javascript
-  import { KubernetesResourceGraph, isKubernetesResourcesAvailable } from '@terasky/backstage-plugin-kubernetes-resources-frontend';
+  import { KubernetesResourcesPage, KubernetesResourceGraph, isKubernetesResourcesAvailable } from '@terasky/backstage-plugin-kubernetes-resources-frontend';
 
   const serviceEntityPage = (
     <EntityLayout>
       ...
 
+      <EntityLayout.Route path="/kubernetes-resource-page" if={isKubernetesResourcesAvailable} title="Kubernetes Resources">
+        <KubernetesResourcesPage />
+      </EntityLayout.Route>
       <EntityLayout.Route path="/kubernetes-resource-graph" if={isKubernetesResourcesAvailable} title="Kubernetes Resource Graph">
         <KubernetesResourceGraph />
       </EntityLayout.Route>
@@ -87,10 +90,13 @@ Once installed and configured, the kubernetes-resources plugin will provide comp
 You can add a graph view:
 ![Graph View](../../images/k8s-resource-graph.png)
 ![Events And YAML](../../images/k8s-graph-yaml-and-events-view.png)
-
+  
+And you can also add a table view:
+![Table View](../../images/k8s-table-view.png)
+  
 If you have integrated the permissions elements, the UI will render accordingly
 ![no permissions](../../images/k8s-no-permissions.png)
-
+  
 ## Contributing
 Contributions are welcome! Please open an issue or submit a pull request on GitHub.
 
