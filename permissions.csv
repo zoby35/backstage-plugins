@@ -38,4 +38,10 @@ p, role:default/platformteam, scaffolder.action.execute, use, allow
 p, role:default/platformteam, kyverno.overview.view, read, allow
 p, role:default/platformteam, kyverno.policy.view-yaml, read, allow
 p, role:default/platformteam, kyverno.reports.view, read, allow
+p, role:default/platformteam, kubernetes-resources.graph.show, read, allow
+p, role:default/platformteam, kubernetes-resources.secrets.list, read, allow
+p, role:default/platformteam, kubernetes-resources.secrets.view-yaml, read, allow
+p, role:default/platformteam, kubernetes-resources.resources.list, read, allow
+p, role:default/platformteam, kubernetes-resources.events.show, read, allow
+p, role:default/platformteam, kubernetes-resources.yaml.view, read, allow
 g, group:default/all_users, role:default/platformteam

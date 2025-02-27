@@ -20,3 +20,12 @@ export const KubernetesResourceGraph = kubernetesResourcesPlugin.provide(
     },
   }),
 );
+
+export const KubernetesResourcesPage = kubernetesResourcesPlugin.provide(
+  createComponentExtension({
+    name: 'KubernetesResourcesPage',
+    component: {
+      lazy: () => import('./components/KubernetesResourcesPage').then(m => m.default),
+    },
+  }),
+);

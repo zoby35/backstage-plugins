@@ -69,7 +69,7 @@ import { ScaleOpsDashboard } from '@terasky/backstage-plugin-scaleops-frontend';
 import { KyvernoCrossplaneOverviewCard, KyvernoCrossplanePolicyReportsTable, KyvernoOverviewCard, KyvernoPolicyReportsTable } from '@terasky/backstage-plugin-kyverno-policy-reports';
 import { EntityAccentuateInfo, isAccentuateEnabled, EntityLayoutWrapper } from '@dweber019/backstage-plugin-accentuate';
 import { GitClaimUpdaterExtension } from '@terasky/backstage-plugin-crossplane-claim-updater';
-import { isKubernetesResourcesAvailable, KubernetesResourceGraph } from '@terasky/backstage-plugin-kubernetes-resources-frontend';
+import { KubernetesResourcesPage, isKubernetesResourcesAvailable, KubernetesResourceGraph } from '@terasky/backstage-plugin-kubernetes-resources-frontend';
 
 const techdocsContent = (
   <EntityTechdocsContent>
@@ -196,6 +196,9 @@ const serviceEntityPage = (
     </EntityLayout.Route>
     <EntityLayout.Route path="/kubernetes-resource-graph" if={isKubernetesResourcesAvailable} title="Kubernetes Resource Graph">
       <KubernetesResourceGraph />
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/kubernetes-resource-page" if={isKubernetesResourcesAvailable} title="Kubernetes Resources">
+      <KubernetesResourcesPage />
     </EntityLayout.Route>
     <EntityLayout.Route path="/kyverno-policy-reports" title="Kyverno Policy Reports">
       <KyvernoPolicyReportsTable />
