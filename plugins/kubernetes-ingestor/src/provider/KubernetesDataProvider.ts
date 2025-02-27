@@ -384,20 +384,23 @@ export class KubernetesDataProvider {
     return crds.responses
       .flatMap((response: { resources: any; }) => response.resources)
       .filter((crd: any) => {
-        if (labelSelector) {
-          const key = labelSelector.getString('key');
-          const value = labelSelector.getString('value');
-          return crd.metadata?.labels?.[key] === value;
-        }
-        if (specificCRDs.length > 0) {
-          return specificCRDs.includes(crd.metadata.name);
-        }
-        return false;
+      if (labelSelector) {
+        const key = labelSelector.getString('key');
+        const value = labelSelector.getString('value');
+        return crd.metadata?.labels?.[key] === value;
+      }
+      if (specificCRDs.length > 0) {
+        return specificCRDs.includes(crd.metadata.name);
+      }
+      return false;
       })
-      .map((crd: { spec: { group: any; versions: { name: any; }[]; names: { plural: any; }; }; }) => ({
+      .map((crd: { spec: { group: any; versions: { name: any; storage: boolean; }[]; names: { plural: any; }; }; }) => {
+      const storageVersion = crd.spec.versions.find(version => version.storage) || crd.spec.versions[0];
+      return {
         group: crd.spec.group,
-        version: crd.spec.versions[0]?.name || '',
+        version: storageVersion.name,
         plural: crd.spec.names.plural,
-      }));
+      };
+      });
   }
 }
