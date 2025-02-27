@@ -13,7 +13,7 @@ import { docco, dark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import ReactFlow, { ReactFlowProvider, MiniMap, Controls, Background } from 'react-flow-renderer';
 import dagre from 'dagre';
 import { usePermission } from '@backstage/plugin-permission-react';
-import { showResourceGraph } from '@terasky/backstage-plugin-kubernetes-resources-common';
+import { showResourceGraphPermission } from '@terasky/backstage-plugin-kubernetes-resources-common';
 
 interface DependencyResource {
   kind: string;
@@ -89,7 +89,7 @@ const KubernetesResourceGraph = () => {
     const [elements, setElements] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const canShowResourceGraphTemp = usePermission({ permission: showResourceGraph }).allowed;
+    const canShowResourceGraphTemp = usePermission({ permission: showResourceGraphPermission }).allowed;
     const canShowResourceGraph = enablePermissions ? canShowResourceGraphTemp : true;
 
     const processResourceDependencies = async (deps: DependencyResource, clusterName: string): Promise<KubernetesObject[]> => {
