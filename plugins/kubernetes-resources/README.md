@@ -83,6 +83,7 @@ To install and configure the `kubernetes-resources` frontend plugin in your Back
 ```yaml
 kubernetesResources:
   enablePermissions: true # Whether to enable permission checks for the kubernetes resources plugin.
+  concurrency: 10 # How many concurrent requests to make against the Kubernetes API to fetch resources
 ```
 
 ## Usage

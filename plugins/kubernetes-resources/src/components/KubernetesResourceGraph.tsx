@@ -94,8 +94,9 @@ const KubernetesResourceGraph = () => {
 
     const processResourceDependencies = async (deps: DependencyResource, clusterName: string): Promise<KubernetesObject[]> => {
         const results: KubernetesObject[] = [];
+        const concurrency = config.getOptionalNumber('kubernetesResources.concurrency') ?? 5;
         
-        // Fetch the current resource
+        // Process current resource
         const baseApiPath = deps.apiVersion.startsWith('/') ? '/api' : '/apis';
         const apiVersion = deps.apiVersion.startsWith('/') ? deps.apiVersion.slice(1) : deps.apiVersion;
         
@@ -112,17 +113,51 @@ const KubernetesResourceGraph = () => {
             const resource = await response.json();
             results.push(resource);
 
-            // Recursively process dependants
-            if (deps.dependants) {
-                for (const dep of deps.dependants) {
-                    const depResources = await processResourceDependencies(dep, clusterName);
-                    results.push(...depResources);
-                }
+            // Process dependants in parallel
+            if (deps.dependants && deps.dependants.length > 0) {
+                const processDependant = async (dep: DependencyResource): Promise<KubernetesObject[]> => {
+                    return processResourceDependencies(dep, clusterName);
+                };
+
+                const dependantResults = await parallelProcess(deps.dependants, processDependant, concurrency);
+                results.push(...dependantResults.flat());
             }
         } catch (error) {
             console.error(`Failed to fetch resource ${deps.kind}/${deps.name}:`, error);
         }
 
+        return results;
+    };
+
+    // Add the parallel processing helper function
+    const parallelProcess = async <T, R>(
+        items: T[],
+        processItem: (item: T) => Promise<R>,
+        concurrency: number
+    ): Promise<R[]> => {
+        const results: R[] = [];
+        const inProgress = new Set<Promise<void>>();
+    
+        for (const item of items) {
+            if (inProgress.size >= concurrency) {
+                await Promise.race(inProgress);
+            }
+    
+            let promiseToAdd: Promise<void>;
+            const promise = new Promise<void>(async (resolve) => {
+                try {
+                    const result = await processItem(item);
+                    results.push(result);
+                } finally {
+                    inProgress.delete(promiseToAdd);
+                    resolve();
+                }
+            });
+            promiseToAdd = promise;
+            inProgress.add(promiseToAdd);
+        }
+    
+        await Promise.all(inProgress);
         return results;
     };
 
