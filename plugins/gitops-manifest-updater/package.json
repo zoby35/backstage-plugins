@@ -1,6 +1,6 @@
 {
-  "name": "@terasky/backstage-plugin-crossplane-claim-updater",
-  "description": "The crossplane claim updater plugin for Backstage",
+  "name": "@terasky/backstage-plugin-gitops-manifest-updater",
+  "description": "The Kubernetes GitOps manifest updater plugin for Backstage",
   "version": "1.0.0",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -8,7 +8,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/TeraSky-OSS/backstage-plugins.git",
-    "directory": "plugins/crossplane-claim-updater"
+    "directory": "plugins/gitops-manifest-updater"
   },
   "homepage": "https://www.terasky.com",
   "publishConfig": {
@@ -18,9 +18,9 @@
   },
   "backstage": {
     "role": "frontend-plugin",
-    "pluginId": "crossplane-claim-updater",
+    "pluginId": "gitops-manifest-updater",
     "pluginPackages": [
-      "@terasky/backstage-plugin-crossplane-claim-updater"
+      "@terasky/backstage-plugin-gitops-manifest-updater"
     ]
   },
   "sideEffects": false,

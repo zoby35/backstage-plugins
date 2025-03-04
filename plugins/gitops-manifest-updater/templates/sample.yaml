@@ -26,14 +26,14 @@ spec:
           title: Source File URL
           type: string
           description: Override the source file URL (optional - only needed if entity doesn't have terasky.backstage.io/source-file-url annotation)
-    - title: Git Claim Updater
+    - title: GitOps Manifest Updater
       required:
-        - gitClaimUpdater
+        - gitOpsManifestUpdater
       properties:
-        gitClaimUpdater:
-          title: Git Claim Updater
+        gitOpsManifestUpdater:
+          title: GitOps Manifest Updater
           type: object
-          ui:field: GitClaimUpdater
+          ui:field: GitOpsManifestUpdater
   steps:
     - id: get-entity
       name: Get Entity
@@ -88,7 +88,7 @@ spec:
       action: roadiehq:utils:serialize:yaml
       input:
         data:
-          spec: ${{ parameters.gitClaimUpdater }}
+          spec: ${{ parameters.gitOpsManifestUpdater }}
 
     - id: merge-patch
       name: Merge Changes

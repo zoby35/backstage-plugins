@@ -1,18 +1,18 @@
 import { createPlugin } from '@backstage/core-plugin-api';
 import { scaffolderPlugin } from '@backstage/plugin-scaffolder';
 import { createScaffolderFieldExtension } from '@backstage/plugin-scaffolder-react';
-import { GitClaimUpdaterForm } from './components/GitClaimUpdaterForm';
-import { GitClaimUpdaterSchema } from './components/GitClaimUpdaterForm';
+import { GitOpsManifestUpdaterForm } from './components/GitOpsManifestUpdaterForm';
+import { GitOpsManifestUpdaterSchema } from './components/GitOpsManifestUpdaterForm';
 
-export const crossplaneClaimUpdaterPlugin = createPlugin({
-  id: 'crossplane-claim-updater',
+export const gitopsManifestUpdaterPlugin = createPlugin({
+  id: 'gitops-manifest-updater',
 });
 
-export const GitClaimUpdaterExtension = scaffolderPlugin.provide(
+export const GitOpsManifestUpdaterExtension = scaffolderPlugin.provide(
   createScaffolderFieldExtension({
-    name: 'GitClaimUpdater',
-    component: GitClaimUpdaterForm,
-    schema: GitClaimUpdaterSchema,
+    name: 'GitOpsManifestUpdater',
+    component: GitOpsManifestUpdaterForm,
+    schema: GitOpsManifestUpdaterSchema,
     validation: (formData, validation) => {
       // Add your validation logic here
       // Example:

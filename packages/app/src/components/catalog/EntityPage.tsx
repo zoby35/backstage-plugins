@@ -68,7 +68,7 @@ import { EntityPickerFieldExtension, RepoUrlPickerFieldExtension } from '@backst
 import { ScaleOpsDashboard } from '@terasky/backstage-plugin-scaleops-frontend';
 import { KyvernoCrossplaneOverviewCard, KyvernoCrossplanePolicyReportsTable, KyvernoOverviewCard, KyvernoPolicyReportsTable } from '@terasky/backstage-plugin-kyverno-policy-reports';
 import { EntityAccentuateInfo, isAccentuateEnabled, EntityLayoutWrapper } from '@dweber019/backstage-plugin-accentuate';
-import { GitClaimUpdaterExtension } from '@terasky/backstage-plugin-crossplane-claim-updater';
+import { GitOpsManifestUpdaterExtension } from '@terasky/backstage-plugin-gitops-manifest-updater';
 import { KubernetesResourcesPage, isKubernetesResourcesAvailable, KubernetesResourceGraph } from '@terasky/backstage-plugin-kubernetes-resources-frontend';
 
 const techdocsContent = (
@@ -255,7 +255,7 @@ const serviceEntityPage = (
             <ScaffolderFieldExtensions>
               <RepoUrlPickerFieldExtension />
               <EntityPickerFieldExtension />
-              <GitClaimUpdaterExtension />
+              <GitOpsManifestUpdaterExtension />
             </ScaffolderFieldExtensions>
           }
         />
@@ -306,7 +306,7 @@ const crossplaneEntityPage = (
             <ScaffolderFieldExtensions>
               <RepoUrlPickerFieldExtension />
               <EntityPickerFieldExtension />
-              <GitClaimUpdaterExtension />
+              <GitOpsManifestUpdaterExtension />
             </ScaffolderFieldExtensions>
           }
         />

@@ -44,7 +44,7 @@ import LightIcon from '@material-ui/icons/WbSunny';
 import Brightness2Icon from '@material-ui/icons/Brightness2';
 import { configApiRef,  useApi } from '@backstage/core-plugin-api';
 import { AccentuatePage } from '@dweber019/backstage-plugin-accentuate';
-import { GitClaimUpdaterExtension } from '@terasky/backstage-plugin-crossplane-claim-updater';
+import { GitOpsManifestUpdaterExtension } from '@terasky/backstage-plugin-gitops-manifest-updater';
 import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
 
 const app = createApp({
@@ -183,7 +183,7 @@ const routes = (
       />
       }>
       <ScaffolderFieldExtensions>
-        <GitClaimUpdaterExtension />
+        <GitOpsManifestUpdaterExtension />
       </ScaffolderFieldExtensions>
     </Route>
     <Route path="/api-docs" element={<ApiExplorerPage />} />

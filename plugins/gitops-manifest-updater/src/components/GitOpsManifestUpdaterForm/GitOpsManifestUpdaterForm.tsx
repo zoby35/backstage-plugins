@@ -194,7 +194,7 @@ const RenderFields = ({
   );
 };
 
-export const GitClaimUpdaterForm = ({
+export const GitOpsManifestUpdaterForm = ({
   onChange,
   formContext,
 }: FieldExtensionComponentProps<JsonObject, FormData>): JSX.Element => {

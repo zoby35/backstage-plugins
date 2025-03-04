@@ -1,6 +1,6 @@
 import { CustomFieldExtensionSchema } from '@backstage/plugin-scaffolder-react';
 
-export const GitClaimUpdaterSchema: CustomFieldExtensionSchema = {
+export const GitOpsManifestUpdaterSchema: CustomFieldExtensionSchema = {
   uiOptions: {
     type: 'object',
     properties: {},
