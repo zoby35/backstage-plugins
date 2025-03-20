@@ -11,6 +11,34 @@ import {
   HttpAuthService,
   AuthService,
 } from '@backstage/backend-plugin-api';
+import { ClusterDetails } from '@backstage/plugin-kubernetes-node';
+
+// Add new type definitions for auth providers
+type AuthProvider = 'serviceAccount' | 'google' | 'aws' | 'azure' | 'oidc';
+
+// Auth metadata type definitions
+type AuthMetadataValue = string | Record<string, unknown>;
+
+// Define the shape of auth metadata with a string index signature that allows undefined
+interface KubernetesAuthMetadata {
+  [key: string]: AuthMetadataValue | undefined;
+}
+
+// Define specific auth metadata interface that extends the base one
+interface ExtendedKubernetesAuthMetadata extends KubernetesAuthMetadata {
+  serviceAccountToken?: string;
+  google?: Record<string, unknown>;
+  azure?: Record<string, unknown>;
+  oidc?: Record<string, unknown>;
+  'kubernetes.io/aws-assume-role'?: string;
+  'kubernetes.io/aws-external-id'?: string;
+  'kubernetes.io/x-k8s-aws-id'?: string;
+}
+
+interface KubernetesClusterDetails extends Omit<ClusterDetails, 'authMetadata'> {
+  authProvider?: AuthProvider;
+  authMetadata: ExtendedKubernetesAuthMetadata;
+}
 
 type ObjectToFetch = {
   group: string;
@@ -77,13 +105,25 @@ export class XrdDataProvider {
       const ingestAllXRDs = this.config.getOptionalBoolean('kubernetesIngestor.crossplane.xrds.ingestAllXRDs') ?? false;
 
       let allFetchedObjects: any[] = [];
-      const xrdMap = new Map<string, any>(); // Move xrdMap initialization outside the loop
+      const xrdMap = new Map<string, any>();
 
       for (const cluster of clusters) {
-        const token = cluster.authMetadata.serviceAccountToken;
+        // Get the auth provider type from the cluster config
+        const typedCluster = cluster as KubernetesClusterDetails;
+        const authProvider = typedCluster.authProvider || 'serviceAccount';
 
-        if (!token) {
-          this.logger.warn(`Cluster ${cluster.name} does not have a valid service account token.`);
+        // Get the auth credentials based on the provider type
+        let credential;
+        try {
+          credential = await this.getAuthCredential(typedCluster, authProvider);
+        } catch (error) {
+          if (error instanceof Error) {
+            this.logger.error(`Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`, error);
+          } else {
+            this.logger.error(`Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`, {
+              error: String(error),
+            });
+          }
           continue;
         }
 
@@ -100,7 +140,7 @@ export class XrdDataProvider {
           const fetchedObjects = await fetcher.fetchObjectsForService({
             serviceId: 'xrdServiceId',
             clusterDetails: cluster,
-            credential: { type: 'bearer token', token },
+            credential,
             objectTypesToFetch,
             labelSelector: '',
             customResources: [],
@@ -144,7 +184,7 @@ export class XrdDataProvider {
           const compositions = await fetcher.fetchObjectsForService({
             serviceId: 'compositionServiceId',
             clusterDetails: cluster,
-            credential: { type: 'bearer token', token },
+            credential,
             objectTypesToFetch: new Set([
               {
                 group: 'apiextensions.crossplane.io',
@@ -209,6 +249,63 @@ export class XrdDataProvider {
     } catch (error) {
       this.logger.error('Error fetching XRD objects');
       throw error;
+    }
+  }
+
+  private async getAuthCredential(cluster: KubernetesClusterDetails, authProvider: AuthProvider): Promise<any> {
+    switch (authProvider) {
+      case 'serviceAccount':
+        const token = cluster.authMetadata?.serviceAccountToken;
+        if (!token) {
+          throw new Error('Service account token not found in cluster auth metadata');
+        }
+        return { type: 'bearer token', token };
+
+      case 'google':
+        // For Google authentication (both client and server-side)
+        const googleAuth = cluster.authMetadata?.google;
+        if (googleAuth) {
+          return {
+            type: 'google',
+            ...googleAuth,
+          };
+        }
+        throw new Error('Google auth metadata not found in cluster configuration');
+
+      case 'aws':
+        // For AWS authentication
+        const awsRole = cluster.authMetadata?.['kubernetes.io/aws-assume-role'];
+        if (!awsRole) {
+          throw new Error('AWS role ARN not found in cluster auth metadata');
+        }
+        return {
+          type: 'aws',
+          assumeRole: awsRole,
+          externalId: cluster.authMetadata?.['kubernetes.io/aws-external-id'],
+          clusterAwsId: cluster.authMetadata?.['kubernetes.io/x-k8s-aws-id'],
+        };
+
+      case 'azure':
+        // For Azure authentication (both AKS and server-side)
+        const azureAuth = cluster.authMetadata?.azure || {};
+        return {
+          type: 'azure',
+          ...azureAuth,
+        };
+
+      case 'oidc':
+        // For OIDC authentication
+        const oidcAuth = cluster.authMetadata?.oidc;
+        if (!oidcAuth) {
+          throw new Error('OIDC configuration not found in cluster auth metadata');
+        }
+        return {
+          type: 'oidc',
+          ...oidcAuth,
+        };
+
+      default:
+        throw new Error(`Unsupported authentication provider: ${authProvider}`);
     }
   }
 }

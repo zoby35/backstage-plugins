@@ -4,7 +4,7 @@ import { KubernetesBuilder } from '@backstage/plugin-kubernetes-backend';
 import { CatalogApi } from '@backstage/catalog-client';
 import { PermissionEvaluator } from '@backstage/plugin-permission-common';
 import { DiscoveryService, BackstageCredentials } from '@backstage/backend-plugin-api';
-import { KubernetesObjectTypes } from '@backstage/plugin-kubernetes-node';
+import { KubernetesObjectTypes, ClusterDetails } from '@backstage/plugin-kubernetes-node';
 import pluralize from 'pluralize';
 
 type ObjectToFetch = {
@@ -13,6 +13,14 @@ type ObjectToFetch = {
   plural: string;
   objectType: KubernetesObjectTypes;
 };
+
+// Add new type definitions for auth providers
+type AuthProvider = 'serviceAccount' | 'google' | 'aws' | 'azure' | 'oidc';
+
+// Extend ClusterDetails to include authProvider
+interface ExtendedClusterDetails extends ClusterDetails {
+  authProvider?: AuthProvider;
+}
 
 export class KubernetesDataProvider {
   logger: LoggerService;
@@ -104,17 +112,28 @@ export class KubernetesDataProvider {
       const onlyIngestAnnotatedResources =
         this.config.getOptionalBoolean('kubernetesIngestor.components.onlyIngestAnnotatedResources') ?? false;
 
-      for (const cluster of clusters) {
-        const token = cluster.authMetadata.serviceAccountToken;
+      for (const cluster of clusters as ExtendedClusterDetails[]) {
+        // Get the auth provider type from the cluster config
+        const authProvider = cluster.authProvider || 'serviceAccount';
 
-        if (!token) {
-          this.logger.warn(`Cluster ${cluster.name} does not have a valid service account token.`);
+        // Get the auth credentials based on the provider type
+        let credential;
+        try {
+          credential = await this.getAuthCredential(cluster, authProvider);
+        } catch (error) {
+          if (error instanceof Error) {
+            this.logger.error(`Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`, error);
+          } else {
+            this.logger.error(`Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`, {
+              error: String(error),
+            });
+          }
           continue;
         }
 
         try {
           if (ingestAllCrossplaneClaims) {
-            const claimCRDs = await this.fetchCRDsForCluster(fetcher, cluster, token);
+            const claimCRDs = await this.fetchCRDsForCluster(fetcher, cluster, credential);
             claimCRDs.forEach(crd => {
               objectTypesToFetch.add({
                 group: crd.group,
@@ -128,7 +147,7 @@ export class KubernetesDataProvider {
 
           if (this.config.getOptionalConfig('kubernetesIngestor.genericCRDTemplates.crdLabelSelector') ||
               this.config.getOptionalStringArray('kubernetesIngestor.genericCRDTemplates.crds')) {
-            const genericCRDs = await this.fetchGenericCRDs(fetcher, cluster, token);
+            const genericCRDs = await this.fetchGenericCRDs(fetcher, cluster, credential);
             genericCRDs.forEach(crd => {
               objectTypesToFetch.add({
                 group: crd.group,
@@ -148,7 +167,7 @@ export class KubernetesDataProvider {
           const fetchedObjects = await fetcher.fetchObjectsForService({
             serviceId: cluster.name,
             clusterDetails: cluster,
-            credential: { type: 'bearer token', token },
+            credential,
             objectTypesToFetch,
             customResources: [],
           });
@@ -176,14 +195,14 @@ export class KubernetesDataProvider {
                 else
                 {
                   if (resource.spec?.compositionRef?.name) {
-                    const composition = await this.fetchComposition(fetcher, cluster, token, resource.spec.compositionRef.name);
+                    const composition = await this.fetchComposition(fetcher, cluster, credential, resource.spec.compositionRef.name);
                     const usedFunctions = this.extractUsedFunctions(composition);
 
                     return {
                       ...resource,
                       apiVersion: `${objectType.group}/${objectType.apiVersion}`,
                       kind: objectType.plural?.slice(0, -1),
-                      clusterName: cluster.name, // Attach the cluster name to the resource
+                      clusterName: cluster.name,
                       compositionData: {
                         name: resource.spec.compositionRef.name,
                         usedFunctions,
@@ -194,7 +213,7 @@ export class KubernetesDataProvider {
                     ...resource,
                     apiVersion: `${objectType.group}/${objectType.apiVersion}`,
                     kind: objectType.plural?.slice(0, -1),
-                    clusterName: cluster.name, // Attach the cluster name to the resource
+                    clusterName: cluster.name,
                   };
                 };
             })
@@ -402,5 +421,58 @@ export class KubernetesDataProvider {
         plural: crd.spec.names.plural,
       };
       });
+  }
+
+  private async getAuthCredential(cluster: any, authProvider: string): Promise<any> {
+    switch (authProvider) {
+      case 'serviceAccount':
+        const token = cluster.authMetadata?.serviceAccountToken;
+        if (!token) {
+          throw new Error('Service account token not found in cluster auth metadata');
+        }
+        return { type: 'bearer token', token };
+
+      case 'google':
+        // For Google authentication (both client and server-side)
+        if (cluster.authMetadata?.google) {
+          return {
+            type: 'google',
+            ...cluster.authMetadata.google,
+          };
+        }
+        throw new Error('Google auth metadata not found in cluster configuration');
+
+      case 'aws':
+        // For AWS authentication
+        if (!cluster.authMetadata?.['kubernetes.io/aws-assume-role']) {
+          throw new Error('AWS role ARN not found in cluster auth metadata');
+        }
+        return {
+          type: 'aws',
+          assumeRole: cluster.authMetadata['kubernetes.io/aws-assume-role'],
+          externalId: cluster.authMetadata['kubernetes.io/aws-external-id'],
+          clusterAwsId: cluster.authMetadata['kubernetes.io/x-k8s-aws-id'],
+        };
+
+      case 'azure':
+        // For Azure authentication (both AKS and server-side)
+        return {
+          type: 'azure',
+          ...cluster.authMetadata?.azure,
+        };
+
+      case 'oidc':
+        // For OIDC authentication
+        if (!cluster.authMetadata?.oidc) {
+          throw new Error('OIDC configuration not found in cluster auth metadata');
+        }
+        return {
+          type: 'oidc',
+          ...cluster.authMetadata.oidc,
+        };
+
+      default:
+        throw new Error(`Unsupported authentication provider: ${authProvider}`);
+    }
   }
 }
