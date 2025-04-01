@@ -249,11 +249,16 @@ export class KubernetesDataProvider {
     }
   }
 
-  private async fetchComposition(fetcher: any, cluster: any, token: string, compositionName: string): Promise<any> {
+  private async fetchComposition(
+    fetcher: any,
+    cluster: any,
+    credential: any,
+    compositionName: string,
+  ): Promise<any> {
     const compositions = await fetcher.fetchObjectsForService({
       serviceId: cluster.name,
       clusterDetails: cluster,
-      credential: { type: 'bearer token', token },
+      credential,
       objectTypesToFetch: new Set([
         {
           group: 'apiextensions.crossplane.io',
@@ -331,7 +336,7 @@ export class KubernetesDataProvider {
           const crds = await fetcher.fetchObjectsForService({
             serviceId: cluster.name,
             clusterDetails: cluster,
-            credential: { type: 'bearer token', token },
+            credential,
             objectTypesToFetch: new Set([
               {
                 group: 'apiextensions.k8s.io',
@@ -376,11 +381,15 @@ export class KubernetesDataProvider {
     }
   }
 
-  private async fetchCRDsForCluster(fetcher: any, cluster: any, token: string): Promise<{ group: string; version: string; plural: string }[]> {
+  private async fetchCRDsForCluster(
+    fetcher: any,
+    cluster: any,
+    credential: any,
+  ): Promise<{ group: string; version: string; plural: string }[]> {
     const claimCRDs = await fetcher.fetchObjectsForService({
       serviceId: cluster.name,
       clusterDetails: cluster,
-      credential: { type: 'bearer token', token },
+      credential,
       objectTypesToFetch: new Set([
         {
           group: 'apiextensions.k8s.io',
@@ -402,14 +411,23 @@ export class KubernetesDataProvider {
       }));
   }
 
-  private async fetchGenericCRDs(fetcher: any, cluster: any, token: string): Promise<{ group: string; version: string; plural: string }[]> {
-    const labelSelector = this.config.getOptionalConfig('kubernetesIngestor.genericCRDTemplates.crdLabelSelector');
-    const specificCRDs = this.config.getOptionalStringArray('kubernetesIngestor.genericCRDTemplates.crds') || [];
-    
+  private async fetchGenericCRDs(
+    fetcher: any,
+    cluster: any,
+    credential: any,
+  ): Promise<{ group: string; version: string; plural: string }[]> {
+    const labelSelector = this.config.getOptionalConfig(
+      'kubernetesIngestor.genericCRDTemplates.crdLabelSelector',
+    );
+    const specificCRDs =
+      this.config.getOptionalStringArray(
+        'kubernetesIngestor.genericCRDTemplates.crds',
+      ) || [];
+
     const crds = await fetcher.fetchObjectsForService({
       serviceId: cluster.name,
       clusterDetails: cluster,
-      credential: { type: 'bearer token', token },
+      credential,
       objectTypesToFetch: new Set([
         {
           group: 'apiextensions.k8s.io',
