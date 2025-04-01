@@ -464,14 +464,14 @@ export class KubernetesDataProvider {
 
   private async getAuthCredential(cluster: any, authProvider: string): Promise<any> {
     switch (authProvider) {
-      case 'serviceAccount':
+      case 'serviceAccount': {
         const token = cluster.authMetadata?.serviceAccountToken;
         if (!token) {
           throw new Error('Service account token not found in cluster auth metadata');
         }
         return { type: 'bearer token', token };
-
-      case 'google':
+      }
+      case 'google': {
         // For Google authentication (both client and server-side)
         if (cluster.authMetadata?.google) {
           return {
@@ -479,9 +479,11 @@ export class KubernetesDataProvider {
             ...cluster.authMetadata.google,
           };
         }
-        throw new Error('Google auth metadata not found in cluster configuration');
-
-      case 'aws':
+        throw new Error(
+          'Google auth metadata not found in cluster configuration',
+        );
+      }
+      case 'aws': {
         // For AWS authentication
         if (!cluster.authMetadata?.['kubernetes.io/aws-assume-role']) {
           throw new Error('AWS role ARN not found in cluster auth metadata');
@@ -492,24 +494,26 @@ export class KubernetesDataProvider {
           externalId: cluster.authMetadata['kubernetes.io/aws-external-id'],
           clusterAwsId: cluster.authMetadata['kubernetes.io/x-k8s-aws-id'],
         };
-
-      case 'azure':
+      }
+      case 'azure': {
         // For Azure authentication (both AKS and server-side)
         return {
           type: 'azure',
           ...cluster.authMetadata?.azure,
         };
-
-      case 'oidc':
+      }
+      case 'oidc': {
         // For OIDC authentication
         if (!cluster.authMetadata?.oidc) {
-          throw new Error('OIDC configuration not found in cluster auth metadata');
+          throw new Error(
+            'OIDC configuration not found in cluster auth metadata',
+          );
         }
         return {
           type: 'oidc',
           ...cluster.authMetadata.oidc,
         };
-
+      }
       default:
         throw new Error(`Unsupported authentication provider: ${authProvider}`);
     }
