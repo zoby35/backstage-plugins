@@ -308,36 +308,57 @@ export class KubernetesDataProvider {
 
       const crdMapping: Record<string, string> = {};
 
-      for (const cluster of clusters) {
-        const token = cluster.authMetadata.serviceAccountToken;
+      for (const cluster of clusters as ExtendedClusterDetails[]) {
+        // Get the auth provider type from the cluster config
+        const authProvider = cluster.authProvider || 'serviceAccount';
 
-        if (!token) {
-          this.logger.warn(`Cluster ${cluster.name} does not have a valid service account token.`);
+        // Get the auth credentials based on the provider type
+        let credential;
+        try {
+          credential = await this.getAuthCredential(cluster, authProvider);
+        } catch (error) {
+          if (error instanceof Error) {
+            this.logger.error(`Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`, error);
+          } else {
+            this.logger.error(`Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`, {
+              error: String(error),
+            });
+          }
           continue;
         }
 
-        const crds = await fetcher.fetchObjectsForService({
-          serviceId: cluster.name,
-          clusterDetails: cluster,
-          credential: { type: 'bearer token', token },
-          objectTypesToFetch: new Set([
-            {
-              group: 'apiextensions.k8s.io',
-              apiVersion: 'v1',
-              plural: 'customresourcedefinitions',
-              objectType: 'customresources' as KubernetesObjectTypes,
-            },
-          ]),
-          customResources: [],
-        });
+        try {
+          const crds = await fetcher.fetchObjectsForService({
+            serviceId: cluster.name,
+            clusterDetails: cluster,
+            credential: { type: 'bearer token', token },
+            objectTypesToFetch: new Set([
+              {
+                group: 'apiextensions.k8s.io',
+                apiVersion: 'v1',
+                plural: 'customresourcedefinitions',
+                objectType: 'customresources' as KubernetesObjectTypes,
+              },
+            ]),
+            customResources: [],
+          });
 
-        crds.responses.flatMap(response => response.resources).forEach(crd => {
-          const kind = crd.spec?.names?.kind;
-          const plural = crd.spec?.names?.plural;
-          if (kind && plural) {
-            crdMapping[kind] = plural;
+          crds.responses.flatMap(response => response.resources).forEach(crd => {
+            const kind = crd.spec?.names?.kind;
+            const plural = crd.spec?.names?.plural;
+            if (kind && plural) {
+              crdMapping[kind] = plural;
+            }
+          });
+        } catch (clusterError) {
+          if (clusterError instanceof Error) {
+            this.logger.error(`Failed to fetch objects for cluster ${cluster.name}: ${clusterError.message}`, clusterError);
+          } else {
+            this.logger.error(`Failed to fetch objects for cluster ${cluster.name}:`, {
+              error: String(clusterError),
+            });
           }
-        });
+        }
       }
 
       return crdMapping;
