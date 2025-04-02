@@ -6,6 +6,7 @@ import { PermissionEvaluator } from '@backstage/plugin-permission-common';
 import { DiscoveryService, BackstageCredentials } from '@backstage/backend-plugin-api';
 import { KubernetesObjectTypes, ClusterDetails } from '@backstage/plugin-kubernetes-node';
 import pluralize from 'pluralize';
+import { ANNOTATION_KUBERNETES_AUTH_PROVIDER } from '@backstage/plugin-kubernetes-common';
 
 type ObjectToFetch = {
   group: string;
@@ -114,7 +115,9 @@ export class KubernetesDataProvider {
 
       for (const cluster of clusters as ExtendedClusterDetails[]) {
         // Get the auth provider type from the cluster config
-        const authProvider = cluster.authProvider || 'serviceAccount';
+        const authProvider =
+          cluster.authMetadata[ANNOTATION_KUBERNETES_AUTH_PROVIDER] ||
+          'serviceAccount';
 
         // Get the auth credentials based on the provider type
         let credential;
@@ -315,7 +318,9 @@ export class KubernetesDataProvider {
 
       for (const cluster of clusters as ExtendedClusterDetails[]) {
         // Get the auth provider type from the cluster config
-        const authProvider = cluster.authProvider || 'serviceAccount';
+        const authProvider =
+          cluster.authMetadata[ANNOTATION_KUBERNETES_AUTH_PROVIDER] ||
+          'serviceAccount';
 
         // Get the auth credentials based on the provider type
         let credential;

@@ -12,6 +12,7 @@ import {
   AuthService,
 } from '@backstage/backend-plugin-api';
 import { ClusterDetails } from '@backstage/plugin-kubernetes-node';
+import { ANNOTATION_KUBERNETES_AUTH_PROVIDER } from '@backstage/plugin-kubernetes-common';
 
 // Add new type definitions for auth providers
 type AuthProvider = 'serviceAccount' | 'google' | 'aws' | 'azure' | 'oidc';
@@ -109,13 +110,12 @@ export class XrdDataProvider {
 
       for (const cluster of clusters) {
         // Get the auth provider type from the cluster config
-        const typedCluster = cluster as KubernetesClusterDetails;
-        const authProvider = typedCluster.authProvider || 'serviceAccount';
+        const authProvider = cluster.authMetadata[ANNOTATION_KUBERNETES_AUTH_PROVIDER] || 'serviceAccount';
 
         // Get the auth credentials based on the provider type
         let credential;
         try {
-          credential = await this.getAuthCredential(typedCluster, authProvider);
+          credential = await this.getAuthCredential(cluster, authProvider);
         } catch (error) {
           if (error instanceof Error) {
             this.logger.error(`Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`, error);
@@ -252,16 +252,16 @@ export class XrdDataProvider {
     }
   }
 
-  private async getAuthCredential(cluster: KubernetesClusterDetails, authProvider: AuthProvider): Promise<any> {
+  private async getAuthCredential(cluster: KubernetesClusterDetails, authProvider: string): Promise<any> {
     switch (authProvider) {
-      case 'serviceAccount':
+      case 'serviceAccount': {
         const token = cluster.authMetadata?.serviceAccountToken;
         if (!token) {
           throw new Error('Service account token not found in cluster auth metadata');
         }
         return { type: 'bearer token', token };
-
-      case 'google':
+      }
+      case 'google': {
         // For Google authentication (both client and server-side)
         const googleAuth = cluster.authMetadata?.google;
         if (googleAuth) {
@@ -271,8 +271,8 @@ export class XrdDataProvider {
           };
         }
         throw new Error('Google auth metadata not found in cluster configuration');
-
-      case 'aws':
+      }
+      case 'aws': {
         // For AWS authentication
         const awsRole = cluster.authMetadata?.['kubernetes.io/aws-assume-role'];
         if (!awsRole) {
@@ -284,16 +284,16 @@ export class XrdDataProvider {
           externalId: cluster.authMetadata?.['kubernetes.io/aws-external-id'],
           clusterAwsId: cluster.authMetadata?.['kubernetes.io/x-k8s-aws-id'],
         };
-
-      case 'azure':
+      }
+      case 'azure': {
         // For Azure authentication (both AKS and server-side)
         const azureAuth = cluster.authMetadata?.azure || {};
         return {
           type: 'azure',
           ...azureAuth,
         };
-
-      case 'oidc':
+      }
+      case 'oidc': {
         // For OIDC authentication
         const oidcAuth = cluster.authMetadata?.oidc;
         if (!oidcAuth) {
@@ -303,7 +303,7 @@ export class XrdDataProvider {
           type: 'oidc',
           ...oidcAuth,
         };
-
+      }
       default:
         throw new Error(`Unsupported authentication provider: ${authProvider}`);
     }
