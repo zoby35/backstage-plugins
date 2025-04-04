@@ -6,6 +6,7 @@ import { PermissionEvaluator } from '@backstage/plugin-permission-common';
 import { DiscoveryService, BackstageCredentials } from '@backstage/backend-plugin-api';
 import { KubernetesObjectTypes, ClusterDetails } from '@backstage/plugin-kubernetes-node';
 import pluralize from 'pluralize';
+import { ANNOTATION_KUBERNETES_AUTH_PROVIDER } from '@backstage/plugin-kubernetes-common';
 
 type ObjectToFetch = {
   group: string;
@@ -114,7 +115,9 @@ export class KubernetesDataProvider {
 
       for (const cluster of clusters as ExtendedClusterDetails[]) {
         // Get the auth provider type from the cluster config
-        const authProvider = cluster.authProvider || 'serviceAccount';
+        const authProvider =
+          cluster.authMetadata[ANNOTATION_KUBERNETES_AUTH_PROVIDER] ||
+          'serviceAccount';
 
         // Get the auth credentials based on the provider type
         let credential;
@@ -249,11 +252,16 @@ export class KubernetesDataProvider {
     }
   }
 
-  private async fetchComposition(fetcher: any, cluster: any, token: string, compositionName: string): Promise<any> {
+  private async fetchComposition(
+    fetcher: any,
+    cluster: any,
+    credential: any,
+    compositionName: string,
+  ): Promise<any> {
     const compositions = await fetcher.fetchObjectsForService({
       serviceId: cluster.name,
       clusterDetails: cluster,
-      credential: { type: 'bearer token', token },
+      credential,
       objectTypesToFetch: new Set([
         {
           group: 'apiextensions.crossplane.io',
@@ -308,36 +316,59 @@ export class KubernetesDataProvider {
 
       const crdMapping: Record<string, string> = {};
 
-      for (const cluster of clusters) {
-        const token = cluster.authMetadata.serviceAccountToken;
+      for (const cluster of clusters as ExtendedClusterDetails[]) {
+        // Get the auth provider type from the cluster config
+        const authProvider =
+          cluster.authMetadata[ANNOTATION_KUBERNETES_AUTH_PROVIDER] ||
+          'serviceAccount';
 
-        if (!token) {
-          this.logger.warn(`Cluster ${cluster.name} does not have a valid service account token.`);
+        // Get the auth credentials based on the provider type
+        let credential;
+        try {
+          credential = await this.getAuthCredential(cluster, authProvider);
+        } catch (error) {
+          if (error instanceof Error) {
+            this.logger.error(`Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`, error);
+          } else {
+            this.logger.error(`Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`, {
+              error: String(error),
+            });
+          }
           continue;
         }
 
-        const crds = await fetcher.fetchObjectsForService({
-          serviceId: cluster.name,
-          clusterDetails: cluster,
-          credential: { type: 'bearer token', token },
-          objectTypesToFetch: new Set([
-            {
-              group: 'apiextensions.k8s.io',
-              apiVersion: 'v1',
-              plural: 'customresourcedefinitions',
-              objectType: 'customresources' as KubernetesObjectTypes,
-            },
-          ]),
-          customResources: [],
-        });
+        try {
+          const crds = await fetcher.fetchObjectsForService({
+            serviceId: cluster.name,
+            clusterDetails: cluster,
+            credential,
+            objectTypesToFetch: new Set([
+              {
+                group: 'apiextensions.k8s.io',
+                apiVersion: 'v1',
+                plural: 'customresourcedefinitions',
+                objectType: 'customresources' as KubernetesObjectTypes,
+              },
+            ]),
+            customResources: [],
+          });
 
-        crds.responses.flatMap(response => response.resources).forEach(crd => {
-          const kind = crd.spec?.names?.kind;
-          const plural = crd.spec?.names?.plural;
-          if (kind && plural) {
-            crdMapping[kind] = plural;
+          crds.responses.flatMap(response => response.resources).forEach(crd => {
+            const kind = crd.spec?.names?.kind;
+            const plural = crd.spec?.names?.plural;
+            if (kind && plural) {
+              crdMapping[kind] = plural;
+            }
+          });
+        } catch (clusterError) {
+          if (clusterError instanceof Error) {
+            this.logger.error(`Failed to fetch objects for cluster ${cluster.name}: ${clusterError.message}`, clusterError);
+          } else {
+            this.logger.error(`Failed to fetch objects for cluster ${cluster.name}:`, {
+              error: String(clusterError),
+            });
           }
-        });
+        }
       }
 
       return crdMapping;
@@ -355,11 +386,15 @@ export class KubernetesDataProvider {
     }
   }
 
-  private async fetchCRDsForCluster(fetcher: any, cluster: any, token: string): Promise<{ group: string; version: string; plural: string }[]> {
+  private async fetchCRDsForCluster(
+    fetcher: any,
+    cluster: any,
+    credential: any,
+  ): Promise<{ group: string; version: string; plural: string }[]> {
     const claimCRDs = await fetcher.fetchObjectsForService({
       serviceId: cluster.name,
       clusterDetails: cluster,
-      credential: { type: 'bearer token', token },
+      credential,
       objectTypesToFetch: new Set([
         {
           group: 'apiextensions.k8s.io',
@@ -381,14 +416,23 @@ export class KubernetesDataProvider {
       }));
   }
 
-  private async fetchGenericCRDs(fetcher: any, cluster: any, token: string): Promise<{ group: string; version: string; plural: string }[]> {
-    const labelSelector = this.config.getOptionalConfig('kubernetesIngestor.genericCRDTemplates.crdLabelSelector');
-    const specificCRDs = this.config.getOptionalStringArray('kubernetesIngestor.genericCRDTemplates.crds') || [];
-    
+  private async fetchGenericCRDs(
+    fetcher: any,
+    cluster: any,
+    credential: any,
+  ): Promise<{ group: string; version: string; plural: string }[]> {
+    const labelSelector = this.config.getOptionalConfig(
+      'kubernetesIngestor.genericCRDTemplates.crdLabelSelector',
+    );
+    const specificCRDs =
+      this.config.getOptionalStringArray(
+        'kubernetesIngestor.genericCRDTemplates.crds',
+      ) || [];
+
     const crds = await fetcher.fetchObjectsForService({
       serviceId: cluster.name,
       clusterDetails: cluster,
-      credential: { type: 'bearer token', token },
+      credential,
       objectTypesToFetch: new Set([
         {
           group: 'apiextensions.k8s.io',
@@ -425,14 +469,14 @@ export class KubernetesDataProvider {
 
   private async getAuthCredential(cluster: any, authProvider: string): Promise<any> {
     switch (authProvider) {
-      case 'serviceAccount':
+      case 'serviceAccount': {
         const token = cluster.authMetadata?.serviceAccountToken;
         if (!token) {
           throw new Error('Service account token not found in cluster auth metadata');
         }
         return { type: 'bearer token', token };
-
-      case 'google':
+      }
+      case 'google': {
         // For Google authentication (both client and server-side)
         if (cluster.authMetadata?.google) {
           return {
@@ -440,9 +484,11 @@ export class KubernetesDataProvider {
             ...cluster.authMetadata.google,
           };
         }
-        throw new Error('Google auth metadata not found in cluster configuration');
-
-      case 'aws':
+        throw new Error(
+          'Google auth metadata not found in cluster configuration',
+        );
+      }
+      case 'aws': {
         // For AWS authentication
         if (!cluster.authMetadata?.['kubernetes.io/aws-assume-role']) {
           throw new Error('AWS role ARN not found in cluster auth metadata');
@@ -453,24 +499,26 @@ export class KubernetesDataProvider {
           externalId: cluster.authMetadata['kubernetes.io/aws-external-id'],
           clusterAwsId: cluster.authMetadata['kubernetes.io/x-k8s-aws-id'],
         };
-
-      case 'azure':
+      }
+      case 'azure': {
         // For Azure authentication (both AKS and server-side)
         return {
           type: 'azure',
           ...cluster.authMetadata?.azure,
         };
-
-      case 'oidc':
+      }
+      case 'oidc': {
         // For OIDC authentication
         if (!cluster.authMetadata?.oidc) {
-          throw new Error('OIDC configuration not found in cluster auth metadata');
+          throw new Error(
+            'OIDC configuration not found in cluster auth metadata',
+          );
         }
         return {
           type: 'oidc',
           ...cluster.authMetadata.oidc,
         };
-
+      }
       default:
         throw new Error(`Unsupported authentication provider: ${authProvider}`);
     }
