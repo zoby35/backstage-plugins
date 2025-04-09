@@ -5,39 +5,9 @@ import {
 import { CatalogApi } from '@backstage/catalog-client';
 import { PermissionEvaluator } from '@backstage/plugin-permission-common';
 import { Config } from '@backstage/config';
-import {
-  LoggerService,
-  DiscoveryService,
-} from '@backstage/backend-plugin-api';
-import { ClusterDetails } from '@backstage/plugin-kubernetes-node';
+import { LoggerService, DiscoveryService } from '@backstage/backend-plugin-api';
 import { ANNOTATION_KUBERNETES_AUTH_PROVIDER } from '@backstage/plugin-kubernetes-common';
-
-// Add new type definitions for auth providers
-type AuthProvider = 'serviceAccount' | 'google' | 'aws' | 'azure' | 'oidc';
-
-// Auth metadata type definitions
-type AuthMetadataValue = string | Record<string, unknown>;
-
-// Define the shape of auth metadata with a string index signature that allows undefined
-interface KubernetesAuthMetadata {
-  [key: string]: AuthMetadataValue | undefined;
-}
-
-// Define specific auth metadata interface that extends the base one
-interface ExtendedKubernetesAuthMetadata extends KubernetesAuthMetadata {
-  serviceAccountToken?: string;
-  google?: Record<string, unknown>;
-  azure?: Record<string, unknown>;
-  oidc?: Record<string, unknown>;
-  'kubernetes.io/aws-assume-role'?: string;
-  'kubernetes.io/aws-external-id'?: string;
-  'kubernetes.io/x-k8s-aws-id'?: string;
-}
-
-interface KubernetesClusterDetails extends Omit<ClusterDetails, 'authMetadata'> {
-  authProvider?: AuthProvider;
-  authMetadata: ExtendedKubernetesAuthMetadata;
-}
+import { getAuthCredential } from '../auth';
 
 export class CRDDataProvider {
   logger: LoggerService;
@@ -82,14 +52,20 @@ export class CRDDataProvider {
         return [];
       }
 
-      const crdTargets = this.config.getOptionalStringArray('kubernetesIngestor.genericCRDTemplates.crds');
-      const labelSelector = this.config.getOptionalConfig('kubernetesIngestor.genericCRDTemplates.crdLabelSelector');
+      const crdTargets = this.config.getOptionalStringArray(
+        'kubernetesIngestor.genericCRDTemplates.crds',
+      );
+      const labelSelector = this.config.getOptionalConfig(
+        'kubernetesIngestor.genericCRDTemplates.crdLabelSelector',
+      );
       if (!crdTargets && !labelSelector) {
         return [];
       }
 
       if (crdTargets && labelSelector) {
-        this.logger.warn('Both CRD targets and label selector are configured. Only one should be used. Using CRD targets.');
+        this.logger.warn(
+          'Both CRD targets and label selector are configured. Only one should be used. Using CRD targets.',
+        );
         return [];
       }
 
@@ -97,19 +73,32 @@ export class CRDDataProvider {
 
       for (const cluster of clusters) {
         // Get the auth provider type from the cluster config
-        const authProvider = cluster.authMetadata[ANNOTATION_KUBERNETES_AUTH_PROVIDER] || 'serviceAccount';
+        const authProvider =
+          cluster.authMetadata[ANNOTATION_KUBERNETES_AUTH_PROVIDER] ||
+          'serviceAccount';
 
         // Get the auth credentials based on the provider type
         let credential;
         try {
-          credential = await this.getAuthCredential(cluster, authProvider);
+          credential = await getAuthCredential(
+            cluster,
+            authProvider,
+            this.config,
+            this.logger,
+          );
         } catch (error) {
           if (error instanceof Error) {
-            this.logger.error(`Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`, error);
+            this.logger.error(
+              `Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`,
+              error,
+            );
           } else {
-            this.logger.error(`Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`, {
-              error: String(error),
-            });
+            this.logger.error(
+              `Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`,
+              {
+                error: String(error),
+              },
+            );
           }
           continue;
         }
@@ -123,7 +112,7 @@ export class CRDDataProvider {
               objectType: 'customresources' as KubernetesObjectTypes,
             },
           ]);
-          
+
           let labelSelectorString = '';
           if (labelSelector) {
             const key = labelSelector.getString('key');
@@ -149,9 +138,10 @@ export class CRDDataProvider {
 
               const filteredCRDs = fetchedObjects.responses
                 .flatMap(response => response.resources)
-                .filter(crd => 
-                  crd.spec.group === group && 
-                  crd.spec.names.plural === plural
+                .filter(
+                  crd =>
+                    crd.spec.group === group &&
+                    crd.spec.names.plural === plural,
                 )
                 .map(crd => ({
                   ...crd,
@@ -165,13 +155,16 @@ export class CRDDataProvider {
                   crdMap.set(crdKey, {
                     ...crd,
                     clusters: [cluster.name],
-                    clusterDetails: [{name: cluster.name, url: cluster.url}],
+                    clusterDetails: [{ name: cluster.name, url: cluster.url }],
                   });
                 } else {
                   const existingCrd = crdMap.get(crdKey);
                   if (!existingCrd.clusters.includes(cluster.name)) {
                     existingCrd.clusters.push(cluster.name);
-                    existingCrd.clusterDetails.push({name: cluster.name, url: cluster.url});
+                    existingCrd.clusterDetails.push({
+                      name: cluster.name,
+                      url: cluster.url,
+                    });
                   }
                 }
               });
@@ -191,82 +184,30 @@ export class CRDDataProvider {
                 crdMap.set(crdKey, {
                   ...crd,
                   clusters: [cluster.name],
-                  clusterDetails: [{name: cluster.name, url: cluster.url}],
+                  clusterDetails: [{ name: cluster.name, url: cluster.url }],
                 });
               } else {
                 const existingCrd = crdMap.get(crdKey);
                 if (!existingCrd.clusters.includes(cluster.name)) {
                   existingCrd.clusters.push(cluster.name);
-                  existingCrd.clusterDetails.push({name: cluster.name, url: cluster.url});
+                  existingCrd.clusterDetails.push({
+                    name: cluster.name,
+                    url: cluster.url,
+                  });
                 }
               }
             });
           }
         } catch (error) {
-          this.logger.error(`Failed to fetch CRD objects for cluster ${cluster.name}: ${error}`);
+          this.logger.error(
+            `Failed to fetch CRD objects for cluster ${cluster.name}: ${error}`,
+          );
         }
       }
       return Array.from(crdMap.values());
     } catch (error) {
       this.logger.error('Error fetching CRD objects');
       throw error;
-    }
-  }
-
-  private async getAuthCredential(cluster: KubernetesClusterDetails, authProvider: string): Promise<any> {
-    switch (authProvider) {
-      case 'serviceAccount': {
-        const token = cluster.authMetadata?.serviceAccountToken;
-        if (!token) {
-          throw new Error('Service account token not found in cluster auth metadata');
-        }
-        return { type: 'bearer token', token };
-      }
-      case 'google': {
-        // For Google authentication (both client and server-side)
-        const googleAuth = cluster.authMetadata?.google;
-        if (googleAuth) {
-          return {
-            type: 'google',
-            ...googleAuth,
-          };
-        }
-        throw new Error('Google auth metadata not found in cluster configuration');
-      }
-      case 'aws': {
-        // For AWS authentication
-        const awsRole = cluster.authMetadata?.['kubernetes.io/aws-assume-role'];
-        if (!awsRole) {
-          throw new Error('AWS role ARN not found in cluster auth metadata');
-        }
-        return {
-          type: 'aws',
-          assumeRole: awsRole,
-          externalId: cluster.authMetadata?.['kubernetes.io/aws-external-id'],
-          clusterAwsId: cluster.authMetadata?.['kubernetes.io/x-k8s-aws-id'],
-        };
-      }
-      case 'azure': {
-        // For Azure authentication (both AKS and server-side)
-        const azureAuth = cluster.authMetadata?.azure || {};
-        return {
-          type: 'azure',
-          ...azureAuth,
-        };
-      }
-      case 'oidc': {
-        // For OIDC authentication
-        const oidcAuth = cluster.authMetadata?.oidc;
-        if (!oidcAuth) {
-          throw new Error('OIDC configuration not found in cluster auth metadata');
-        }
-        return {
-          type: 'oidc',
-          ...oidcAuth,
-        };
-      }
-      default:
-        throw new Error(`Unsupported authentication provider: ${authProvider}`);
     }
   }
 }
@@ -276,4 +217,4 @@ type ObjectToFetch = {
   apiVersion: string;
   plural: string;
   objectType: KubernetesObjectTypes;
-}; 
+};

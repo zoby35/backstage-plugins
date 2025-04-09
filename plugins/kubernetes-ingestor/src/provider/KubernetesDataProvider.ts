@@ -3,10 +3,17 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import { KubernetesBuilder } from '@backstage/plugin-kubernetes-backend';
 import { CatalogApi } from '@backstage/catalog-client';
 import { PermissionEvaluator } from '@backstage/plugin-permission-common';
-import { DiscoveryService, BackstageCredentials } from '@backstage/backend-plugin-api';
-import { KubernetesObjectTypes, ClusterDetails } from '@backstage/plugin-kubernetes-node';
+import {
+  DiscoveryService,
+  BackstageCredentials,
+} from '@backstage/backend-plugin-api';
+import {
+  KubernetesObjectTypes,
+  ClusterDetails,
+} from '@backstage/plugin-kubernetes-node';
 import pluralize from 'pluralize';
 import { ANNOTATION_KUBERNETES_AUTH_PROVIDER } from '@backstage/plugin-kubernetes-common';
+import { getAuthCredential } from '../auth';
 
 type ObjectToFetch = {
   group: string;
@@ -31,7 +38,10 @@ export class KubernetesDataProvider {
   discovery: DiscoveryService;
 
   private getAnnotationPrefix(): string {
-    return this.config.getOptionalString('kubernetesIngestor.annotationPrefix') || 'terasky.backstage.io';
+    return (
+      this.config.getOptionalString('kubernetesIngestor.annotationPrefix') ||
+      'terasky.backstage.io'
+    );
   }
 
   constructor(
@@ -39,7 +49,7 @@ export class KubernetesDataProvider {
     config: Config,
     catalogApi: CatalogApi,
     permissions: PermissionEvaluator,
-    discovery: DiscoveryService
+    discovery: DiscoveryService,
   ) {
     this.logger = logger;
     this.config = config;
@@ -72,46 +82,80 @@ export class KubernetesDataProvider {
         return [];
       }
 
-      const disableDefaultWorkloadTypes = this.config.getOptionalBoolean('kubernetesIngestor.components.disableDefaultWorkloadTypes') ?? false;
+      const disableDefaultWorkloadTypes =
+        this.config.getOptionalBoolean(
+          'kubernetesIngestor.components.disableDefaultWorkloadTypes',
+        ) ?? false;
 
       const defaultWorkloadTypes: ObjectToFetch[] = [
-        { group: 'apps', apiVersion: 'v1', plural: 'deployments', objectType: 'deployments' },
-        { group: 'apps', apiVersion: 'v1', plural: 'statefulsets', objectType: 'statefulsets' },
-        { group: 'apps', apiVersion: 'v1', plural: 'daemonsets', objectType: 'daemonsets' },
-        { group: 'batch', apiVersion: 'v1', plural: 'cronjobs', objectType: 'cronjobs' },
+        {
+          group: 'apps',
+          apiVersion: 'v1',
+          plural: 'deployments',
+          objectType: 'deployments',
+        },
+        {
+          group: 'apps',
+          apiVersion: 'v1',
+          plural: 'statefulsets',
+          objectType: 'statefulsets',
+        },
+        {
+          group: 'apps',
+          apiVersion: 'v1',
+          plural: 'daemonsets',
+          objectType: 'daemonsets',
+        },
+        {
+          group: 'batch',
+          apiVersion: 'v1',
+          plural: 'cronjobs',
+          objectType: 'cronjobs',
+        },
       ];
 
-      const customWorkloadTypes = this.config.getOptionalConfigArray('kubernetesIngestor.components.customWorkloadTypes')?.map(type => ({
-        group: type.getString('group'),
-        apiVersion: type.getString('apiVersion'),
-        plural: type.getString('plural'),
-        objectType: type.getString('plural') as KubernetesObjectTypes,
-      })) || [];
+      const customWorkloadTypes =
+        this.config
+          .getOptionalConfigArray(
+            'kubernetesIngestor.components.customWorkloadTypes',
+          )
+          ?.map(type => ({
+            group: type.getString('group'),
+            apiVersion: type.getString('apiVersion'),
+            plural: type.getString('plural'),
+            objectType: type.getString('plural') as KubernetesObjectTypes,
+          })) || [];
 
       const objectTypesToFetch: Set<ObjectToFetch> = new Set([
         ...(disableDefaultWorkloadTypes ? [] : defaultWorkloadTypes),
         ...customWorkloadTypes,
       ]);
 
-      const objectTypeMap = Array.from(objectTypesToFetch).reduce((acc, type) => {
-        acc[type.plural] = type;
-        return acc;
-      }, {} as Record<string, ObjectToFetch>);
-
-      const excludedNamespaces = new Set(
-        this.config.getOptionalStringArray('kubernetesIngestor.components.excludedNamespaces') || [
-          'default',
-          'kube-public',
-          'kube-system',
-        ]
+      const objectTypeMap = Array.from(objectTypesToFetch).reduce(
+        (acc, type) => {
+          acc[type.plural] = type;
+          return acc;
+        },
+        {} as Record<string, ObjectToFetch>,
       );
 
-      const ingestAllCrossplaneClaims = this.config.getOptionalBoolean('kubernetesIngestor.crossplane.claims.ingestAllClaims') ?? false;
-      
+      const excludedNamespaces = new Set(
+        this.config.getOptionalStringArray(
+          'kubernetesIngestor.components.excludedNamespaces',
+        ) || ['default', 'kube-public', 'kube-system'],
+      );
+
+      const ingestAllCrossplaneClaims =
+        this.config.getOptionalBoolean(
+          'kubernetesIngestor.crossplane.claims.ingestAllClaims',
+        ) ?? false;
+
       let allFetchedObjects: any[] = [];
 
       const onlyIngestAnnotatedResources =
-        this.config.getOptionalBoolean('kubernetesIngestor.components.onlyIngestAnnotatedResources') ?? false;
+        this.config.getOptionalBoolean(
+          'kubernetesIngestor.components.onlyIngestAnnotatedResources',
+        ) ?? false;
 
       for (const cluster of clusters as ExtendedClusterDetails[]) {
         // Get the auth provider type from the cluster config
@@ -122,21 +166,36 @@ export class KubernetesDataProvider {
         // Get the auth credentials based on the provider type
         let credential;
         try {
-          credential = await this.getAuthCredential(cluster, authProvider);
+          credential = await getAuthCredential(
+            cluster,
+            authProvider,
+            this.config,
+            this.logger,
+          );
         } catch (error) {
           if (error instanceof Error) {
-            this.logger.error(`Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`, error);
+            this.logger.error(
+              `Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`,
+              error,
+            );
           } else {
-            this.logger.error(`Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`, {
-              error: String(error),
-            });
+            this.logger.error(
+              `Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`,
+              {
+                error: String(error),
+              },
+            );
           }
           continue;
         }
 
         try {
           if (ingestAllCrossplaneClaims) {
-            const claimCRDs = await this.fetchCRDsForCluster(fetcher, cluster, credential);
+            const claimCRDs = await this.fetchCRDsForCluster(
+              fetcher,
+              cluster,
+              credential,
+            );
             claimCRDs.forEach(crd => {
               objectTypesToFetch.add({
                 group: crd.group,
@@ -144,13 +203,28 @@ export class KubernetesDataProvider {
                 plural: crd.plural,
                 objectType: 'customresources' as KubernetesObjectTypes,
               });
-              objectTypeMap[crd.plural] = {group: crd.group, apiVersion: crd.version, plural: crd.plural, objectType: 'customresources' as KubernetesObjectTypes};
+              objectTypeMap[crd.plural] = {
+                group: crd.group,
+                apiVersion: crd.version,
+                plural: crd.plural,
+                objectType: 'customresources' as KubernetesObjectTypes,
+              };
             });
           }
 
-          if (this.config.getOptionalConfig('kubernetesIngestor.genericCRDTemplates.crdLabelSelector') ||
-              this.config.getOptionalStringArray('kubernetesIngestor.genericCRDTemplates.crds')) {
-            const genericCRDs = await this.fetchGenericCRDs(fetcher, cluster, credential);
+          if (
+            this.config.getOptionalConfig(
+              'kubernetesIngestor.genericCRDTemplates.crdLabelSelector',
+            ) ||
+            this.config.getOptionalStringArray(
+              'kubernetesIngestor.genericCRDTemplates.crds',
+            )
+          ) {
+            const genericCRDs = await this.fetchGenericCRDs(
+              fetcher,
+              cluster,
+              credential,
+            );
             genericCRDs.forEach(crd => {
               objectTypesToFetch.add({
                 group: crd.group,
@@ -162,7 +236,7 @@ export class KubernetesDataProvider {
                 group: crd.group,
                 apiVersion: crd.version,
                 plural: crd.plural,
-                objectType: 'customresources' as KubernetesObjectTypes
+                objectType: 'customresources' as KubernetesObjectTypes,
               };
             });
           }
@@ -176,77 +250,108 @@ export class KubernetesDataProvider {
           });
           const prefix = this.getAnnotationPrefix();
           const filteredObjects = fetchedObjects.responses.flatMap(response =>
-            response.resources.filter(resource => {
-              if (resource.metadata.annotations?.[`${prefix}/exclude-from-catalog`]) {
-                return false;
-              }
-
-              if (onlyIngestAnnotatedResources) {
-                return resource.metadata.annotations?.[`${prefix}/add-to-catalog`];
-              }
-
-              return !excludedNamespaces.has(resource.metadata.namespace);
-            }).map(async resource => {
-                let type = response.type as string;
-                if (response.type === "customresources") {
-                  type = pluralize(resource.kind.toLowerCase());
-                } 
-                const objectType = objectTypeMap[type];
-                if (objectType.group === null  || objectType.apiVersion === null) {
-                  return {}
+            response.resources
+              .filter(resource => {
+                if (
+                  resource.metadata.annotations?.[
+                    `${prefix}/exclude-from-catalog`
+                  ]
+                ) {
+                  return false;
                 }
-                else
-                {
-                  if (resource.spec?.compositionRef?.name) {
-                    const composition = await this.fetchComposition(fetcher, cluster, credential, resource.spec.compositionRef.name);
-                    const usedFunctions = this.extractUsedFunctions(composition);
 
-                    return {
-                      ...resource,
-                      apiVersion: `${objectType.group}/${objectType.apiVersion}`,
-                      kind: objectType.plural?.slice(0, -1),
-                      clusterName: cluster.name,
-                      compositionData: {
-                        name: resource.spec.compositionRef.name,
-                        usedFunctions,
-                      },
-                    };
-                  }
+                if (onlyIngestAnnotatedResources) {
+                  return resource.metadata.annotations?.[
+                    `${prefix}/add-to-catalog`
+                  ];
+                }
+
+                return !excludedNamespaces.has(resource.metadata.namespace);
+              })
+              .map(async resource => {
+                let type = response.type as string;
+                if (response.type === 'customresources') {
+                  type = pluralize(resource.kind.toLowerCase());
+                }
+                const objectType = objectTypeMap[type];
+                if (
+                  objectType.group === null ||
+                  objectType.apiVersion === null
+                ) {
+                  return {};
+                }
+                if (resource.spec?.compositionRef?.name) {
+                  const composition = await this.fetchComposition(
+                    fetcher,
+                    cluster,
+                    credential,
+                    resource.spec.compositionRef.name,
+                  );
+                  const usedFunctions = this.extractUsedFunctions(composition);
+
                   return {
                     ...resource,
                     apiVersion: `${objectType.group}/${objectType.apiVersion}`,
                     kind: objectType.plural?.slice(0, -1),
                     clusterName: cluster.name,
+                    compositionData: {
+                      name: resource.spec.compositionRef.name,
+                      usedFunctions,
+                    },
                   };
+                }
+                return {
+                  ...resource,
+                  apiVersion: `${objectType.group}/${objectType.apiVersion}`,
+                  kind: objectType.plural?.slice(0, -1),
+                  clusterName: cluster.name,
                 };
-            })
+              }),
           );
 
-          allFetchedObjects = allFetchedObjects.concat(await Promise.all(filteredObjects));
+          allFetchedObjects = allFetchedObjects.concat(
+            await Promise.all(filteredObjects),
+          );
 
-          this.logger.debug(`Crossplane Fetched ${filteredObjects.length} objects from cluster: ${cluster.name}`);
+          this.logger.debug(
+            `Crossplane Fetched ${filteredObjects.length} objects from cluster: ${cluster.name}`,
+          );
         } catch (clusterError) {
           if (clusterError instanceof Error) {
-            this.logger.error(`Failed to fetch objects for cluster ${cluster.name}: ${clusterError.message}`, clusterError);
+            this.logger.error(
+              `Failed to fetch objects for cluster ${cluster.name}: ${clusterError.message}`,
+              clusterError,
+            );
           } else {
-            this.logger.error(`Failed to fetch objects for cluster ${cluster.name}:`, {
-              error: String(clusterError),
-            });
+            this.logger.error(
+              `Failed to fetch objects for cluster ${cluster.name}:`,
+              {
+                error: String(clusterError),
+              },
+            );
           }
         }
       }
 
-      this.logger.debug(`Total fetched Kubernetes objects: ${allFetchedObjects.length}`);
+      this.logger.debug(
+        `Total fetched Kubernetes objects: ${allFetchedObjects.length}`,
+      );
       return allFetchedObjects;
     } catch (error) {
       if (error instanceof Error) {
         this.logger.error('Error fetching Kubernetes objects', error);
       } else if (typeof error === 'object') {
-        this.logger.error('Error fetching Kubernetes objects', error as JsonObject);
+        this.logger.error(
+          'Error fetching Kubernetes objects',
+          error as JsonObject,
+        );
       } else {
-        this.logger.error('Unknown error occurred while fetching Kubernetes objects', {
-          message: String(error),
-        });
+        this.logger.error(
+          'Unknown error occurred while fetching Kubernetes objects',
+          {
+            message: String(error),
+          },
+        );
       }
       return []; // Add this return statement
     }
@@ -274,18 +379,23 @@ export class KubernetesDataProvider {
     });
 
     return compositions.responses
-      .flatMap((response: { resources: any; }) => response.resources)
-      .find((composition: { metadata: { name: string; }; }) => composition.metadata.name === compositionName);
+      .flatMap((response: { resources: any }) => response.resources)
+      .find(
+        (composition: { metadata: { name: string } }) =>
+          composition.metadata.name === compositionName,
+      );
   }
 
   private extractUsedFunctions(composition: any): string[] {
     const usedFunctions = new Set<string>();
     if (composition?.spec?.pipeline) {
-      composition.spec.pipeline.forEach((item: { functionRef: { name: string; }; }) => {
-        if (item.functionRef?.name) {
-          usedFunctions.add(item.functionRef.name);
-        }
-      });
+      composition.spec.pipeline.forEach(
+        (item: { functionRef: { name: string } }) => {
+          if (item.functionRef?.name) {
+            usedFunctions.add(item.functionRef.name);
+          }
+        },
+      );
     }
     return Array.from(usedFunctions);
   }
@@ -325,14 +435,20 @@ export class KubernetesDataProvider {
         // Get the auth credentials based on the provider type
         let credential;
         try {
-          credential = await this.getAuthCredential(cluster, authProvider);
+          credential = await getAuthCredential(cluster, authProvider,this.config,this.logger);
         } catch (error) {
           if (error instanceof Error) {
-            this.logger.error(`Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`, error);
+            this.logger.error(
+              `Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`,
+              error,
+            );
           } else {
-            this.logger.error(`Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`, {
-              error: String(error),
-            });
+            this.logger.error(
+              `Failed to get auth credentials for cluster ${cluster.name} with provider ${authProvider}:`,
+              {
+                error: String(error),
+              },
+            );
           }
           continue;
         }
@@ -353,20 +469,28 @@ export class KubernetesDataProvider {
             customResources: [],
           });
 
-          crds.responses.flatMap(response => response.resources).forEach(crd => {
-            const kind = crd.spec?.names?.kind;
-            const plural = crd.spec?.names?.plural;
-            if (kind && plural) {
-              crdMapping[kind] = plural;
-            }
-          });
+          crds.responses
+            .flatMap(response => response.resources)
+            .forEach(crd => {
+              const kind = crd.spec?.names?.kind;
+              const plural = crd.spec?.names?.plural;
+              if (kind && plural) {
+                crdMapping[kind] = plural;
+              }
+            });
         } catch (clusterError) {
           if (clusterError instanceof Error) {
-            this.logger.error(`Failed to fetch objects for cluster ${cluster.name}: ${clusterError.message}`, clusterError);
+            this.logger.error(
+              `Failed to fetch objects for cluster ${cluster.name}: ${clusterError.message}`,
+              clusterError,
+            );
           } else {
-            this.logger.error(`Failed to fetch objects for cluster ${cluster.name}:`, {
-              error: String(clusterError),
-            });
+            this.logger.error(
+              `Failed to fetch objects for cluster ${cluster.name}:`,
+              {
+                error: String(clusterError),
+              },
+            );
           }
         }
       }
@@ -376,11 +500,17 @@ export class KubernetesDataProvider {
       if (error instanceof Error) {
         this.logger.error('Error fetching Kubernetes objects', error);
       } else if (typeof error === 'object') {
-        this.logger.error('Error fetching Kubernetes objects', error as JsonObject);
+        this.logger.error(
+          'Error fetching Kubernetes objects',
+          error as JsonObject,
+        );
       } else {
-        this.logger.error('Unknown error occurred while fetching Kubernetes objects', {
-          message: String(error),
-        });
+        this.logger.error(
+          'Unknown error occurred while fetching Kubernetes objects',
+          {
+            message: String(error),
+          },
+        );
       }
       return {};
     }
@@ -407,13 +537,24 @@ export class KubernetesDataProvider {
     });
 
     return claimCRDs.responses
-      .flatMap((response: { resources: any; }) => response.resources)
-      .filter((resource: { spec: { names: { categories: string | string[]; }; }; }) => resource?.spec?.names?.categories?.includes('claim'))
-      .map((crd: { spec: { group: any; versions: { name: any; }[]; names: { plural: any; }; }; }) => ({
-        group: crd.spec.group,
-        version: crd.spec.versions[0]?.name || '',
-        plural: crd.spec.names.plural,
-      }));
+      .flatMap((response: { resources: any }) => response.resources)
+      .filter(
+        (resource: { spec: { names: { categories: string | string[] } } }) =>
+          resource?.spec?.names?.categories?.includes('claim'),
+      )
+      .map(
+        (crd: {
+          spec: {
+            group: any;
+            versions: { name: any }[];
+            names: { plural: any };
+          };
+        }) => ({
+          group: crd.spec.group,
+          version: crd.spec.versions[0]?.name || '',
+          plural: crd.spec.names.plural,
+        }),
+      );
   }
 
   private async fetchGenericCRDs(
@@ -445,82 +586,35 @@ export class KubernetesDataProvider {
     });
 
     return crds.responses
-      .flatMap((response: { resources: any; }) => response.resources)
+      .flatMap((response: { resources: any }) => response.resources)
       .filter((crd: any) => {
-      if (labelSelector) {
-        const key = labelSelector.getString('key');
-        const value = labelSelector.getString('value');
-        return crd.metadata?.labels?.[key] === value;
-      }
-      if (specificCRDs.length > 0) {
-        return specificCRDs.includes(crd.metadata.name);
-      }
-      return false;
+        if (labelSelector) {
+          const key = labelSelector.getString('key');
+          const value = labelSelector.getString('value');
+          return crd.metadata?.labels?.[key] === value;
+        }
+        if (specificCRDs.length > 0) {
+          return specificCRDs.includes(crd.metadata.name);
+        }
+        return false;
       })
-      .map((crd: { spec: { group: any; versions: { name: any; storage: boolean; }[]; names: { plural: any; }; }; }) => {
-      const storageVersion = crd.spec.versions.find(version => version.storage) || crd.spec.versions[0];
-      return {
-        group: crd.spec.group,
-        version: storageVersion.name,
-        plural: crd.spec.names.plural,
-      };
-      });
-  }
-
-  private async getAuthCredential(cluster: any, authProvider: string): Promise<any> {
-    switch (authProvider) {
-      case 'serviceAccount': {
-        const token = cluster.authMetadata?.serviceAccountToken;
-        if (!token) {
-          throw new Error('Service account token not found in cluster auth metadata');
-        }
-        return { type: 'bearer token', token };
-      }
-      case 'google': {
-        // For Google authentication (both client and server-side)
-        if (cluster.authMetadata?.google) {
-          return {
-            type: 'google',
-            ...cluster.authMetadata.google,
+      .map(
+        (crd: {
+          spec: {
+            group: any;
+            versions: { name: any; storage: boolean }[];
+            names: { plural: any };
           };
-        }
-        throw new Error(
-          'Google auth metadata not found in cluster configuration',
-        );
-      }
-      case 'aws': {
-        // For AWS authentication
-        if (!cluster.authMetadata?.['kubernetes.io/aws-assume-role']) {
-          throw new Error('AWS role ARN not found in cluster auth metadata');
-        }
-        return {
-          type: 'aws',
-          assumeRole: cluster.authMetadata['kubernetes.io/aws-assume-role'],
-          externalId: cluster.authMetadata['kubernetes.io/aws-external-id'],
-          clusterAwsId: cluster.authMetadata['kubernetes.io/x-k8s-aws-id'],
-        };
-      }
-      case 'azure': {
-        // For Azure authentication (both AKS and server-side)
-        return {
-          type: 'azure',
-          ...cluster.authMetadata?.azure,
-        };
-      }
-      case 'oidc': {
-        // For OIDC authentication
-        if (!cluster.authMetadata?.oidc) {
-          throw new Error(
-            'OIDC configuration not found in cluster auth metadata',
-          );
-        }
-        return {
-          type: 'oidc',
-          ...cluster.authMetadata.oidc,
-        };
-      }
-      default:
-        throw new Error(`Unsupported authentication provider: ${authProvider}`);
-    }
+        }) => {
+          const storageVersion =
+            crd.spec.versions.find(version => version.storage) ||
+            crd.spec.versions[0];
+          return {
+            group: crd.spec.group,
+            version: storageVersion.name,
+            plural: crd.spec.names.plural,
+          };
+        },
+      );
   }
 }
