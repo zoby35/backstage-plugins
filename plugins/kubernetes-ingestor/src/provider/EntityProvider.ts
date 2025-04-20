@@ -30,6 +30,16 @@ export class XRDTemplateEntityProvider implements EntityProvider {
   auth: AuthService;
   httpAuth: HttpAuthService;
 
+  private validateEntityName(entity: Entity): boolean {
+    if (entity.metadata.name.length > 63) {
+      this.logger.warn(
+        `The entity ${entity.metadata.name} of type ${entity.kind} cant be ingested as its auto generated name would be over 63 characters long. please consider chaning the naming conventions via the config of the plugin or shorten the names in the relevant sources of info to allow this resource to be ingested.`
+      );
+      return false;
+    }
+    return true;
+  }
+
   private getAnnotationPrefix(): string {
     return this.config.getOptionalString('kubernetesIngestor.annotationPrefix') || 'terasky.backstage.io';
   }
@@ -125,7 +135,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
 
     const clusters = xrd.clusters || ["kubetopus"];
 
-    return xrd.spec.versions.map((version: { name: any }) => {
+    const templates = xrd.spec.versions.map((version: { name: any }) => {
       const parameters = this.extractParameters(version, clusters, xrd);
       const prefix = this.getAnnotationPrefix();
       const steps = this.extractSteps(version, xrd);
@@ -311,6 +321,9 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       };
 
     });
+
+    // Filter out invalid templates
+    return templates.filter((template: Entity) => this.validateEntityName(template));
   }
 
   private translateXRDVersionsToAPI(xrd: any): Entity[] {
@@ -318,7 +331,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       throw new Error('Invalid XRD object');
     }
 
-    return xrd.spec.versions.map((version: any = {}) => {
+    const apis = xrd.spec.versions.map((version: any = {}) => {
       let xrdOpenAPIDoc: any = {};
       xrdOpenAPIDoc.openapi = "3.0.0";
       xrdOpenAPIDoc.info = {
@@ -523,6 +536,9 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       };
     }
     );
+
+    // Filter out invalid APIs
+    return apis.filter((api: Entity) => this.validateEntityName(api));
   }
 
   private extractParameters(version: any, clusters: string[], xrd: any): any[] {
@@ -1025,7 +1041,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
     const clusterTags = clusters.map((cluster: any) => `cluster:${cluster}`);
     const tags = ['kubernetes-crd', ...clusterTags];
 
-    return [{
+    const templates = [{
       apiVersion: 'scaffolder.backstage.io/v1beta3',
       kind: 'Template',
       metadata: {
@@ -1061,6 +1077,9 @@ export class XRDTemplateEntityProvider implements EntityProvider {
         },
       },
     }];
+
+    // Filter out invalid templates
+    return templates.filter(template => this.validateEntityName(template));
   }
 
   private translateCRDVersionsToAPI(crd: any): Entity[] {
@@ -1068,7 +1087,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       throw new Error('Invalid CRD object');
     }
 
-    return crd.spec.versions.map((version: any = {}) => {
+    const apis = crd.spec.versions.map((version: any = {}) => {
       let crdOpenAPIDoc: any = {};
       crdOpenAPIDoc.openapi = "3.0.0";
       crdOpenAPIDoc.info = {
@@ -1377,6 +1396,9 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       };
     }
     );
+
+    // Filter out invalid APIs
+    return apis.filter((api: Entity) => this.validateEntityName(api));
   }
 
   private extractCRDParameters(version: any, clusters: string[], crd: any): any[] {
@@ -1721,6 +1743,16 @@ export class KubernetesEntityProvider implements EntityProvider {
   private readonly permissions: PermissionEvaluator;
   private readonly discovery: DiscoveryService;
 
+  private validateEntityName(entity: Entity): boolean {
+    if (entity.metadata.name.length > 63) {
+      this.logger.warn(
+        `The entity ${entity.metadata.name} of type ${entity.kind} cant be ingested as its auto generated name would be over 63 characters long. please consider chaning the naming conventions via the config of the plugin or shorten the names in the relevant sources of info to allow this resource to be ingested.`
+      );
+      return false;
+    }
+    return true;
+  }
+
   constructor(
     taskRunner: SchedulerServiceTaskRunner,
     logger: LoggerService,
@@ -1772,7 +1804,8 @@ export class KubernetesEntityProvider implements EntityProvider {
         const entities = kubernetesData.flatMap(k8s => {
           if (k8s?.spec?.resourceRef) {
             this.logger.debug(`Processing Crossplane Claim: ${JSON.stringify(k8s)}`);
-            return this.translateCrossplaneClaimToEntity(k8s, k8s.clusterName, crdMapping);
+            const entity = this.translateCrossplaneClaimToEntity(k8s, k8s.clusterName, crdMapping);
+            return entity ? [entity] : [];
           }
           else if (k8s) {
             this.logger.debug(`Processing Kubernetes Object: ${JSON.stringify(k8s)}`);
@@ -1973,7 +2006,9 @@ export class KubernetesEntityProvider implements EntityProvider {
       },
     };
 
-    return [systemEntity, componentEntity];
+    const entities = [systemEntity, componentEntity];
+    // Filter out invalid entities
+    return entities.filter(entity => this.validateEntityName(entity));
   }
 
   private findCommonLabels(resource: any): string | null {
@@ -2013,7 +2048,7 @@ export class KubernetesEntityProvider implements EntityProvider {
     return customAnnotations;
   }
 
-  private translateCrossplaneClaimToEntity(claim: any, clusterName: string, crdMapping: Record<string, string>): Entity {
+  private translateCrossplaneClaimToEntity(claim: any, clusterName: string, crdMapping: Record<string, string>): Entity | null {
     const prefix = this.getAnnotationPrefix();
     const annotations = claim.metadata.annotations || {};
 
@@ -2108,7 +2143,7 @@ export class KubernetesEntityProvider implements EntityProvider {
       systemValue = 'default';
     }
 
-    return {
+    const entity = {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Component',
       metadata: {
@@ -2134,6 +2169,9 @@ export class KubernetesEntityProvider implements EntityProvider {
         consumesApis: [`${referencesNamespaceValue}/${claim.kind}-${claim.apiVersion.split('/').join('--')}`],
       },
     };
+
+    // Return null if entity name is invalid
+    return this.validateEntityName(entity) ? entity : null;
   }
 
   private getAnnotationPrefix(): string {

@@ -28,6 +28,7 @@ export async function getAuthCredential(
         );
       }
       const aksAuthConfig = authConfig
+        ?.getOptionalConfig('providers')
         ?.getOptionalConfig('aks')
         ?.getOptionalConfig(authEnvironment);
       if (!aksAuthConfig) {
@@ -64,6 +65,7 @@ export async function getAuthCredential(
         );
       }
       const googleAuthConfig = authConfig
+        ?.getOptionalConfig('providers')
         ?.getOptionalConfig('google')
         ?.getOptionalConfig(authEnvironment);
       if (!googleAuthConfig) {
@@ -84,7 +86,7 @@ export async function getAuthCredential(
     case 'oidc': {
       const oidcAuth=new OidcStrategy();
       const authConfig = config.getConfig('auth');
-      const authEnvironment = authConfig?.getOptionalString('environment');
+      const authEnvironment = authConfig?.getOptionalConfig('providers')?.getOptionalString('environment');
       if (!authEnvironment) {
         throw new Error(
           'Missing environment configuration for OIDC authentication',
