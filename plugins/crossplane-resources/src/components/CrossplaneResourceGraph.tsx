@@ -174,7 +174,6 @@ const CrossplaneResourceGraph = () => {
                 });
 
                 const customResources = Object.values(crdMap);
-                console.log(customResources);
 
                 const resourcesResponse = await kubernetesApi.getCustomObjectsByEntity({
                     entity,
@@ -185,7 +184,6 @@ const CrossplaneResourceGraph = () => {
                 const allResources = resourcesResponse.items.flatMap(item =>
                     item.resources.flatMap(resourceGroup => resourceGroup.resources)
                 ).filter(resource => resource);
-                console.log(allResources);
                 // Fetch the claim resource
                 const resourceName = claimName;
                 const url = `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${resourceName}`;

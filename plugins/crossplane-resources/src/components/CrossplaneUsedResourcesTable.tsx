@@ -136,7 +136,6 @@ const CrossplaneUsedResourcesTable = () => {
 
                 // Fetch composite resource
                 const compositeUrl = `/apis/${xrdGroup}/${xrdVersion}/${xrdPlural}/${annotations['terasky.backstage.io/composite-name']}`;
-                console.log("compositeUrl", compositeUrl)
                 const compositeResponse = await kubernetesApi.proxy({
                     clusterName: clusterOfClaim,
                     path: compositeUrl,
@@ -144,17 +143,14 @@ const CrossplaneUsedResourcesTable = () => {
                 });
                 const compositeResource = await compositeResponse.json();
                 const resourceRefs = compositeResource.spec.resourceRefs || [];
-                console.log("resourceRefs", resourceRefs)
 
                 // Deduplicate managed resources based on kind and apiVersion
                 const uniqueManagedResources = Array.from(new Set(resourceRefs.map((ref: { kind: any; apiVersion: any; }) => `${ref.kind}-${ref.apiVersion}`)))
                     .map(key => resourceRefs.find((ref: { kind: any; apiVersion: any; }) => `${ref.kind}-${ref.apiVersion}` === key));
-                console.log("uniqueManagedResources", uniqueManagedResources)
 
                 // Fetch provider resources
                 const providerResourcesSet = new Set();
                 const providerResources = await Promise.all(uniqueManagedResources.map(async (ref: any) => {
-                    console.log("trying to pull CRDs for", ref.kind, ref.apiVersion)
                     const crdUrl = `/apis/apiextensions.k8s.io/v1/customresourcedefinitions/${pluralize(ref.kind.toLowerCase())}.${ref.apiVersion.split('/')[0]}`;
                     const crdResponse = await kubernetesApi.proxy({
                         clusterName: clusterOfClaim,
@@ -162,10 +158,8 @@ const CrossplaneUsedResourcesTable = () => {
                         init: { method: 'GET' },
                     });
                     const crd = await crdResponse.json();
-                    console.log("crd", crd)
                     const ownerReferences = crd.metadata.ownerReferences || [];
                     const providerRefs = ownerReferences.filter((ownerRef: { kind: string; }) => ownerRef.kind === 'Provider');
-                    console.log("providerRefs", providerRefs)
                     const providerResources = await Promise.all(providerRefs.map(async (providerRef: any) => {
                         const providerKey = `${providerRef.apiVersion}-${providerRef.name}`;
                         if (providerResourcesSet.has(providerKey)) {
@@ -179,7 +173,6 @@ const CrossplaneUsedResourcesTable = () => {
                             init: { method: 'GET' },
                         });
                         const providerResource = await providerResponse.json();
-                        console.log("providerResource", providerResource)
                         return providerResource;
                     }));
                     return providerResources.filter(Boolean);
