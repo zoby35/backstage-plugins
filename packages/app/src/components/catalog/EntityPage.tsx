@@ -28,6 +28,8 @@ import {
   hasRelationWarnings,
   EntityRelationWarning,
 } from '@backstage/plugin-catalog';
+import { Entity } from '@backstage/catalog-model';
+import { EmptyState } from '@backstage/core-components';
 import {
   EntityUserProfileCard,
   EntityGroupProfileCard,
@@ -35,7 +37,6 @@ import {
   EntityOwnershipCard,
 } from '@backstage/plugin-org';
 import { EntityTechdocsContent } from '@backstage/plugin-techdocs';
-import { EmptyState } from '@backstage/core-components';
 import {
   Direction,
   EntityCatalogGraphCard,
@@ -70,6 +71,17 @@ import { KyvernoCrossplaneOverviewCard, KyvernoCrossplanePolicyReportsTable, Kyv
 import { EntityAccentuateInfo, isAccentuateEnabled, EntityLayoutWrapper } from '@dweber019/backstage-plugin-accentuate';
 import { GitOpsManifestUpdaterExtension } from '@terasky/backstage-plugin-gitops-manifest-updater';
 import { KubernetesResourcesPage, isKubernetesResourcesAvailable, KubernetesResourceGraph } from '@terasky/backstage-plugin-kubernetes-resources-frontend';
+import {
+  VCFAutomationProjectOverview,
+  VCFAutomationProjectDetails,
+  VCFAutomationVSphereVMOverview,
+  VCFAutomationVSphereVMDetails,
+  VCFAutomationDeploymentDetails,
+  VCFAutomationDeploymentOverview,
+  VCFAutomationGenericResourceDetails,
+  VCFAutomationGenericResourceOverview,
+} from '@terasky/backstage-plugin-vcf-automation';
+
 
 const techdocsContent = (
   <EntityTechdocsContent>
@@ -313,7 +325,32 @@ const crossplaneEntityPage = (
     </EntityLayout.Route>
   </EntityLayoutWrapper>
 );
-
+const vcfAutomationVSphereVMOverviewContent = (
+  <Grid container spacing={3} alignItems="stretch">
+    <Grid item md={6}>
+      <EntityAboutCard variant="gridItem" />
+    </Grid>
+    <Grid item md={6}>
+      <VCFAutomationVSphereVMOverview />
+    </Grid>
+    <Grid item md={6} xs={12}>
+      <EntityCatalogGraphCard variant="gridItem" height={400} />
+    </Grid>
+    <Grid item md={4} xs={12}>
+      <EntityLinksCard />
+    </Grid>
+  </Grid>
+);
+const vcfAutomationVSphereVMPage = (
+  <EntityLayout>
+    <EntityLayout.Route path="/" title="Overview">
+      {vcfAutomationVSphereVMOverviewContent}
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/vcf-automation" title="VCF Automation">
+      <VCFAutomationVSphereVMDetails />
+    </EntityLayout.Route>
+  </EntityLayout>
+);
 const websiteEntityPage = (
   <EntityLayout>
     <EntityLayout.Route path="/" title="Overview">
@@ -373,6 +410,10 @@ const componentPage = (
 
     <EntitySwitch.Case if={isComponentType('crossplane-claim')}>
       {crossplaneEntityPage}
+    </EntitySwitch.Case>
+
+    <EntitySwitch.Case if={isComponentType('Cloud.vSphere.Machine')}>
+      {vcfAutomationVSphereVMPage}
     </EntitySwitch.Case>
 
     <EntitySwitch.Case>{defaultEntityPage}</EntitySwitch.Case>
@@ -452,74 +493,144 @@ const groupPage = (
   </EntityLayout>
 );
 
-const systemPage = (
+const hasVcfAutomationDeploymentStatus = (entity: Entity): boolean => 
+  Boolean(entity.metadata?.annotations?.['terasky.backstage.io/vcf-automation-deployment-status']);
+
+const hasVcfAutomationResourceType = (entity: Entity): boolean => 
+  Boolean(entity.metadata?.annotations?.['terasky.backstage.io/vcf-automation-resource-type']);
+
+const vcfAutomationGenericResourceOverviewContent = (
+  <Grid container spacing={3} alignItems="stretch">
+    <Grid item md={6}>
+      <EntityAboutCard variant="gridItem" />
+    </Grid>
+    <Grid item md={6}>
+      <VCFAutomationGenericResourceOverview />
+    </Grid>
+    <Grid item md={6} xs={12}>
+      <EntityCatalogGraphCard variant="gridItem" height={400} />
+    </Grid>
+    <Grid item md={4} xs={12}>
+      <EntityLinksCard />
+    </Grid>
+  </Grid>
+);
+
+const vcfAutomationDeploymentOverviewContent = (
+  <Grid container spacing={3} alignItems="stretch">
+    <Grid item md={6}>
+      <EntityAboutCard variant="gridItem" />
+    </Grid>
+    <Grid item md={6}>
+      <VCFAutomationDeploymentOverview />
+    </Grid>
+    <Grid item md={6} xs={12}>
+      <EntityCatalogGraphCard variant="gridItem" height={400} />
+    </Grid>
+    <Grid item md={4} xs={12}>
+      <EntityLinksCard />
+    </Grid>
+  </Grid>
+);
+
+const vcfAutomationGenericResourcePage = (
   <EntityLayout>
     <EntityLayout.Route path="/" title="Overview">
-      <Grid container spacing={3} alignItems="stretch">
-        {entityWarningContent}
-        <Grid item md={6}>
-          <EntityAboutCard variant="gridItem" />
-        </Grid>
-        <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard variant="gridItem" height={400} />
-        </Grid>
-        <Grid item md={4} xs={12}>
-          <EntityLinksCard />
-        </Grid>
-        <Grid item md={8}>
-          <EntityHasComponentsCard variant="gridItem" />
-        </Grid>
-        <Grid item md={6}>
-          <EntityHasApisCard variant="gridItem" />
-        </Grid>
-        <Grid item md={6}>
-          <EntityHasResourcesCard variant="gridItem" />
-        </Grid>
-      </Grid>
+      {vcfAutomationGenericResourceOverviewContent}
     </EntityLayout.Route>
-    <EntityLayout.Route path="/diagram" title="Diagram">
-      <EntityCatalogGraphCard
-        variant="gridItem"
-        direction={Direction.TOP_BOTTOM}
-        title="System Diagram"
-        height={700}
-        relations={[
-          RELATION_PART_OF,
-          RELATION_HAS_PART,
-          RELATION_API_CONSUMED_BY,
-          RELATION_API_PROVIDED_BY,
-          RELATION_CONSUMES_API,
-          RELATION_PROVIDES_API,
-          RELATION_DEPENDENCY_OF,
-          RELATION_DEPENDS_ON,
-        ]}
-        unidirectional={false}
-      />
-    </EntityLayout.Route>
-    <EntityLayout.Route path="/scaffolder" title="Crossplane Scaffolder">
-        <EntityScaffolderContent
-          templateGroupFilters={[
-            {
-              title: 'Crossplane Claims',
-              filter: (entity, template) =>
-                template.metadata?.labels?.forEntity === 'system' &&
-                entity.spec?.type === 'kubernetes-namespace',
-            },
-          ]}
-          buildInitialState={entity => ({
-              xrNamespace: entity.metadata.name,
-              clusters: [entity.metadata?.annotations?.['backstage.io/managed-by-location']?.split(": ")[1] ?? '']
-            }
-          )}
-          ScaffolderFieldExtensions={
-            <ScaffolderFieldExtensions>
-              <RepoUrlPickerFieldExtension />
-              <EntityPickerFieldExtension />
-            </ScaffolderFieldExtensions>
-          }
-        />
+    <EntityLayout.Route path="/vcf-automation" title="VCF Automation">
+      <VCFAutomationGenericResourceDetails />
     </EntityLayout.Route>
   </EntityLayout>
+);
+
+const vcfAutomationDeploymentPage = (
+  <EntityLayout>
+    <EntityLayout.Route path="/" title="Overview">
+      {vcfAutomationDeploymentOverviewContent}
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/vcf-automation" title="VCF Automation">
+      <VCFAutomationDeploymentDetails />
+    </EntityLayout.Route>
+  </EntityLayout>
+);
+
+const systemPage = (
+  <>
+    <EntitySwitch>
+      <EntitySwitch.Case if={hasVcfAutomationDeploymentStatus}>
+        {vcfAutomationDeploymentPage}
+      </EntitySwitch.Case>
+      <EntitySwitch.Case>
+        <EntityLayoutWrapper>
+          <EntityLayout.Route path="/" title="Overview">
+            <Grid container spacing={3} alignItems="stretch">
+              {entityWarningContent}
+              <Grid item md={6}>
+                <EntityAboutCard variant="gridItem" />
+              </Grid>
+              <Grid item md={6} xs={12}>
+                <EntityCatalogGraphCard variant="gridItem" height={400} />
+              </Grid>
+              <Grid item md={4} xs={12}>
+                <EntityLinksCard />
+              </Grid>
+              <Grid item md={8}>
+                <EntityHasComponentsCard variant="gridItem" />
+              </Grid>
+              <Grid item md={6}>
+                <EntityHasApisCard variant="gridItem" />
+              </Grid>
+              <Grid item md={6}>
+                <EntityHasResourcesCard variant="gridItem" />
+              </Grid>
+            </Grid>
+          </EntityLayout.Route>
+          <EntityLayout.Route path="/diagram" title="Diagram">
+            <EntityCatalogGraphCard
+              variant="gridItem"
+              direction={Direction.TOP_BOTTOM}
+              title="System Diagram"
+              height={700}
+              relations={[
+                RELATION_PART_OF,
+                RELATION_HAS_PART,
+                RELATION_API_CONSUMED_BY,
+                RELATION_API_PROVIDED_BY,
+                RELATION_CONSUMES_API,
+                RELATION_PROVIDES_API,
+                RELATION_DEPENDENCY_OF,
+                RELATION_DEPENDS_ON,
+              ]}
+              unidirectional={false}
+            />
+          </EntityLayout.Route>
+          <EntityLayout.Route path="/scaffolder" title="Crossplane Scaffolder">
+            <EntityScaffolderContent
+              templateGroupFilters={[
+                {
+                  title: 'Crossplane Claims',
+                  filter: (entity, template) =>
+                    template.metadata?.labels?.forEntity === 'system' &&
+                    entity.spec?.type === 'kubernetes-namespace',
+                },
+              ]}
+              buildInitialState={entity => ({
+                xrNamespace: entity.metadata.name,
+                clusters: [entity.metadata?.annotations?.['backstage.io/managed-by-location']?.split(": ")[1] ?? '']
+              })}
+              ScaffolderFieldExtensions={
+                <ScaffolderFieldExtensions>
+                  <RepoUrlPickerFieldExtension />
+                  <EntityPickerFieldExtension />
+                </ScaffolderFieldExtensions>
+              }
+            />
+          </EntityLayout.Route>
+        </EntityLayoutWrapper>
+      </EntitySwitch.Case>
+    </EntitySwitch>
+  </>
 );
 
 const domainPage = (
@@ -536,9 +647,26 @@ const domainPage = (
         <Grid item md={6}>
           <EntityHasSystemsCard variant="gridItem" />
         </Grid>
+        <Grid item md={6}>
+          <VCFAutomationProjectOverview />
+        </Grid>
       </Grid>
     </EntityLayout.Route>
+    <EntityLayout.Route path="/vcf-automation" title="VCF Automation">
+      <VCFAutomationProjectDetails />
+    </EntityLayout.Route>
   </EntityLayout>
+);
+
+const resourcePage = (
+  <EntitySwitch>
+    <EntitySwitch.Case if={hasVcfAutomationResourceType}>
+      {vcfAutomationGenericResourcePage}
+    </EntitySwitch.Case>
+    <EntitySwitch.Case>
+      {defaultEntityPage}
+    </EntitySwitch.Case>
+  </EntitySwitch>
 );
 
 export const entityPage = (
@@ -549,6 +677,7 @@ export const entityPage = (
     <EntitySwitch.Case if={isKind('user')} children={userPage} />
     <EntitySwitch.Case if={isKind('system')} children={systemPage} />
     <EntitySwitch.Case if={isKind('domain')} children={domainPage} />
+    <EntitySwitch.Case if={isKind('resource')} children={resourcePage} />
 
     <EntitySwitch.Case>{defaultEntityPage}</EntitySwitch.Case>
   </EntitySwitch>

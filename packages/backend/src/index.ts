@@ -76,5 +76,6 @@ backend.add(import('@terasky/backstage-plugin-scaffolder-backend-module-terasky-
 backend.add(import('@terasky/backstage-plugin-kyverno-permissions-backend'));
 backend.add(accentuatePlugin);
 backend.add(catalogModuleAccentuateProcessor);
-
+backend.add(import('@terasky/backstage-plugin-vcf-automation-ingestor'));
+backend.add(import('@terasky/backstage-plugin-vcf-automation-backend'));
 backend.start();
