@@ -104,25 +104,25 @@ export const VCFAutomationDeploymentOverview = () => {
         <Grid item xs={3}>
           <Typography variant="subtitle2">Total</Typography>
           <Typography>
-            {deploymentDetails.expense.totalExpense} {deploymentDetails.expense.unit}
+            {deploymentDetails.expense?.totalExpense || 'N/A'} {deploymentDetails.expense?.unit || ''}
           </Typography>
         </Grid>
         <Grid item xs={3}>
           <Typography variant="subtitle2">Compute</Typography>
           <Typography>
-            {deploymentDetails.expense.computeExpense} {deploymentDetails.expense.unit}
+            {deploymentDetails.expense?.computeExpense || 'N/A'} {deploymentDetails.expense?.unit || ''}
           </Typography>
         </Grid>
         <Grid item xs={3}>
           <Typography variant="subtitle2">Storage</Typography>
           <Typography>
-            {deploymentDetails.expense.storageExpense} {deploymentDetails.expense.unit}
+            {deploymentDetails.expense?.storageExpense || 'N/A'} {deploymentDetails.expense?.unit || ''}
           </Typography>
         </Grid>
         <Grid item xs={3}>
           <Typography variant="subtitle2">Additional</Typography>
           <Typography>
-            {deploymentDetails.expense.additionalExpense} {deploymentDetails.expense.unit}
+            {deploymentDetails.expense?.additionalExpense || 'N/A'} {deploymentDetails.expense?.unit || ''}
           </Typography>
         </Grid>
       </Grid>
