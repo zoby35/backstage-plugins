@@ -248,6 +248,42 @@ metadata:
 - **Project Administration**: Manage VCF project settings and resources
 - **Permission Integration**: Built-in support for Backstage's permission framework
 
+## Usage
+
+Once installed and configured, the VCF Automation plugin provides comprehensive views for different VCF entity types:
+
+### Project (Domain) Views
+The project overview provides a high-level summary of your VCF project:
+![Project Overview](../../images/vcf-proj-overview.png)
+
+Detailed project information is available as well:
+![Project Details 1](../../images/vcf-proj-details-1.png)
+![Project Details 2](../../images/vcf-proj-details-2.png)
+![Project Details 3](../../images/vcf-proj-details-3.png)
+
+### Deployment Views
+Get a quick overview of your VCF deployments:
+![Deployment Overview](../../images/vcf-deploy-overview.png)
+
+Access detailed deployment information:
+![Deployment Details 1](../../images/vcf-deploy-details-1.png)
+![Deployment Details 2](../../images/vcf-deploy-details-2.png)
+
+### VSphere VM Views
+Monitor your VSphere VMs with the overview card:
+![VM Overview](../../images/vcf-vm-overview.png)
+
+Dive deep into VM configurations and status:
+![VM Details 1](../../images/vcf-vm-details-1.png)
+![VM Details 2](../../images/vcf-vm-details-2.png)
+
+### Generic Resource Views
+View resource summaries in the overview:
+![Resource Overview](../../images/vcf-resource-overview.png)
+
+Access detailed resource information:
+![Resource Details](../../images/vcf-resource-details.png)
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request on GitHub.
