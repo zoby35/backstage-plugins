@@ -20,6 +20,8 @@ for dir in plugins/*/; do
         # Determine type based on folder name or package.json content
         if [[ $folder == *"-backend"* ]]; then
             type="Backend"
+        elif [[ $folder == *"-ingestor"* ]]; then
+            type="Catalog Entity Provider"
         elif [[ $folder == *"-frontend"* ]]; then
             type="Frontend"
         elif [[ $folder == *"-common"* ]]; then
