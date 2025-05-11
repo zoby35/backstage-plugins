@@ -51,7 +51,7 @@
     "@dweber019/backstage-plugin-accentuate-backend": "^1.0.4",
     "@roadiehq/scaffolder-backend-module-utils": "^3.4.2",
     "@terasky/backstage-plugin-crossplane-permissions-backend": "^1.1.10",
-    "@terasky/backstage-plugin-kubernetes-ingestor": "^1.12.2",
+    "@terasky/backstage-plugin-kubernetes-ingestor": "^1.13.0",
     "@terasky/backstage-plugin-kubernetes-resources-permissions-backend": "^0.2.4",
     "@terasky/backstage-plugin-kyverno-permissions-backend": "^1.0.8",
     "@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils": "^1.4.3",
