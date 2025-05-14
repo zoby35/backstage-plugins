@@ -68,7 +68,6 @@ import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
 import { EntityPickerFieldExtension, RepoUrlPickerFieldExtension } from '@backstage/plugin-scaffolder';
 import { ScaleOpsDashboard } from '@terasky/backstage-plugin-scaleops-frontend';
 import { KyvernoCrossplaneOverviewCard, KyvernoCrossplanePolicyReportsTable, KyvernoOverviewCard, KyvernoPolicyReportsTable } from '@terasky/backstage-plugin-kyverno-policy-reports';
-import { EntityAccentuateInfo, isAccentuateEnabled, EntityLayoutWrapper } from '@dweber019/backstage-plugin-accentuate';
 import { GitOpsManifestUpdaterExtension } from '@terasky/backstage-plugin-gitops-manifest-updater';
 import { KubernetesResourcesPage, isKubernetesResourcesAvailable, KubernetesResourceGraph } from '@terasky/backstage-plugin-kubernetes-resources-frontend';
 import {
@@ -118,13 +117,6 @@ const entityWarningContent = (
       <EntitySwitch.Case if={isOrphan}>
         <Grid item xs={12}>
           <EntityOrphanWarning />
-        </Grid>
-      </EntitySwitch.Case>
-    </EntitySwitch>
-    <EntitySwitch>
-      <EntitySwitch.Case if={isAccentuateEnabled}>
-        <Grid item xs={12}>
-          <EntityAccentuateInfo />
         </Grid>
       </EntitySwitch.Case>
     </EntitySwitch>
@@ -190,7 +182,7 @@ const crossplaneOverviewContent = (
   </Grid>
 );
 const serviceEntityPage = (
-  <EntityLayoutWrapper>
+  <EntityLayout>
     <EntityLayout.Route path="/" title="Overview">
       {overviewContent}
     </EntityLayout.Route>
@@ -272,10 +264,10 @@ const serviceEntityPage = (
           }
         />
     </EntityLayout.Route>
-  </EntityLayoutWrapper>
+  </EntityLayout>
 );
 const crossplaneEntityPage = (
-  <EntityLayoutWrapper>
+  <EntityLayout>
     <EntityLayout.Route path="/" title="Overview">
       {crossplaneOverviewContent}
     </EntityLayout.Route>
@@ -323,7 +315,7 @@ const crossplaneEntityPage = (
           }
         />
     </EntityLayout.Route>
-  </EntityLayoutWrapper>
+  </EntityLayout>
 );
 const vcfAutomationVSphereVMOverviewContent = (
   <Grid container spacing={3} alignItems="stretch">
@@ -562,7 +554,7 @@ const systemPage = (
         {vcfAutomationDeploymentPage}
       </EntitySwitch.Case>
       <EntitySwitch.Case>
-        <EntityLayoutWrapper>
+        <EntityLayout>
           <EntityLayout.Route path="/" title="Overview">
             <Grid container spacing={3} alignItems="stretch">
               {entityWarningContent}
@@ -627,7 +619,7 @@ const systemPage = (
               }
             />
           </EntityLayout.Route>
-        </EntityLayoutWrapper>
+        </EntityLayout>
       </EntitySwitch.Case>
     </EntitySwitch>
   </>
