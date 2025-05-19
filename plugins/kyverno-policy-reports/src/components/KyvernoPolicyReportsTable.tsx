@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableRow, Paper, IconButton, Box, Collapse, Typography, LinearProgress, Chip, Drawer, Button, useTheme } from '@material-ui/core';
 import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import { KubernetesObject } from '@backstage/plugin-kubernetes';
@@ -302,7 +302,7 @@ const KyvernoPolicyReportsTable = () => {
                                     {groupedReports[clusterName]
                                         .filter(report => report.metadata.namespace && report.scope?.kind && report.scope?.name && report.summary)
                                         .map((report: PolicyReport) => (
-                                        <React.Fragment key={report.metadata.uid}>
+                                        <Fragment key={report.metadata.uid}>
                                             <TableRow onClick={() => handleRowClick(report.metadata.uid)}>
                                                 <TableCell>{report.scope.kind}</TableCell>
                                                 <TableCell>{report.scope.name}</TableCell>
@@ -371,7 +371,7 @@ const KyvernoPolicyReportsTable = () => {
                                                     </Collapse>
                                                 </TableCell>
                                             </TableRow>
-                                        </React.Fragment>
+                                        </Fragment>
                                     ))}
                                 </TableBody>
                             </Table>

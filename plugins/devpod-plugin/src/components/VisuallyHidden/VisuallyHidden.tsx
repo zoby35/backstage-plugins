@@ -1,10 +1,5 @@
-import React, {
-  type CSSProperties,
-  type HTMLAttributes,
-  type ReactNode,
-  useEffect,
-  useState,
-} from 'react';
+import type { CSSProperties, HTMLAttributes, ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 
 const visuallyHiddenStyles: CSSProperties = {
   display: 'inline-block',

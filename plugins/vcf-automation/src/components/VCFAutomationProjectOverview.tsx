@@ -1,4 +1,4 @@
-import React from 'react';
+import { Key, JSXElementConstructor, ReactElement, ReactNode, ReactPortal } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import { vcfAutomationApiRef } from '../api/VcfAutomationClient';
@@ -88,7 +88,7 @@ export const VCFAutomationProjectOverview = () => {
         </Grid>
         <Grid item xs={12}>
           <Typography variant="subtitle2">Resource Allocation</Typography>
-          {project.zones.map((zone: { id: React.Key | null | undefined; zoneId: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; allocatedInstancesCount: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; maxNumberInstances: any; allocatedMemoryMB: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; memoryLimitMB: any; allocatedCpu: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; cpuLimit: any; allocatedStorageGB: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; storageLimitGB: any; }) => (
+          {project.zones.map((zone: { id: Key | null | undefined; zoneId: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined; allocatedInstancesCount: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined; maxNumberInstances: any; allocatedMemoryMB: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined; memoryLimitMB: any; allocatedCpu: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined; cpuLimit: any; allocatedStorageGB: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined; storageLimitGB: any; }) => (
             <Grid container spacing={2} key={zone.id}>
               <Grid item xs={12}>
                 <Typography variant="body2">Zone: {zone.zoneId}</Typography>

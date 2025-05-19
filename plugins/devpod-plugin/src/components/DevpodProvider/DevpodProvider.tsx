@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import { ReactNode, FC, createContext, useContext, useMemo } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { configApiRef } from '@backstage/core-plugin-api';
 import { DevpodConfig, DevpodIDE } from '../../types';
@@ -17,8 +17,8 @@ export const useDevpodConfig = () => {
   return { ...contextConfig, defaultIde: defaultIDE };
 };
 
-export const DevpodProvider: React.FC<{
-  children: React.ReactNode;
+export const DevpodProvider: FC<{
+  children: ReactNode;
   config?: DevpodConfig;
 }> = ({ children, config = {} }) => {
   const configApi = useApi(configApiRef);

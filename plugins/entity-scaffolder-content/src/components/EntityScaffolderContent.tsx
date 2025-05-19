@@ -9,11 +9,11 @@ import { TemplateGroups } from '@backstage/plugin-scaffolder-react/alpha';
 import type { JsonValue } from '@backstage/types';
 import { EmbeddedScaffolderWorkflow } from '@frontside/backstage-plugin-scaffolder-workflow';
 import { Button } from '@material-ui/core';
-import React, { useMemo, useState } from 'react';
+import { ReactNode, ComponentType, useMemo, useState } from 'react';
 import { TemplateListProvider } from './TemplateListProvider';
 
 type TemplateGroupFilterWithEntityCapture = {
-  title?: React.ReactNode;
+  title?: ReactNode;
   filter: (entity: Entity, template: TemplateEntityV1beta3) => boolean;
 };
 
@@ -28,9 +28,9 @@ export type EntityScaffolderContentProps = {
     entity: Entity,
     template: TemplateEntityV1beta3,
   ) => Record<string, JsonValue>;
-  ScaffolderFieldExtensions?: React.ReactNode;
+  ScaffolderFieldExtensions?: ReactNode;
   components?: {
-    TemplateCard?: React.ComponentType<{ template: TemplateEntityV1beta3 }>;
+    TemplateCard?: ComponentType<{ template: TemplateEntityV1beta3 }>;
   };
 };
 

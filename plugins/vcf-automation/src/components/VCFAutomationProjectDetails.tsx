@@ -1,4 +1,3 @@
-import React from 'react';
 import { useEntity, catalogApiRef } from '@backstage/plugin-catalog-react';
 import {
   InfoCard,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useApi, configApiRef } from '@backstage/core-plugin-api';
 import { Table, TableColumn, Link } from '@backstage/core-components';
 import { useEntity } from '@backstage/plugin-catalog-react';

@@ -1,4 +1,3 @@
-import React from 'react';
 import MyCustomLogo from './logo/logo.png';
 
 const LogoIcon = () => {

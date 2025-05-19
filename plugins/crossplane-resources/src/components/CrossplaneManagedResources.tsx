@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { useTheme, Table, TableBody, TableCell, TableHead, TableRow, Paper, Button, Drawer, IconButton, TableSortLabel, CircularProgress, Typography, Box, Dialog, DialogTitle, DialogContent } from '@material-ui/core';
 import { useApi, configApiRef } from '@backstage/core-plugin-api';
 import { KubernetesObject } from '@backstage/plugin-kubernetes';
@@ -341,7 +341,7 @@ const CrossplaneManagedResources = () => {
                         </TableHead>
                         <TableBody>
                             {sortedResources.map(resource => (
-                                <React.Fragment key={resource.metadata?.uid || `${resource.kind}-${Math.random()}`}>
+                                <Fragment key={resource.metadata?.uid || `${resource.kind}-${Math.random()}`}>
                                     <TableRow>
                                         <TableCell>
                                             <div className={classes.resourceTypeCell}>
@@ -433,7 +433,7 @@ const CrossplaneManagedResources = () => {
                                             </TableCell>
                                         </TableRow>
                                     )}
-                                </React.Fragment>
+                                </Fragment>
                             ))}
                         </TableBody>
                     </Table>

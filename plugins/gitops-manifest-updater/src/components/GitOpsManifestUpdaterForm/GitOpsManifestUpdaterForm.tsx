@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useState, useCallback, useEffect, ChangeEvent } from 'react';
 import { useApi, fetchApiRef, githubAuthApiRef } from '@backstage/core-plugin-api';
 import {
   Progress,
@@ -8,7 +8,6 @@ import {
   FormControl, 
   TextField, 
   Typography, 
-  FormControlLabel,
   Checkbox,
   Select,
   MenuItem,
@@ -17,7 +16,6 @@ import { JsonObject } from '@backstage/types';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { parse as parseYaml } from 'yaml';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
-import { ChangeEvent } from 'react';
 import { scmIntegrationsApiRef } from '@backstage/integration-react';
 
 type FormData = {
@@ -58,21 +56,24 @@ const RenderField = ({
   if (prop.enum) {
     return (
       <FormControl fullWidth margin="normal">
-        <Select
-          value={value === undefined ? '' : value}
-          onChange={(e) => onChange(fullPath, e.target.value)}
-          displayEmpty
-          label={label}
-        >
-          <MenuItem value="">
-            <em>None</em>
-          </MenuItem>
-          {prop.enum.map((option) => (
-            <MenuItem key={option} value={option}>
-              {option}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <Typography variant="body1" style={{ minWidth: '150px' }}>{label}:</Typography>
+          <Select
+            value={value === undefined ? '' : value}
+            onChange={(e) => onChange(fullPath, e.target.value)}
+            displayEmpty
+            style={{ flexGrow: 1 }}
+          >
+            <MenuItem value="">
+              <em>None</em>
             </MenuItem>
-          ))}
-        </Select>
+            {prop.enum.map((option) => (
+              <MenuItem key={option} value={option}>
+                {option}
+              </MenuItem>
+            ))}
+          </Select>
+        </div>
       </FormControl>
     );
   }
@@ -80,47 +81,53 @@ const RenderField = ({
   switch (prop.type) {
     case 'boolean':
       return (
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={value === undefined ? false : Boolean(value)}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                onChange(fullPath, e.target.checked);
-              }}
-              color="primary"
-            />
-          }
-          label={label}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '8px', marginBottom: '4px' }}>
+          <Typography variant="body1" style={{ minWidth: '150px' }}>
+            {label}:
+          </Typography>
+          <Checkbox
+            checked={value === undefined ? false : Boolean(value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              onChange(fullPath, e.target.checked);
+            }}
+            color="primary"
+          />
+        </div>
       );
     case 'integer':
     case 'number':
       return (
-        <TextField
-          label={label}
-          helperText={prop.description}
-          value={value === undefined ? '' : value.toString()}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => {
-            const newValue = prop.type === 'integer' 
-              ? parseInt(e.target.value, 10) 
-              : parseFloat(e.target.value);
-            onChange(fullPath, isNaN(newValue) ? '' : newValue);
-          }}
-          type="number"
-          fullWidth
-          margin="normal"
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '8px', marginBottom: '4px' }}>
+          <Typography variant="body1" style={{ minWidth: '150px' }}>{label}:</Typography>
+          <TextField
+            helperText={prop.description}
+            value={value === undefined ? '' : value.toString()}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              const newValue = prop.type === 'integer' 
+                ? parseInt(e.target.value, 10) 
+                : parseFloat(e.target.value);
+              onChange(fullPath, isNaN(newValue) ? '' : newValue);
+            }}
+            type="number"
+            fullWidth
+            margin="dense"
+            style={{ flexGrow: 1 }}
+          />
+        </div>
       );
     default:
       return (
-        <TextField
-          label={label}
-          helperText={prop.description}
-          value={value === undefined ? '' : value.toString()}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(fullPath, e.target.value)}
-          fullWidth
-          margin="normal"
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '8px', marginBottom: '4px' }}>
+          <Typography variant="body1" style={{ minWidth: '150px' }}>{label}:</Typography>
+          <TextField
+            helperText={prop.description}
+            value={value === undefined ? '' : value.toString()}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(fullPath, e.target.value)}
+            fullWidth
+            margin="dense"
+            style={{ flexGrow: 1 }}
+          />
+        </div>
       );
   }
 };
@@ -198,18 +205,18 @@ export const GitOpsManifestUpdaterForm = ({
   onChange,
   formContext,
 }: FieldExtensionComponentProps<JsonObject, FormData>): JSX.Element => {
-  const [loading, setLoading] = React.useState(true);
-  const [schema, setSchema] = React.useState<JsonObject | null>(null);
-  const [formData, setFormData] = React.useState<JsonObject | null>(null);
-  const [error, setError] = React.useState<Error>();
-  const [manualSourceUrl, setManualSourceUrl] = React.useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [schema, setSchema] = useState<JsonObject | null>(null);
+  const [formData, setFormData] = useState<JsonObject | null>(null);
+  const [error, setError] = useState<Error>();
+  const [manualSourceUrl, setManualSourceUrl] = useState<string>('');
 
   const fetchApi = useApi(fetchApiRef);
   const catalogApi = useApi(catalogApiRef);
   const scmIntegrations = useApi(scmIntegrationsApiRef);
   const githubAuth = useApi(githubAuthApiRef);
 
-  const getEntityFromRef = React.useCallback(async (entityRef: string) => {
+  const getEntityFromRef = useCallback(async (entityRef: string) => {
     try {
       const response = await catalogApi.getEntityByRef(entityRef);
       if (!response) {
@@ -221,7 +228,7 @@ export const GitOpsManifestUpdaterForm = ({
     }
   }, [catalogApi]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);

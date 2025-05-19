@@ -1,4 +1,3 @@
-import React from 'react';
 import MyCustomLogoFull from './logo/full-logo.png';
 
 const LogoFull = () => {

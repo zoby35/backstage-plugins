@@ -1,6 +1,6 @@
 {
   "name": "@terasky/backstage-plugin-kyverno-policy-reports",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "license": "Apache-2.0",
@@ -40,17 +40,17 @@
     "@backstage/plugin-kubernetes": "^0.12.6",
     "@backstage/plugin-kubernetes-react": "^0.5.6",
     "@backstage/theme": "^0.6.5",
-    "@material-ui/core": "^4.9.13",
-    "@material-ui/icons": "^4.9.1",
+    "@material-ui/core": "^4.12.4",
+    "@material-ui/icons": "^4.11.3",
     "@material-ui/lab": "^4.0.0-alpha.61",
-    "@terasky/backstage-plugin-kyverno-common": "^1.0.6",
+    "@terasky/backstage-plugin-kyverno-common": "^1.0.7",
     "dagre": "^0.8.5",
     "file-saver": "^2.0.5",
     "js-yaml": "^4.1.0",
     "react-copy-to-clipboard": "^5.1.0",
     "react-json-view": "^1.21.3",
     "react-syntax-highlighter": "^15.6.1",
-    "react-use": "^17.2.4"
+    "react-use": "^17.6.0"
   },
   "peerDependencies": {
     "react": "^16.13.1 || ^17.0.0 || ^18.0.0"
@@ -69,8 +69,8 @@
     "@types/react-copy-to-clipboard": "^5",
     "@types/react-syntax-highlighter": "^15",
     "msw": "^1.0.0",
-    "react": "^16.13.1 || ^17.0.0 || ^18.0.0",
-    "typescript": "^5.7.2"
+    "react": "^18.3.1",
+    "typescript": "^5.8.3"
   },
   "files": [
     "dist"

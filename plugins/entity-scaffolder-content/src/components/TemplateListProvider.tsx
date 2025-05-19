@@ -3,7 +3,7 @@ import {
   EntityListProvider,
   useEntityList,
 } from '@backstage/plugin-catalog-react';
-import React, { PropsWithChildren, useEffect } from 'react';
+import { PropsWithChildren, useEffect } from 'react';
 
 const TemplateListProviderInner = (props: PropsWithChildren<{}>) => {
   const { updateFilters } = useEntityList();

@@ -1,4 +1,3 @@
-import React from 'react';
 import { useDevpod } from '../../hooks/useDevpod';
 import { InfoCard } from '@backstage/core-components';
 import { VisuallyHidden } from '../VisuallyHidden';

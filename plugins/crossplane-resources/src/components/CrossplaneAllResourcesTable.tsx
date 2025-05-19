@@ -1,4 +1,3 @@
-import React from 'react';
 import { Box, Typography } from '@material-ui/core';
 import CrossplaneClaimResourcesTable from './CrossplaneClaimResourcesTable';
 import CrossplaneCompositeResourcesTable from './CrossplaneCompositeResourcesTable';
