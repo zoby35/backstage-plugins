@@ -13723,7 +13723,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@terasky/backstage-plugin-crossplane-resources-frontend@npm:^1.7.6, @terasky/backstage-plugin-crossplane-resources-frontend@workspace:plugins/crossplane-resources":
+"@terasky/backstage-plugin-crossplane-resources-frontend@npm:^1.8.0, @terasky/backstage-plugin-crossplane-resources-frontend@workspace:plugins/crossplane-resources":
   version: 0.0.0-use.local
   resolution: "@terasky/backstage-plugin-crossplane-resources-frontend@workspace:plugins/crossplane-resources"
   dependencies:
@@ -16768,7 +16768,7 @@ __metadata:
     "@material-ui/core": "npm:^4.12.4"
     "@material-ui/icons": "npm:^4.11.3"
     "@playwright/test": "npm:^1.32.3"
-    "@terasky/backstage-plugin-crossplane-resources-frontend": "npm:^1.7.6"
+    "@terasky/backstage-plugin-crossplane-resources-frontend": "npm:^1.8.0"
     "@terasky/backstage-plugin-devpod": "npm:^1.0.11"
     "@terasky/backstage-plugin-entity-scaffolder-content": "npm:^1.0.11"
     "@terasky/backstage-plugin-gitops-manifest-updater": "npm:^1.1.0"
