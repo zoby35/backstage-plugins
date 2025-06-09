@@ -14349,7 +14349,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@terasky/backstage-plugin-devpod@npm:^1.0.12, @terasky/backstage-plugin-devpod@workspace:plugins/devpod-plugin":
+"@terasky/backstage-plugin-devpod@npm:^1.1.0, @terasky/backstage-plugin-devpod@workspace:plugins/devpod-plugin":
   version: 0.0.0-use.local
   resolution: "@terasky/backstage-plugin-devpod@workspace:plugins/devpod-plugin"
   dependencies:
@@ -17293,7 +17293,7 @@ __metadata:
     "@material-ui/icons": "npm:^4.11.3"
     "@playwright/test": "npm:^1.32.3"
     "@terasky/backstage-plugin-crossplane-resources-frontend": "npm:^1.9.0"
-    "@terasky/backstage-plugin-devpod": "npm:^1.0.12"
+    "@terasky/backstage-plugin-devpod": "npm:^1.1.0"
     "@terasky/backstage-plugin-entity-scaffolder-content": "npm:^1.0.12"
     "@terasky/backstage-plugin-gitops-manifest-updater": "npm:^1.2.0"
     "@terasky/backstage-plugin-kubernetes-resources-frontend": "npm:^0.3.6"
