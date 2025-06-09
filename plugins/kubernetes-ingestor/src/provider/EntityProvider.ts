@@ -2313,21 +2313,83 @@ export class KubernetesEntityProvider implements EntityProvider {
     const customAnnotations = this.extractCustomAnnotations(resourceAnnotations, clusterName);
     // Add label selector for XR
     annotations['backstage.io/kubernetes-label-selector'] = `crossplane.io/composite=${xr.metadata.name}`;
-    // Compose entity
+
+    // --- Begin: Config-based naming/namespace logic (copied from claim) ---
+    const namespaceModel = this.config.getOptionalString('kubernetesIngestor.mappings.namespaceModel')?.toLowerCase() || 'default';
+    const nameModel = this.config.getOptionalString('kubernetesIngestor.mappings.nameModel')?.toLowerCase() || 'name';
+    const titleModel = this.config.getOptionalString('kubernetesIngestor.mappings.titleModel')?.toLowerCase() || 'name';
+    const systemModel = this.config.getOptionalString('kubernetesIngestor.mappings.systemModel')?.toLowerCase() || 'namespace';
+    const referencesNamespaceModel = this.config.getOptionalString('kubernetesIngestor.mappings.referencesNamespaceModel')?.toLowerCase() || 'default';
+
+    let systemValue = '';
+    let namespaceValue = '';
+    let nameValue = '';
+    let titleValue = '';
+    let referencesNamespaceValue = '';
+
+    if (namespaceModel === 'cluster') {
+      namespaceValue = clusterName;
+    } else if (namespaceModel === 'namespace') {
+      namespaceValue = xr.metadata.namespace || 'default';
+    } else {
+      namespaceValue = 'default';
+    }
+    if (referencesNamespaceModel === 'same') {
+      referencesNamespaceValue = xr.metadata.namespace || 'default';
+    } else if (referencesNamespaceModel === 'default') {
+      referencesNamespaceValue = 'default';
+    }
+    if (nameModel === 'name-cluster') {
+      nameValue = `${xr.metadata.name}-${clusterName}`;
+    } else if (nameModel === 'name-namespace') {
+      if (xr.metadata.namespace) {
+        nameValue = `${xr.metadata.name}-${xr.metadata.namespace}`;
+      } else {
+        nameValue = `${xr.metadata.name}`;
+      }
+    } else {
+      nameValue = xr.metadata.name;
+    }
+    if (titleModel === 'name-cluster') {
+      titleValue = `${xr.metadata.name}-${clusterName}`;
+    } else if (titleModel === 'name-namespace') {
+      if (xr.metadata.namespace) {
+        titleValue = `${xr.metadata.name}-${xr.metadata.namespace}`;
+      } else {
+        titleValue = `${xr.metadata.name}`;
+      }
+    } else {
+      titleValue = xr.metadata.name;
+    }
+    if (systemModel === 'cluster') {
+      systemValue = clusterName;
+    } else if (systemModel === 'namespace') {
+      systemValue = xr.metadata.namespace || 'default';
+    } else if (systemModel === 'cluster-namespace') {
+      if (xr.metadata.namespace) {
+        systemValue = `${clusterName}-${xr.metadata.namespace}`;
+      } else {
+        systemValue = `${clusterName}`;
+      }
+    } else {
+      systemValue = 'default';
+    }
+    // --- End: Config-based naming/namespace logic ---
+
     const entity: Entity = {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Component',
       metadata: {
-        name: `${xr.metadata.name}-${clusterName}`,
-        title: xr.metadata.name,
+        name: nameValue,
+        title: titleValue,
         description: `${kind} ${xr.metadata.name} from ${clusterName}`,
         tags: [`cluster:${clusterName}`, `kind:${kind}`, 'crossplane-xr'],
-        namespace: xr.metadata.namespace || 'default',
+        namespace: namespaceValue,
         links: this.parseBackstageLinks(xr.metadata.annotations || {}),
         annotations: {
-            ...Object.fromEntries(
-              Object.entries(annotations).filter(([key]) => key !== `${prefix}/links`)
-            ),
+          ...Object.fromEntries(
+            Object.entries({ ...xr.metadata.annotations, ...annotations }).filter(([key]) => key !== `${prefix}/links`)
+          ),
           'backstage.io/kubernetes-cluster': clusterName,
           ...customAnnotations,
         },
@@ -2336,7 +2398,8 @@ export class KubernetesEntityProvider implements EntityProvider {
         type: 'crossplane-xr',
         lifecycle: annotations[`${prefix}/lifecycle`] || 'production',
         owner: annotations[`${prefix}/owner`] || 'kubernetes-auto-ingested',
-        system: annotations[`${prefix}/system`] || 'default',
+        system: annotations[`${prefix}/system`] || `${referencesNamespaceValue}/${systemValue}`,
+        consumesApis: [`${referencesNamespaceValue}/${xr.kind}-${xr.apiVersion.split('/').join('--')}`],
       },
     };
     // Log the full composite entity YAML for debugging
