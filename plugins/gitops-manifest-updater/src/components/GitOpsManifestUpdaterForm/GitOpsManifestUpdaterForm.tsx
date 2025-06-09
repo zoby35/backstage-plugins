@@ -38,6 +38,62 @@ type SchemaProperty = {
   items?: SchemaProperty;
   format?: string;
   enum?: any[];
+  additionalProperties?: any;
+};
+
+const crossplaneFields = [
+  'claimRef',
+  'compositionRef',
+  'compositionRevisionRef',
+  'compositionRevisionSelector',
+  'compositionSelector',
+  'compositionUpdatePolicy',
+  'publishConnectionDetailsTo',
+  'writeConnectionSecretToRef',
+];
+
+const KeyValueEditor = ({ value, onChange }: { value: Record<string, string>, onChange: (kv: Record<string, string>) => void }) => {
+  const [entries, setEntries] = useState(Object.entries(value || {}));
+
+  const handleChange = (idx: number, key: string, val: string) => {
+    const newEntries = [...entries];
+    newEntries[idx] = [key, val];
+    setEntries(newEntries);
+    onChange(Object.fromEntries(newEntries.filter(([k]) => k)));
+  };
+
+  const handleAdd = () => {
+    setEntries([...entries, ['', '']]);
+  };
+
+  const handleRemove = (idx: number) => {
+    const newEntries = entries.filter((_, i) => i !== idx);
+    setEntries(newEntries);
+    onChange(Object.fromEntries(newEntries.filter(([k]) => k)));
+  };
+
+  return (
+    <div>
+      {entries.map(([k, v], idx) => (
+        <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+          <TextField
+            label="Key"
+            value={k}
+            onChange={e => handleChange(idx, e.target.value, v)}
+            size="small"
+          />
+          <TextField
+            label="Value"
+            value={v}
+            onChange={e => handleChange(idx, k, e.target.value)}
+            size="small"
+          />
+          <button onClick={() => handleRemove(idx)} type="button">Remove</button>
+        </div>
+      ))}
+      <button onClick={handleAdd} type="button">Add</button>
+    </div>
+  );
 };
 
 const RenderField = ({
@@ -53,6 +109,23 @@ const RenderField = ({
   fullPath: string;
   onChange: (path: string, value: any) => void;
 }) => {
+  // Render map fields (object with additionalProperties and no properties)
+  if (
+    prop.type === 'object' &&
+    prop.additionalProperties &&
+    !prop.properties
+  ) {
+    return (
+      <div style={{ marginTop: 8, marginBottom: 4 }}>
+        <Typography variant="body1" style={{ minWidth: '150px' }}>{label}:</Typography>
+        <KeyValueEditor
+          value={value || {}}
+          onChange={kv => onChange(fullPath, kv)}
+        />
+      </div>
+    );
+  }
+
   if (prop.enum) {
     return (
       <FormControl fullWidth margin="normal">
@@ -137,32 +210,155 @@ const RenderFields = ({
   formData,
   parentPath = '',
   onFieldChange,
+  showCrossplaneSettings,
+  hasCrossplane,
+  crossplaneFieldsPresent,
+  renderToggleCheckbox,
+  onToggleCheckbox,
+  isTopLevel = false,
 }: {
   schema: Record<string, SchemaProperty>;
   formData: JsonObject;
   parentPath?: string;
   onFieldChange: (path: string, value: any) => void;
+  showCrossplaneSettings?: boolean;
+  hasCrossplane?: boolean;
+  crossplaneFieldsPresent?: boolean;
+  renderToggleCheckbox?: boolean;
+  onToggleCheckbox?: (checked: boolean) => void;
+  isTopLevel?: boolean;
 }) => {
   const getNestedValue = (data: JsonObject, path: string): any => {
     if (!path) return data;
-    
     const parts = path.split('.');
     let current: any = data;
-    
     for (const part of parts) {
       if (current === null || current === undefined) return undefined;
       current = current[part];
     }
-    
     return current;
   };
 
+  if (isTopLevel) {
+    // At the root, split fields for toggle logic
+    const alwaysVisibleFields: [string, SchemaProperty][] = [];
+    const toggleFields: [string, SchemaProperty][] = [];
+    Object.entries(schema).forEach(([key, prop]) => {
+      if (key === 'resourceRefs') return; // never render
+      if (key === 'crossplane' || crossplaneFields.includes(key)) {
+        toggleFields.push([key, prop]);
+      } else {
+        alwaysVisibleFields.push([key, prop]);
+      }
+    });
+    return (
+      <>
+        {/* Render always visible fields */}
+        {alwaysVisibleFields.map(([key, prop]) => {
+          const fullPath = parentPath ? `${parentPath}.${key}` : key;
+          const value = getNestedValue(formData, fullPath);
+          if (prop.type === 'object' && prop.properties) {
+            return (
+              <div key={key}>
+                <Typography variant="subtitle1" style={{ marginTop: '16px' }}>
+                  {prop.title || key}
+                </Typography>
+                {prop.description && (
+                  <Typography variant="body2" color="textSecondary">
+                    {prop.description}
+                  </Typography>
+                )}
+                <div style={{ marginLeft: '16px' }}>
+                  <RenderFields
+                    schema={prop.properties}
+                    formData={formData}
+                    parentPath={fullPath}
+                    onFieldChange={onFieldChange}
+                    showCrossplaneSettings={showCrossplaneSettings}
+                    hasCrossplane={hasCrossplane}
+                    crossplaneFieldsPresent={crossplaneFieldsPresent}
+                    isTopLevel={false}
+                  />
+                </div>
+              </div>
+            );
+          }
+          return (
+            <RenderField
+              key={fullPath}
+              prop={prop}
+              value={value}
+              label={prop.title || key}
+              fullPath={fullPath}
+              onChange={onFieldChange}
+            />
+          );
+        })}
+        {/* Render the toggle checkbox if needed (only at top level) */}
+        {renderToggleCheckbox && onToggleCheckbox && (
+          <FormControl margin="normal" fullWidth>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+              <Checkbox
+                checked={!!showCrossplaneSettings}
+                onChange={e => onToggleCheckbox(e.target.checked)}
+                color="primary"
+              />
+              <Typography variant="body1">Show Crossplane Settings</Typography>
+            </div>
+          </FormControl>
+        )}
+        {/* Render toggle-controlled fields if toggle is on */}
+        {showCrossplaneSettings && toggleFields.map(([key, prop]) => {
+          const fullPath = parentPath ? `${parentPath}.${key}` : key;
+          const value = getNestedValue(formData, fullPath);
+          if (prop.type === 'object' && prop.properties) {
+            return (
+              <div key={key}>
+                <Typography variant="subtitle1" style={{ marginTop: '16px' }}>
+                  {prop.title || key}
+                </Typography>
+                {prop.description && (
+                  <Typography variant="body2" color="textSecondary">
+                    {prop.description}
+                  </Typography>
+                )}
+                <div style={{ marginLeft: '16px' }}>
+                  <RenderFields
+                    schema={prop.properties}
+                    formData={formData}
+                    parentPath={fullPath}
+                    onFieldChange={onFieldChange}
+                    showCrossplaneSettings={showCrossplaneSettings}
+                    hasCrossplane={hasCrossplane}
+                    crossplaneFieldsPresent={crossplaneFieldsPresent}
+                    isTopLevel={false}
+                  />
+                </div>
+              </div>
+            );
+          }
+          return (
+            <RenderField
+              key={fullPath}
+              prop={prop}
+              value={value}
+              label={prop.title || key}
+              fullPath={fullPath}
+              onChange={onFieldChange}
+            />
+          );
+        })}
+      </>
+    );
+  }
+
+  // For nested objects, just skip resourceRefs
   return (
     <>
       {Object.entries(schema).map(([key, prop]) => {
+        if (key === 'resourceRefs') return null;
         const fullPath = parentPath ? `${parentPath}.${key}` : key;
         const value = getNestedValue(formData, fullPath);
-
         if (prop.type === 'object' && prop.properties) {
           return (
             <div key={key}>
@@ -180,12 +376,15 @@ const RenderFields = ({
                   formData={formData}
                   parentPath={fullPath}
                   onFieldChange={onFieldChange}
+                  showCrossplaneSettings={showCrossplaneSettings}
+                  hasCrossplane={hasCrossplane}
+                  crossplaneFieldsPresent={crossplaneFieldsPresent}
+                  isTopLevel={false}
                 />
               </div>
             </div>
           );
         }
-
         return (
           <RenderField
             key={fullPath}
@@ -210,6 +409,7 @@ export const GitOpsManifestUpdaterForm = ({
   const [formData, setFormData] = useState<JsonObject | null>(null);
   const [error, setError] = useState<Error>();
   const [manualSourceUrl, setManualSourceUrl] = useState<string>('');
+  const [showCrossplaneSettings, setShowCrossplaneSettings] = useState(false);
 
   const fetchApi = useApi(fetchApiRef);
   const catalogApi = useApi(catalogApiRef);
@@ -365,6 +565,15 @@ export const GitOpsManifestUpdaterForm = ({
     onChange(newFormData);
   };
 
+  // Determine if crossplane toggle should be shown
+  let hasCrossplane = false;
+  let crossplaneFieldsPresent = false;
+  if (schema && schema['crossplane']) {
+    hasCrossplane = true;
+  } else if (schema) {
+    crossplaneFieldsPresent = crossplaneFields.some(f => Object.keys(schema).includes(f));
+  }
+
   if (loading) {
     return <Progress />;
   }
@@ -391,6 +600,12 @@ export const GitOpsManifestUpdaterForm = ({
             schema={schema as Record<string, SchemaProperty>}
             formData={formData}
             onFieldChange={handleFieldChange}
+            showCrossplaneSettings={showCrossplaneSettings}
+            hasCrossplane={hasCrossplane}
+            crossplaneFieldsPresent={crossplaneFieldsPresent}
+            renderToggleCheckbox={hasCrossplane || crossplaneFieldsPresent}
+            onToggleCheckbox={setShowCrossplaneSettings}
+            isTopLevel={true}
           />
         </FormControl>
       )}
