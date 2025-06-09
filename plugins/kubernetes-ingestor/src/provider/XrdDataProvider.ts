@@ -132,6 +132,7 @@ export class XrdDataProvider {
         }
 
         try {
+          // Fetch all XRDs
           const objectTypesToFetch: Set<ObjectToFetch> = new Set([
             {
               group: 'apiextensions.crossplane.io',
@@ -156,18 +157,43 @@ export class XrdDataProvider {
             customResources: [],
           });
 
+          // Fetch all CRDs ONCE for this cluster
+          const crdObjects = await fetcher.fetchObjectsForService({
+            serviceId: 'crdServiceId',
+            clusterDetails: cluster,
+            credential,
+            objectTypesToFetch: new Set([
+              {
+                group: 'apiextensions.k8s.io',
+                apiVersion: 'v1',
+                plural: 'customresourcedefinitions',
+                objectType: 'customresources' as KubernetesObjectTypes,
+              },
+            ]),
+            labelSelector: '',
+            customResources: [],
+          });
+          const crdMap = new Map(
+            crdObjects.responses
+              .flatMap((response: any) => response.resources)
+              .map((crd: any) => [crd.metadata.name, crd])
+          );
+
           const fetchedResources = fetchedObjects.responses.flatMap(response =>
             response.resources.map(resource => {
               // Detect Crossplane version and scope
               const isV2 = !!resource.spec?.scope;
               const crossplaneVersion = isV2 ? 'v2' : 'v1';
               const scope = resource.spec?.scope || (isV2 ? 'LegacyCluster' : 'Cluster');
+              // Attach the generated CRD if present
+              const generatedCRD = crdMap.get(resource.metadata.name);
               return {
                 ...resource,
                 clusterName: cluster.name,
                 clusterEndpoint: cluster.url,
                 crossplaneVersion,
                 scope,
+                generatedCRD,
               };
             })
           );
@@ -261,6 +287,7 @@ export class XrdDataProvider {
                   { name: xrd.clusterName, url: xrd.clusterEndpoint },
                 ],
                 compositions: [],
+                generatedCRD: xrd.generatedCRD, // Attach the generated CRD if present
               });
             } else {
               const existingXrd = xrdMap.get(xrdName);

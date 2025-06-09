@@ -110,6 +110,9 @@ export class XRDTemplateEntityProvider implements EntityProvider {
 
       let allEntities: Entity[] = [];
 
+      // Fetch all CRDs once
+      const crdData = await crdDataProvider.fetchCRDObjects();
+
       if (this.config.getOptionalBoolean('kubernetesIngestor.crossplane.xrds.enabled')) {
         const xrdData = await templateDataProvider.fetchXRDObjects();
         const xrdEntities = xrdData.flatMap(xrd => this.translateXRDVersionsToTemplates(xrd));
@@ -118,7 +121,6 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       }
 
       // Add CRD template generation
-      const crdData = await crdDataProvider.fetchCRDObjects();
       const crdEntities = crdData.flatMap(crd => this.translateCRDToTemplate(crd));
       const CRDAPIEntities = crdData.flatMap(crd => this.translateCRDVersionsToAPI(crd));
       allEntities = allEntities.concat(crdEntities, CRDAPIEntities);
@@ -273,6 +275,16 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       : (xrd.spec.names?.kind || xrd.metadata.name);
 
     const apis = xrd.spec.versions.map((version: any = {}) => {
+      // Use the generated CRD's schema if present, otherwise fallback to XRD schema
+      let crdSchemaProps = undefined;
+      if (xrd.generatedCRD) {
+        const crdVersion = xrd.generatedCRD.spec.versions.find((v: any) => v.name === version.name) ||
+                           xrd.generatedCRD.spec.versions.find((v: any) => v.storage) ||
+                           xrd.generatedCRD.spec.versions[0];
+        crdSchemaProps = crdVersion?.schema?.openAPIV3Schema?.properties;
+      }
+      const schemaProps = crdSchemaProps || version.schema.openAPIV3Schema.properties;
+
       let xrdOpenAPIDoc: any = {};
       xrdOpenAPIDoc.openapi = "3.0.0";
       xrdOpenAPIDoc.info = {
@@ -439,7 +451,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
         schemas: {
           Resource: {
             type: "object",
-            properties: version.schema.openAPIV3Schema.properties
+            properties: schemaProps
           }
         },
         securitySchemes: {
@@ -475,8 +487,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
           definition: yaml.dump(xrdOpenAPIDoc),
         },
       };
-    }
-    );
+    });
 
     // Filter out invalid APIs
     return apis.filter((api: Entity) => this.validateEntityName(api));
