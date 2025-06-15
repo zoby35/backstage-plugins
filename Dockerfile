@@ -10,8 +10,8 @@ LABEL org.opencontainers.image.source="https://github.com/TeraSky-OSS/backstage-
 LABEL org.opencontainers.image.licenses=Apache-2.0
 LABEL org.opencontainers.image.description="Demo App for TeraSky OSS Backstage Plugins"
 
-ENV NODE_VERSION 20=~20.19
-ENV PYTHON_VERSION 3.12=~3.12
+ENV NODE_VERSION=20
+ENV PYTHON_VERSION=3.12
 
 RUN apk add nodejs-$NODE_VERSION yarn
 
@@ -31,7 +31,7 @@ WORKDIR /app
 RUN chown nonroot:nonroot /app
 USER nonroot
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 COPY --chown=nonroot:nonroot .yarn ./.yarn
 COPY --chown=nonroot:nonroot .yarnrc.yml ./
@@ -49,4 +49,3 @@ RUN tar xzf bundle.tar.gz && rm bundle.tar.gz
 
 ENTRYPOINT ["tini", "--"]
 CMD ["node", "packages/backend", "--config", "app-config.yaml"]
-
