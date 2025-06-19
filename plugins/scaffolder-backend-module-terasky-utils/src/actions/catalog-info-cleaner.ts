@@ -4,48 +4,35 @@ import yaml from 'js-yaml';
 import fs from 'fs-extra';
 
 export function createCatalogInfoCleanerAction() {
-    return createTemplateAction<{
-        entity: Record<string, any>;
-    }>({
+    return createTemplateAction({
         id: 'terasky:catalog-info-cleaner',
         description: 'Templates a claim manifest based on input parameters',
         schema: {
             input: {
-                type: 'object',
-                properties: {
-                    entity: {
-                        title: 'Pass through of entity object',
-                        description: "Pass through of entity object",
-                        type: 'object',
-                    },
-                },
+                entity: z => z.record(z.any()).describe('Pass through of entity object'),
             },
             output: {
-                type: 'object',
-                properties: {
-                    manifest: {
-                        title: 'Manifest',
-                        description: 'The templated Kubernetes resource manifest',
-                        type: 'string',
-                    },
-                    filePath: {
-                        title: 'path',
-                        description: 'The file path of the written manifests',
-                        type: 'string',
-                    },
-                },
+                manifest: z => z.string().describe('The templated Kubernetes resource manifest'),
+                filePath: z => z.string().describe('The file path of the written manifests'),
             },
         },
         async handler(ctx) {
             ctx.logger.info(
                 `Running example template with parameters: ${JSON.stringify(ctx.input.entity)}`,
             );
-            const manifest = ctx.input.entity;
+            const manifest = ctx.input.entity as Record<string, any> | undefined;
+            if (!manifest || typeof manifest !== 'object') {
+                throw new Error('Invalid or missing entity object');
+            }
             // Remove the metadata.uid field from the entity
-            delete manifest.metadata.uid;
-            delete manifest.metadata.etag;
-            delete manifest.metadata.annotations['backstage.io/managed-by-location'];
-            delete manifest.metadata.annotations['backstage.io/managed-by-origin-location'];
+            if (manifest.metadata) {
+                delete manifest.metadata.uid;
+                delete manifest.metadata.etag;
+                if (manifest.metadata.annotations) {
+                    delete manifest.metadata.annotations['backstage.io/managed-by-location'];
+                    delete manifest.metadata.annotations['backstage.io/managed-by-origin-location'];
+                }
+            }
             delete manifest.relations;
 
             // Construct the YAML with the specific structure
@@ -53,16 +40,16 @@ export function createCatalogInfoCleanerAction() {
                 apiVersion: manifest.apiVersion,
                 kind: manifest.kind,
                 metadata: {
-                    name: manifest.metadata.name,
-                    namespace: manifest.metadata.namespace,
-                    annotations: manifest.metadata.annotations,
+                    name: manifest.metadata?.name,
+                    namespace: manifest.metadata?.namespace,
+                    annotations: manifest.metadata?.annotations,
                     ...manifest.metadata,
                 },
                 spec: {
-                    type: manifest.spec.type,
-                    system: manifest.spec.system,
-                    owner: manifest.spec.owner,
-                    lifecycle: manifest.spec.lifecycle,
+                    type: manifest.spec?.type,
+                    system: manifest.spec?.system,
+                    owner: manifest.spec?.owner,
+                    lifecycle: manifest.spec?.lifecycle,
                     ...manifest.spec,
                 },
             });
