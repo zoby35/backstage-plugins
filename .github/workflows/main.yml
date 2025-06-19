@@ -33,4 +33,5 @@ jobs:
       - run: yarn workspaces foreach -W --include 'plugins/**' run build
       - run: yarn tsc
       - run: yarn test
+      - run yarn dedupe
       - run: yarn build
