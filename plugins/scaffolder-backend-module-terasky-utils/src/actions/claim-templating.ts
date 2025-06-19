@@ -3,113 +3,38 @@ import { resolveSafeChildPath } from '@backstage/backend-plugin-api';
 import yaml from 'js-yaml';
 import fs from 'fs-extra';
 import path from 'path';
-
 export function createCrossplaneClaimAction({config}: {config: any}) {
-  return createTemplateAction<{
-    parameters: Record<string, any>;
-    nameParam: string;
-    namespaceParam: string;
-    excludeParams: string[];
-    apiVersion: string;
-    kind: string;
-    clusters: string[];
-    removeEmptyParams?: boolean;
-    ownerParam: string;
-  }>({
+  return createTemplateAction({
     id: 'terasky:claim-template',
     description: 'Templates a claim manifest based on input parameters',
     schema: {
       input: {
-        type: 'object',
-        required: ['parameters', 'nameParam', 'excludeParams', 'apiVersion', 'kind', 'clusters'],
-        properties: {
-          parameters: {
-            title: 'Pass through of input parameters',
-            description: "Pass through of input parameters",
-            type: 'object',
-          },
-          nameParam: {
-            title: 'Template parameter to map to the name of the claim',
-            description: "Template parameter to map to the name of the claim",
-            type: 'string',
-            default: 'xrName'
-          },
-          namespaceParam: {
-            title: 'Template parameter to map to the namespace of the claim',
-            description: "Template parameter to map to the namespace of the claim",
-            type: 'string',
-            default: 'xrNamespace'
-          },
-          excludeParams: { 
-            title: 'Template parameters to exclude from the claim',
-            description: "Template parameters to exclude from the claim",
-            type: 'array',
-            items: {
-              type: 'string',
-            },
-            default: ['xrName', 'xrNamespace', 'clusters', 'targetBranch', 'repoUrl', '_editData']
-          },
-          apiVersion: {
-            title: 'API Version of the claim',
-            description: "API Version of the claim",
-            type: 'string',
-          },
-          kind: {
-            title: 'Kind of the claim',
-            description: "Kind of the claim",
-            type: 'string',
-          },
-          clusters: {
-            title: 'Target clusters',
-            description: 'The target clusters to apply the resource to',
-            type: 'array',
-            items: {
-              type: 'string',
-            },
-            minItems: 1,
-          },
-          removeEmptyParams: {
-            title: 'Remove Empty Parameters',
-            description: 'If set to false, empty parameters will be rendered in the manifest. by default they are removed',
-            type: 'boolean',
-            default: true,
-          },
-          ownerParam: {
-            title: 'Template parameter to map to the owner of the claim',
-            description: "Template parameter to map to the owner of the claim",
-            type: 'string',
-          },
-        },
+        parameters: z => z.record(z.any()).describe('Pass through of input parameters'),
+        nameParam: z => z.string().describe('Template parameter to map to the name of the claim').default('xrName'),
+        namespaceParam: z => z.string().describe('Template parameter to map to the namespace of the claim').default('xrNamespace'),
+        excludeParams: z => z.array(z.string()).describe('Template parameters to exclude from the claim').default(['xrName', 'xrNamespace', 'clusters', 'targetBranch', 'repoUrl', '_editData']),
+        apiVersion: z => z.string().describe('API Version of the claim'),
+        kind: z => z.string().describe('Kind of the claim'),
+        clusters: z => z.array(z.string()).min(1).describe('The target clusters to apply the resource to'),
+        removeEmptyParams: z => z.boolean().describe('If set to false, empty parameters will be rendered in the manifest. by default they are removed').default(true),
+        ownerParam: z => z.string().describe('Template parameter to map to the owner of the claim'),
       },
       output: {
-        type: 'object',
-        properties: {
-          manifest: {
-            title: 'Manifest',
-            description: 'The templated Kubernetes resource manifest',
-            type: 'string',
-          },
-          filePaths: {
-            title: 'File paths',
-            description: 'The file paths of the written manifests',
-            type: 'array',
-            items: {
-              type: 'string',
-            },
-          },
-        },
+        manifest: z => z.string().describe('The templated Kubernetes resource manifest'),
+        filePaths: z => z.array(z.string()).describe('The file paths of the written manifests'),
       },
     },
     async handler(ctx) {
+      const input = ctx.input;
       ctx.logger.info(
-        `Running example template with parameters: ${JSON.stringify(ctx.input.parameters)}`,
+        `Running example template with parameters: ${JSON.stringify(input.parameters)}`,
       );
-      if (ctx.input.parameters[ctx.input.nameParam] === 'foo') {
+      if (input.parameters[input.nameParam] === 'foo') {
         throw new Error(`myParameter cannot be 'foo'`);
       }
 
       // Remove excluded parameters
-      const filteredParameters = { ...ctx.input.parameters };
+      const filteredParameters = { ...input.parameters };
       // Helper to delete nested keys using dot notation
       function deleteNested(obj: any, path: string) {
         const parts = path.split('.');
@@ -120,12 +45,12 @@ export function createCrossplaneClaimAction({config}: {config: any}) {
         }
         delete current[parts[parts.length - 1]];
       }
-      ctx.input.excludeParams.forEach(param => {
+      input.excludeParams.forEach((param: string) => {
         deleteNested(filteredParameters, param);
       });
 
       // Remove empty parameters if removeEmptyParams is true
-      if (ctx.input.removeEmptyParams) {
+      if (input.removeEmptyParams) {
         const removeEmpty = (obj: any) => {
           Object.keys(obj).forEach(key => {
             if (obj[key] && typeof obj[key] === 'object') {
@@ -141,35 +66,35 @@ export function createCrossplaneClaimAction({config}: {config: any}) {
         removeEmpty(filteredParameters);
       }
       const sourceInfo = {
-        pushToGit: ctx.input.parameters.pushToGit,
-        gitBranch: ctx.input.parameters.targetBranch || config.getOptionalString('kubernetesIngestor.crossplane.xrds.publishPhase.git.targetBranch'),
-        gitRepo: ctx.input.parameters.repoUrl || config.getOptionalString('kubernetesIngestor.crossplane.xrds.publishPhase.git.repoUrl'),
-        gitLayout: ctx.input.parameters.manifestLayout,
-        basePath: ctx.input.parameters.manifestLayout === 'custom' 
-          ? ctx.input.parameters.basePath 
-          : ctx.input.parameters.manifestLayout === 'namespace-scoped'
-            ? `${ctx.input.parameters[ctx.input.namespaceParam]}`
-            : `${ctx.input.clusters[0]}/${ctx.input.parameters[ctx.input.namespaceParam]}/${ctx.input.kind}`
+        pushToGit: (input.parameters as any).pushToGit,
+        gitBranch: (input.parameters as any).targetBranch || config.getOptionalString('kubernetesIngestor.crossplane.xrds.publishPhase.git.targetBranch'),
+        gitRepo: (input.parameters as any).repoUrl || config.getOptionalString('kubernetesIngestor.crossplane.xrds.publishPhase.git.repoUrl'),
+        gitLayout: (input.parameters as any).manifestLayout,
+        basePath: (input.parameters as any).manifestLayout === 'custom' 
+          ? (input.parameters as any).basePath 
+          : (input.parameters as any).manifestLayout === 'namespace-scoped'
+            ? `${(input.parameters as any)[input.namespaceParam]}`
+            : `${input.clusters[0]}/${(input.parameters as any)[input.namespaceParam]}/${input.kind}`
       }
 
       // Write the manifest to the file system for each cluster
       const filePaths: string[] = [];
       let manifestYaml = '';
-      ctx.input.clusters.forEach(cluster => {
-        const namespaceOrDefault = ctx.input.parameters[ctx.input.namespaceParam] && ctx.input.parameters[ctx.input.namespaceParam] !== ''
-          ? ctx.input.parameters[ctx.input.namespaceParam]
+      input.clusters.forEach((cluster: string) => {
+        const namespaceOrDefault = (input.parameters as any)[input.namespaceParam] && (input.parameters as any)[input.namespaceParam] !== ''
+          ? (input.parameters as any)[input.namespaceParam]
           : 'cluster-scoped';
         const filePath = path.join(
           cluster,
           namespaceOrDefault,
-          ctx.input.kind,
-          `${ctx.input.parameters[ctx.input.nameParam]}.yaml`
+          input.kind,
+          `${(input.parameters as any)[input.nameParam]}.yaml`
         );
         const destFilepath = resolveSafeChildPath(ctx.workspacePath, filePath);
 
         // Generate the correct sourceFileUrl for this cluster
         let sourceFileUrl = '';
-        if (ctx.input.parameters.pushToGit && sourceInfo.gitRepo) {
+        if ((input.parameters as any).pushToGit && sourceInfo.gitRepo) {
           const gitUrl = new URL("https://" + sourceInfo.gitRepo);
           const owner = gitUrl.searchParams.get('owner');
           const repo = gitUrl.searchParams.get('repo');
@@ -180,18 +105,18 @@ export function createCrossplaneClaimAction({config}: {config: any}) {
 
         // Create the manifest with the correct annotation for this cluster
         const manifest = {
-          apiVersion: ctx.input.apiVersion,
-          kind: ctx.input.kind,
+          apiVersion: input.apiVersion,
+          kind: input.kind,
           metadata: {
             annotations: {
               'terasky.backstage.io/source-info': JSON.stringify(sourceInfo),
               'terasky.backstage.io/add-to-catalog': "true",
-              'terasky.backstage.io/owner': ctx.input.parameters[ctx.input.ownerParam],
-              'terasky.backstage.io/system': ctx.input.parameters[ctx.input.namespaceParam],
+              'terasky.backstage.io/owner': (input.parameters as any)[input.ownerParam],
+              'terasky.backstage.io/system': (input.parameters as any)[input.namespaceParam],
               ...(sourceFileUrl && { 'terasky.backstage.io/source-file-url': sourceFileUrl }),
             },
-            name: ctx.input.parameters[ctx.input.nameParam],
-            ...(ctx.input.parameters[ctx.input.namespaceParam] && ctx.input.parameters[ctx.input.namespaceParam] !== '' ? { namespace: ctx.input.parameters[ctx.input.namespaceParam] } : {}),
+            name: (input.parameters as any)[input.nameParam],
+            ...((input.parameters as any)[input.namespaceParam] && (input.parameters as any)[input.namespaceParam] !== '' ? { namespace: (input.parameters as any)[input.namespaceParam] } : {}),
           },
           spec: filteredParameters,
         };

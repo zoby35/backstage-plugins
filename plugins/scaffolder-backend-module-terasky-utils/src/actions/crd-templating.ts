@@ -5,114 +5,40 @@ import fs from 'fs-extra';
 import path from 'path';
 
 export function createCrdTemplateAction({config}: {config: any}) {
-  return createTemplateAction<{
-    ownerParam: any;
-    parameters: Record<string, any>;
-    nameParam: string;
-    namespaceParam?: string;
-    excludeParams: string[];
-    apiVersion: string;
-    kind: string;
-    removeEmptyParams?: boolean;
-    clusters: string[];
-  }>({
+  return createTemplateAction({
     id: 'terasky:crd-template',
     description: 'Templates a CRD manifest based on input parameters',
     schema: {
       input: {
-        type: 'object',
-        required: ['parameters', 'nameParam', 'excludeParams', 'apiVersion', 'kind'],
-        properties: {
-          parameters: {
-            title: 'Pass through of input parameters',
-            description: "Pass through of input parameters",
-            type: 'object',
-          },
-          nameParam: {
-            title: 'Template parameter to map to the name of the resource',
-            description: "Template parameter to map to the name of the resource",
-            type: 'string',
-            default: 'name'
-          },
-          namespaceParam: {
-            title: 'Template parameter to map to the namespace of the resource',
-            description: "Template parameter to map to the namespace of the resource",
-            type: 'string',
-            default: 'namespace'
-          },
-          excludeParams: { 
-            title: 'Template parameters to exclude from the manifest',
-            description: "Template parameters to exclude from the manifest",
-            type: 'array',
-            items: {
-              type: 'string',
-            },
-            default: ['_editData']
-          },
-          apiVersion: {
-            title: 'API Version of the resource',
-            description: "API Version of the resource",
-            type: 'string',
-          },
-          kind: {
-            title: 'Kind of the resource',
-            description: "Kind of the resource",
-            type: 'string',
-          },
-          removeEmptyParams: {
-            title: 'Remove Empty Parameters',
-            description: 'If set to false, empty parameters will be rendered in the manifest. by default they are removed',
-            type: 'boolean',
-            default: true,
-          },
-          clusters: {
-            title: 'Target Clusters',
-            description: 'List of clusters to generate manifests for',
-            type: 'array',
-            items: {
-              type: 'string',
-            },
-            minItems: 1,
-          },
-          ownerParam: {
-            title: 'Template parameter to map to the owner of the claim',
-            description: "Template parameter to map to the owner of the claim",
-            type: 'string',
-          },
-        },
+        ownerParam: z => z.any(),
+        parameters: z => z.record(z.any()),
+        nameParam: z => z.string(),
+        namespaceParam: z => z.string().optional(),
+        excludeParams: z => z.array(z.string()),
+        apiVersion: z => z.string(),
+        kind: z => z.string(),
+        removeEmptyParams: z => z.boolean().optional(),
+        clusters: z => z.array(z.string()).min(1),
       },
       output: {
-        type: 'object',
-        properties: {
-          manifest: {
-            title: 'Manifest',
-            description: 'The templated Kubernetes resource manifest',
-            type: 'string',
-          },
-          filePaths: {
-            title: 'File paths',
-            description: 'The file paths of the written manifests',
-            type: 'array',
-            items: {
-              type: 'string',
-            },
-          },
-        },
+        manifest: z => z.string(),
+        filePaths: z => z.array(z.string()),
       },
     },
     async handler(ctx) {
+      const input = ctx.input;
       ctx.logger.info(
-        `Running CRD template with parameters: ${JSON.stringify(ctx.input.parameters)}`,
+        `Running CRD template with parameters: ${JSON.stringify(input.parameters)}`,
       );
 
       // Remove excluded parameters
-      const filteredParameters = { ...ctx.input.parameters };
-      ctx.input.excludeParams.forEach(param => {
+      const filteredParameters = { ...input.parameters };
+      input.excludeParams.forEach((param: string) => {
         delete filteredParameters[param];
       });
 
       // Remove empty parameters if removeEmptyParams is true
-      if (ctx.input.removeEmptyParams) {
+      if (input.removeEmptyParams) {
         const removeEmpty = (obj: any) => {
           Object.keys(obj).forEach(key => {
             if (obj[key] && typeof obj[key] === 'object') {
@@ -128,39 +54,39 @@ export function createCrdTemplateAction({config}: {config: any}) {
         removeEmpty(filteredParameters);
       }
       const sourceInfo = {
-        pushToGit: ctx.input.parameters.pushToGit,
-        gitBranch: ctx.input.parameters.targetBranch || config.getOptionalString('kubernetesIngestor.crossplane.xrds.publishPhase.git.targetBranch'),
-        gitRepo: ctx.input.parameters.repoUrl || config.getOptionalString('kubernetesIngestor.crossplane.xrds.publishPhase.git.repoUrl'),
-        gitLayout: ctx.input.parameters.manifestLayout,
-        basePath: ctx.input.parameters.manifestLayout === 'custom' 
-          ? ctx.input.parameters.basePath 
-          : ctx.input.parameters.manifestLayout === 'namespace-scoped'
-            ? `${ctx.input.parameters[ctx.input.namespaceParam || 'namespace']}`
-            : `${ctx.input.clusters[0]}/${ctx.input.parameters[ctx.input.namespaceParam || 'namespace']}/${ctx.input.kind}`
+        pushToGit: (input.parameters as any).pushToGit,
+        gitBranch: (input.parameters as any).targetBranch || config.getOptionalString('kubernetesIngestor.crossplane.xrds.publishPhase.git.targetBranch'),
+        gitRepo: (input.parameters as any).repoUrl || config.getOptionalString('kubernetesIngestor.crossplane.xrds.publishPhase.git.repoUrl'),
+        gitLayout: (input.parameters as any).manifestLayout,
+        basePath: (input.parameters as any).manifestLayout === 'custom' 
+          ? (input.parameters as any).basePath 
+          : (input.parameters as any).manifestLayout === 'namespace-scoped'
+            ? `${(input.parameters as any)[input.namespaceParam || 'namespace']}`
+            : `${input.clusters[0]}/${(input.parameters as any)[input.namespaceParam || 'namespace']}/${input.kind}`
       }
       let sourceFileUrl = '';
-      if (ctx.input.parameters.pushToGit && sourceInfo.gitRepo) {
+      if ((input.parameters as any).pushToGit && sourceInfo.gitRepo) {
         const gitUrl = new URL("https://" + sourceInfo.gitRepo);
         const owner = gitUrl.searchParams.get('owner');
         const repo = gitUrl.searchParams.get('repo');
         if (owner && repo) {
-          sourceFileUrl = `https://${gitUrl.host}/${owner}/${repo}/blob/${sourceInfo.gitBranch}/${sourceInfo.basePath}/${ctx.input.parameters[ctx.input.nameParam]}.yaml`;
+          sourceFileUrl = `https://${gitUrl.host}/${owner}/${repo}/blob/${sourceInfo.gitBranch}/${sourceInfo.basePath}/${(input.parameters as any)[input.nameParam]}.yaml`;
         }
       }
       // Template the Kubernetes resource manifest
       const manifest = {
-        apiVersion: ctx.input.apiVersion,
-        kind: ctx.input.kind,
+        apiVersion: input.apiVersion,
+        kind: input.kind,
         metadata: {
-          name: ctx.input.parameters[ctx.input.nameParam],
-          ...(ctx.input.namespaceParam && {
-            namespace: ctx.input.parameters[ctx.input.namespaceParam],
+          name: (input.parameters as any)[input.nameParam],
+          ...(input.namespaceParam && {
+            namespace: (input.parameters as any)[input.namespaceParam],
           }),
           annotations: {
             'terasky.backstage.io/source-info': JSON.stringify(sourceInfo),
             'terasky.backstage.io/add-to-catalog': "true",
-            'terasky.backstage.io/owner': ctx.input.parameters[ctx.input.ownerParam],
-            'terasky.backstage.io/system': ctx.input.parameters[ctx.input.namespaceParam || 'namespace'],
+            'terasky.backstage.io/owner': (input.parameters as any)[input.ownerParam],
+            'terasky.backstage.io/system': (input.parameters as any)[input.namespaceParam || 'namespace'],
             ...(sourceFileUrl && { 'terasky.backstage.io/source-file-url': sourceFileUrl }),
           },
         },
@@ -172,12 +98,12 @@ export function createCrdTemplateAction({config}: {config: any}) {
 
       // Handle cluster-specific paths or default path
       const filePaths: string[] = [];
-      ctx.input.clusters.forEach(cluster => {
+      input.clusters.forEach((cluster: string) => {
         const filePath = path.join(
           cluster,
-          ctx.input.parameters[ctx.input.namespaceParam || 'namespace'],
-          ctx.input.kind,
-          `${ctx.input.parameters[ctx.input.nameParam]}.yaml`
+          (input.parameters as any)[input.namespaceParam || 'namespace'],
+          input.kind,
+          `${(input.parameters as any)[input.nameParam]}.yaml`
         );
         const destFilepath = resolveSafeChildPath(ctx.workspacePath, filePath);
         fs.outputFileSync(destFilepath, manifestYaml);
