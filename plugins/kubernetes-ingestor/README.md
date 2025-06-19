@@ -45,7 +45,7 @@ kubernetesIngestor:
   # referencesNamespaceModel: 'default' # default, same
   mappings:
     namespaceModel: 'cluster' # cluster, namespace, default
-    nameModel: 'name-cluster' # name-cluster, name-namespace, name
+    nameModel: 'name-cluster' # name-cluster, name-namespace, name-kind, name
     titleModel: 'name' # name, name-cluster, name-namespace
     systemModel: 'namespace' # cluster, namespace, cluster-namespace, default
     referencesNamespaceModel: 'default' # default, same

@@ -2055,6 +2055,13 @@ export class KubernetesEntityProvider implements EntityProvider {
       } else {
         nameValue = `${resource.metadata.name}`;
       }
+    } else if (nameModel === 'name-kind') {
+        const resourceKind = resource.kind || "res";
+        let processedKind = resourceKind.toLowerCase();
+        if (processedKind.length > 5) {
+          processedKind = processedKind.substring(0, 5);
+        }
+        nameValue = `${resource.metadata.name}-${processedKind}`;
     } else {
       nameValue = resource.metadata.name;
     }
@@ -2227,6 +2234,13 @@ export class KubernetesEntityProvider implements EntityProvider {
       } else {
         nameValue = `${claim.metadata.name}`;
       }
+    } else if (nameModel === 'name-kind') {
+      const resourceKind = claim.kind || "res";
+      let processedKind = resourceKind.toLowerCase();
+      if (processedKind.length > 5) {
+        processedKind = processedKind.substring(0, 5);
+      }
+      nameValue = `${claim.metadata.name}-${processedKind}`;
     } else {
       nameValue = claim.metadata.name;
     }
@@ -2358,6 +2372,13 @@ export class KubernetesEntityProvider implements EntityProvider {
       } else {
         nameValue = `${xr.metadata.name}`;
       }
+    } else if (nameModel === 'name-kind') {
+      const resourceKind = xr.kind || "res";
+      let processedKind = resourceKind.toLowerCase();
+      if (processedKind.length > 5) {
+        processedKind = processedKind.substring(0, 5);
+      }
+      nameValue = `${xr.metadata.name}-${processedKind}`;
     } else {
       nameValue = xr.metadata.name;
     }
