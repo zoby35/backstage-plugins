@@ -50,7 +50,7 @@
     "@backstage/plugin-techdocs-backend": "^2.0.3",
     "@roadiehq/scaffolder-backend-module-utils": "^3.5.0",
     "@terasky/backstage-plugin-crossplane-permissions-backend": "^1.1.14",
-    "@terasky/backstage-plugin-kubernetes-ingestor": "^1.16.2",
+    "@terasky/backstage-plugin-kubernetes-ingestor": "^1.16.3",
     "@terasky/backstage-plugin-kubernetes-resources-permissions-backend": "^0.2.8",
     "@terasky/backstage-plugin-kyverno-permissions-backend": "^1.0.12",
     "@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils": "^1.6.0",
