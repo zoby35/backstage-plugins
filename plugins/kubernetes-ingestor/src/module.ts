@@ -82,8 +82,12 @@ export const catalogModuleKubernetes = createBackendModule({
           httpAuth,
         );
 
+        const xrdEnabled = config.getOptionalBoolean('kubernetesIngestor.crossplane.xrds.enabled');
         await catalog.addEntityProvider(templateEntityProvider);
-        await catalog.addEntityProvider(xrdTemplateEntityProvider);
+        // Only disable if explicitly set to false; default is enabled
+        if (xrdEnabled !== false) {
+          await catalog.addEntityProvider(xrdTemplateEntityProvider);
+        }
       },
     });
   },
