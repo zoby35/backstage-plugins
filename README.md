@@ -1,5 +1,5 @@
 # TeraSky's Backstage Plugins
-These plugins are built and tested against Backstage version 1.39.1
+These plugins are built and tested against Backstage version 1.40.1
 
 ## Plugin overviews
 There are 22 plugins currently:
