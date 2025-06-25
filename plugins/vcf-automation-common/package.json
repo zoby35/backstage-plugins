@@ -21,9 +21,8 @@
     "role": "common-library",
     "pluginId": "vcf-automation",
     "pluginPackages": [
-      "@terasky/backstage-plugin-vcf-automation-common",
-      "@terasky/backstage-plugin-vcf-automation-backend",
-      "@terasky/backstage-plugin-vcf-automation"
+      "@terasky/backstage-plugin-vcf-automation",
+      "@terasky/backstage-plugin-vcf-automation-common"
     ]
   },
   "sideEffects": false,
