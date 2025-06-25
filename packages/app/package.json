@@ -44,6 +44,7 @@
     "@material-ui/icons": "^4.11.3",
     "@terasky/backstage-plugin-crossplane-resources-frontend": "^1.9.1",
     "@terasky/backstage-plugin-devpod": "^1.1.1",
+    "@terasky/backstage-plugin-educates": "^1.0.0",
     "@terasky/backstage-plugin-entity-scaffolder-content": "^1.0.13",
     "@terasky/backstage-plugin-gitops-manifest-updater": "^1.2.1",
     "@terasky/backstage-plugin-kubernetes-resources-frontend": "^0.3.7",

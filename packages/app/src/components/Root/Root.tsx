@@ -33,6 +33,7 @@ import { SiOpenapiinitiative } from "react-icons/si";
 import { useApp } from '@backstage/core-plugin-api';
 import BrushIcon from '@material-ui/icons/Brush';
 import { Typography } from '@material-ui/core';
+import SchoolIcon from '@material-ui/icons/School';
 
 const useSidebarLogoStyles = makeStyles({
   root: {
@@ -158,6 +159,7 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
         </SidebarItem>
         
         <SidebarItem icon={CreateComponentIcon} to="create" text="Create..." />
+        <SidebarItem icon={SchoolIcon} to="/educates" text="Workshops" />
         {/* End global nav */}
         <SidebarDivider />
         <SidebarScrollWrapper>

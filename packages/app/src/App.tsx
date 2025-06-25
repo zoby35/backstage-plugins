@@ -45,6 +45,7 @@ import Brightness2Icon from '@material-ui/icons/Brightness2';
 import { configApiRef,  useApi } from '@backstage/core-plugin-api';
 import { GitOpsManifestUpdaterExtension } from '@terasky/backstage-plugin-gitops-manifest-updater';
 import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
+import { EducatesPage } from '@terasky/backstage-plugin-educates';
 
 const app = createApp({
   apis,
@@ -203,6 +204,7 @@ const routes = (
     <Route path="/settings" element={<UserSettingsPage />} />
     <Route path="/catalog-graph" element={<CatalogGraphPage />} />
     <Route path="/rbac" element={<RbacPage />} />
+    <Route path="/educates" element={<EducatesPage />} />
   </FlatRoutes>
 );
 
