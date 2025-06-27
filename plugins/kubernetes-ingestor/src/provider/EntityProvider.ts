@@ -90,6 +90,16 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       throw new Error('Connection not initialized');
     }
     try {
+      const isCrossplaneEnabled = this.config.getOptionalBoolean('kubernetesIngestor.crossplane.enabled') ?? true;
+      
+      if (!isCrossplaneEnabled) {
+        await this.connection.applyMutation({
+          type: 'full',
+          entities: [],
+        });
+        return;
+      }
+
       const templateDataProvider = new XrdDataProvider(
         this.logger,
         this.config,
@@ -1872,42 +1882,66 @@ export class KubernetesEntityProvider implements EntityProvider {
       throw new Error('Connection not initialized');
     }
     try {
-      const kubernetesDataProvider = new KubernetesDataProvider(
-        this.logger,
-        this.config,
-        this.catalogApi,
-        this.permissions,
-        this.discovery
-      );
-      const xrdDataProvider = new XrdDataProvider(
-        this.logger,
-        this.config,
-        this.catalogApi,
-        this.discovery,
-        this.permissions,
-        this.auth,
-        this.httpAuth,
-      );
-      // Build composite kind lookup for v2/Cluster/Namespaced (case-insensitive)
-      const compositeKindLookup = await xrdDataProvider.buildCompositeKindLookup();
-      // Add lowercased keys for case-insensitive matching
-      for (const key of Object.keys(compositeKindLookup)) {
-        compositeKindLookup[key.toLowerCase()] = compositeKindLookup[key];
-      }
+      const isCrossplaneEnabled = this.config.getOptionalBoolean('kubernetesIngestor.crossplane.enabled') ?? true;
+      
       if (this.config.getOptionalBoolean('kubernetesIngestor.components.enabled')) {
+        // Initialize providers
+        const kubernetesDataProvider = new KubernetesDataProvider(
+          this.logger,
+          this.config,
+          this.catalogApi,
+          this.permissions,
+          this.discovery
+        );
+
+        let compositeKindLookup: { [key: string]: any } = {};
+        let xrdDataProvider;
+        
+        // Only initialize Crossplane providers if enabled
+        if (isCrossplaneEnabled) {
+          xrdDataProvider = new XrdDataProvider(
+            this.logger,
+            this.config,
+            this.catalogApi,
+            this.discovery,
+            this.permissions,
+            this.auth,
+            this.httpAuth,
+          );
+          // Build composite kind lookup for v2/Cluster/Namespaced (case-insensitive)
+          compositeKindLookup = await xrdDataProvider.buildCompositeKindLookup();
+          // Add lowercased keys for case-insensitive matching
+          for (const key of Object.keys(compositeKindLookup)) {
+            compositeKindLookup[key.toLowerCase()] = compositeKindLookup[key];
+          }
+        }
+
         // Fetch all Kubernetes resources and build a CRD mapping
         const kubernetesData = await kubernetesDataProvider.fetchKubernetesObjects();
         const crdMapping = await kubernetesDataProvider.fetchCRDMapping();
         let claimCount = 0, compositeCount = 0, k8sCount = 0;
         const entities = kubernetesData.flatMap(k8s => {
-          // Ingest claims for v1 and v2/LegacyCluster
+          if (!isCrossplaneEnabled) {
+            // When Crossplane is disabled, treat everything as regular K8s resources
+            if (k8s) {
+              // Log the resource type being processed
+              this.logger.debug(`Processing as regular K8s resource: ${k8s.kind} ${k8s.metadata?.name}`);
+              k8sCount++;
+              return this.translateKubernetesObjectsToEntities(k8s);
+            }
+            return [];
+          }
+
+          // Crossplane processing when enabled
           if (k8s?.spec?.resourceRef) {
+            this.logger.debug(`Processing Crossplane claim: ${k8s.kind} ${k8s.metadata?.name}`);
             const entity = this.translateCrossplaneClaimToEntity(k8s, k8s.clusterName, crdMapping);
             if (entity) claimCount++;
             return entity ? [entity] : [];
           }
           // Ingest XRs for v2/Cluster or v2/Namespaced (case-insensitive)
           if (k8s?.spec?.crossplane) {
+            this.logger.debug(`Processing Crossplane XR: ${k8s.kind} ${k8s.metadata?.name}`);
             const [group, version] = k8s.apiVersion.split('/');
             const lookupKey = `${k8s.kind}|${group}|${version}`;
             const lookupKeyLower = lookupKey.toLowerCase();
@@ -1919,6 +1953,7 @@ export class KubernetesEntityProvider implements EntityProvider {
           }
           // Fallback: treat as regular K8s resource
           if (k8s) {
+            this.logger.debug(`Processing as regular K8s resource: ${k8s.kind} ${k8s.metadata?.name}`);
             k8sCount++;
             return this.translateKubernetesObjectsToEntities(k8s);
           }
@@ -2303,7 +2338,7 @@ export class KubernetesEntityProvider implements EntityProvider {
     return this.validateEntityName(entity) ? entity : null;
   }
 
-  private translateCrossplaneCompositeToEntity(xr: any, clusterName: string, compositeKindLookup: Record<string, any>): Entity | null {
+  private translateCrossplaneCompositeToEntity(xr: any, clusterName: string, compositeKindLookup: { [key: string]: any }): Entity | null {
     const prefix = this.getAnnotationPrefix();
     const kind = xr.kind;
     const [group, version] = xr.apiVersion.split('/');

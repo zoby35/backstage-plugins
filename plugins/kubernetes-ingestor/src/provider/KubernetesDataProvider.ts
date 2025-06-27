@@ -141,69 +141,57 @@ export class KubernetesDataProvider {
         ...customWorkloadTypes,
       ]);
 
-      // --- BEGIN: Add all v2/Cluster and v2/Namespaced composite kinds (XRs) to objectTypesToFetch ---
-      try {
-        // Import XrdDataProvider here to avoid circular dependency at top
-        const { XrdDataProvider } = await import('./XrdDataProvider');
-        // You may need to pass auth/httpAuth if required by your XrdDataProvider constructor
-        const xrdDataProvider = new XrdDataProvider(
-          this.logger,
-          this.config,
-          this.catalogApi,
-          this.discovery,
-          this.permissions,
-          // @ts-ignore
-          this.auth,
-          // @ts-ignore
-          this.httpAuth,
-        );
-        const xrdObjects = await xrdDataProvider.fetchXRDObjects();
-        for (const xrd of xrdObjects) {
-          const isV2 = !!xrd.spec?.scope;
-          const scope = xrd.spec?.scope || (isV2 ? 'LegacyCluster' : 'Cluster');
-          if (isV2 && scope !== 'LegacyCluster') {
-            for (const version of xrd.spec.versions || []) {
-              objectTypesToFetch.add({
-                group: xrd.spec.group,
-                apiVersion: version.name,
-                plural: xrd.spec.names.plural,
-                objectType: 'customresources' as KubernetesObjectTypes,
-              });
+      const isCrossplaneEnabled = this.config.getOptionalBoolean('kubernetesIngestor.crossplane.enabled') ?? true;
+
+      // Only add Crossplane-related objects if the feature is enabled
+      if (isCrossplaneEnabled) {
+        // --- BEGIN: Add all v2/Cluster and v2/Namespaced composite kinds (XRs) to objectTypesToFetch ---
+        try {
+          // Import XrdDataProvider here to avoid circular dependency at top
+          const { XrdDataProvider } = await import('./XrdDataProvider');
+          // You may need to pass auth/httpAuth if required by your XrdDataProvider constructor
+          const xrdDataProvider = new XrdDataProvider(
+            this.logger,
+            this.config,
+            this.catalogApi,
+            this.discovery,
+            this.permissions,
+            // @ts-ignore
+            this.auth,
+            // @ts-ignore
+            this.httpAuth,
+          );
+          const xrdObjects = await xrdDataProvider.fetchXRDObjects();
+          for (const xrd of xrdObjects) {
+            const isV2 = !!xrd.spec?.scope;
+            const scope = xrd.spec?.scope || (isV2 ? 'LegacyCluster' : 'Cluster');
+            if (isV2 && scope !== 'LegacyCluster') {
+              for (const version of xrd.spec.versions || []) {
+                objectTypesToFetch.add({
+                  group: xrd.spec.group,
+                  apiVersion: version.name,
+                  plural: xrd.spec.names.plural,
+                  objectType: 'customresources' as KubernetesObjectTypes,
+                });
+              }
             }
           }
+        } catch (error) {
+          this.logger.error('Failed to fetch XRD objects:', error as Error);
         }
-      } catch (err) {
-        this.logger.warn('Failed to dynamically add v2 composite kinds to fetch list: ' + (err instanceof Error ? err.message : String(err)));
       }
-      // --- END: Add all v2/Cluster and v2/Namespaced composite kinds (XRs) to objectTypesToFetch ---
-
-      const objectTypeMap = Array.from(objectTypesToFetch).reduce(
-        (acc, type) => {
-          acc[type.plural] = type;
-          return acc;
-        },
-        {} as Record<string, ObjectToFetch>,
-      );
-
-      const excludedNamespaces = new Set(
-        this.config.getOptionalStringArray(
-          'kubernetesIngestor.components.excludedNamespaces',
-        ) || ['default', 'kube-public', 'kube-system'],
-      );
-
-      const ingestAllCrossplaneClaims =
-        this.config.getOptionalBoolean(
-          'kubernetesIngestor.crossplane.claims.ingestAllClaims',
-        ) ?? false;
-
-      let allFetchedObjects: any[] = [];
-
-      const onlyIngestAnnotatedResources =
-        this.config.getOptionalBoolean(
-          'kubernetesIngestor.components.onlyIngestAnnotatedResources',
-        ) ?? false;
 
       const allowedClusters = this.config.getOptionalStringArray("kubernetesIngestor.allowedClusterNames");
+      const onlyIngestAnnotatedResources = this.config.getOptionalBoolean('kubernetesIngestor.components.onlyIngestAnnotatedResources') ?? false;
+      const excludedNamespaces = new Set(this.config.getOptionalStringArray('kubernetesIngestor.components.excludedNamespaces') || []);
+      const ingestAllCrossplaneClaims = this.config.getOptionalBoolean('kubernetesIngestor.crossplane.claims.ingestAllClaims') ?? false;
+      const objectTypeMap: Record<string, ObjectToFetch> = {};
+      objectTypesToFetch.forEach(type => {
+        objectTypeMap[type.plural] = type;
+      });
+
+      const allObjects: any[] = [];
+
       for (const cluster of clusters as ExtendedClusterDetails[]) {
         if (allowedClusters && !allowedClusters.includes(cluster.name)) {
           this.logger.debug(`Skipping cluster: ${cluster.name} as it is not included in the allowedClusterNames configuration.`);
@@ -241,7 +229,8 @@ export class KubernetesDataProvider {
         }
 
         try {
-          if (ingestAllCrossplaneClaims) {
+          // Only fetch Crossplane claims if enabled
+          if (isCrossplaneEnabled && ingestAllCrossplaneClaims) {
             const claimCRDs = await this.fetchCRDsForCluster(
               fetcher,
               cluster,
@@ -300,7 +289,7 @@ export class KubernetesDataProvider {
             customResources: [],
           });
           const prefix = this.getAnnotationPrefix();
-          const filteredObjects = fetchedObjects.responses.flatMap(response =>
+          const filteredObjects = await Promise.all(fetchedObjects.responses.flatMap(async response =>
             response.resources
               .filter(resource => {
                 if (
@@ -331,8 +320,18 @@ export class KubernetesDataProvider {
                 ) {
                   return {};
                 }
+
+                // Skip Crossplane-related resources if disabled
+                if (!isCrossplaneEnabled) {
+                  // Check if it's a Crossplane resource
+                  if (resource.spec?.resourceRef || resource.spec?.crossplane) {
+                    this.logger.debug(`Skipping Crossplane resource: ${resource.kind} ${resource.metadata?.name}`);
+                    return {};
+                  }
+                }
+
                 // Handle v2 composites: spec.crossplane.compositionRef.name
-                if (resource.spec?.crossplane?.compositionRef?.name) {
+                if (isCrossplaneEnabled && resource.spec?.crossplane?.compositionRef?.name) {
                   const composition = await this.fetchComposition(
                     fetcher,
                     cluster,
@@ -353,7 +352,7 @@ export class KubernetesDataProvider {
                   };
                 }
                 // Handle claims: spec.compositionRef.name
-                if (resource.spec?.compositionRef?.name) {
+                if (isCrossplaneEnabled && resource.spec?.compositionRef?.name) {
                   const composition = await this.fetchComposition(
                     fetcher,
                     cluster,
@@ -373,60 +372,28 @@ export class KubernetesDataProvider {
                     },
                   };
                 }
+
                 return {
                   ...resource,
                   apiVersion: `${objectType.group}/${objectType.apiVersion}`,
                   kind: objectType.singular || pluralize.singular(objectType.plural) || objectType.plural?.slice(0, -1),
                   clusterName: cluster.name,
                 };
-              }),
-          );
+              })
+          ));
 
-          allFetchedObjects = allFetchedObjects.concat(
-            await Promise.all(filteredObjects),
+          allObjects.push(...(await Promise.all(filteredObjects.flat())));
+        } catch (error) {
+          this.logger.error(
+            `Failed to fetch objects for cluster ${cluster.name}: ${error}`,
           );
-
-          this.logger.debug(
-            `Crossplane Fetched ${filteredObjects.length} objects from cluster: ${cluster.name}`,
-          );
-        } catch (clusterError) {
-          if (clusterError instanceof Error) {
-            this.logger.error(
-              `Failed to fetch objects for cluster ${cluster.name}: ${clusterError.message}`,
-              clusterError,
-            );
-          } else {
-            this.logger.error(
-              `Failed to fetch objects for cluster ${cluster.name}:`,
-              {
-                error: String(clusterError),
-              },
-            );
-          }
         }
       }
 
-      this.logger.debug(
-        `Total fetched Kubernetes objects: ${allFetchedObjects.length}`,
-      );
-      return allFetchedObjects;
+      return allObjects.filter(obj => Object.keys(obj).length > 0);
     } catch (error) {
-      if (error instanceof Error) {
-        this.logger.error('Error fetching Kubernetes objects', error);
-      } else if (typeof error === 'object') {
-        this.logger.error(
-          'Error fetching Kubernetes objects',
-          error as JsonObject,
-        );
-      } else {
-        this.logger.error(
-          'Unknown error occurred while fetching Kubernetes objects',
-          {
-            message: String(error),
-          },
-        );
-      }
-      return []; // Add this return statement
+      this.logger.error('Error fetching Kubernetes objects:', error as Error);
+      return [];
     }
   }
 

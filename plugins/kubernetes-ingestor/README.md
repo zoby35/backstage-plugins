@@ -75,6 +75,8 @@ kubernetesIngestor:
     # Allows ingestion to be opt-in or opt-out by either requiring or not a dedicated annotation to ingest a resource (terasky.backstage.io/add-to-catalog or terasky.backstage.io/exclude-from-catalog)
     onlyIngestAnnotatedResources: false
   crossplane:
+    # Whether to completely disable crossplane related code for both XRDs and Claims. defaults to enabled if not provided for backwards compatibility
+    enabled: true
     # This section is relevant for crossplane v1 claims as well as Crossplane v2 XRs.
     # In the future when v1 and claims are deprecated this field will change names but currently 
     # for backwards compatibility will stay as is
