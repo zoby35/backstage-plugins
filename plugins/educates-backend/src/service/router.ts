@@ -3,8 +3,6 @@ import Router from 'express-promise-router';
 import { Config } from '@backstage/config';
 import { LoggerService, PermissionsService } from '@backstage/backend-plugin-api';
 import fetch from 'node-fetch';
-import { educatesPermissions } from '@terasky/backstage-plugin-educates-common';
-import { createPermissionIntegrationRouter } from '@backstage/plugin-permission-node';
 
 export interface RouterOptions {
   logger: LoggerService;
@@ -18,10 +16,7 @@ export async function createRouter(
   const { logger, config } = options;
   const router = Router();
   router.use(express.json());
-  const permissionRouter = createPermissionIntegrationRouter({
-    permissions: Object.values(educatesPermissions),
-  });
-  router.use(permissionRouter);
+  
   const trainingPortals = config.getConfigArray('educates.trainingPortals').map(portal => ({
     name: portal.getString('name'),
     url: portal.getString('url'),

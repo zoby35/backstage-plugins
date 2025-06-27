@@ -3,6 +3,7 @@ import {
   createBackendPlugin,
 } from '@backstage/backend-plugin-api';
 import { createRouter } from './service/router';
+import { kyvernoPermissions } from '@terasky/backstage-plugin-kyverno-common';
 
 /**
  * crossplanePermissionsPlugin backend plugin
@@ -17,12 +18,16 @@ export const kyvernoPermissionsPlugin = createBackendPlugin({
         httpRouter: coreServices.httpRouter,
         logger: coreServices.logger,
         permissions: coreServices.permissions,
+        permissionsRegistry: coreServices.permissionsRegistry,
       },
       async init({
         httpRouter,
         logger,
         permissions,
+        permissionsRegistry,
       }) {
+        permissionsRegistry.addPermissions(Object.values(kyvernoPermissions));
+        
         httpRouter.use(
           await createRouter({
             logger,

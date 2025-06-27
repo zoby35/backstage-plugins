@@ -2,8 +2,6 @@ import { Config } from '@backstage/config';
 import express from 'express';
 import { LoggerService, PermissionsService } from '@backstage/backend-plugin-api';
 import { VcfAutomationService } from './services/VcfAutomationService';
-import { createPermissionIntegrationRouter } from '@backstage/plugin-permission-node';
-import { vcfAutomationPermissions } from '@terasky/backstage-plugin-vcf-automation-common';
 export interface RouterOptions {
   logger: LoggerService;
   config: Config;
@@ -17,10 +15,7 @@ export async function createRouter(
 
   const router = express.Router();
   router.use(express.json());
-  const permissionRouter = createPermissionIntegrationRouter({
-    permissions: Object.values(vcfAutomationPermissions),
-  });
-  router.use(permissionRouter);
+
   const vcfService = new VcfAutomationService(config, logger);
 
   router.get('/health', (_, response) => {
