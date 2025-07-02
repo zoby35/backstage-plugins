@@ -13,6 +13,7 @@ The Scaffolder Backend Module TeraSky Utils plugin provides a collection of usef
 
 ### Backend Plugin
 The plugin provides backend actions for: 
+
 - Manifest generation 
 - Entity cleanup 
 - File system operations 
@@ -24,6 +25,7 @@ The plugin provides backend actions for:
 
 ### terasky:claim-template
 Converts input parameters into Kubernetes YAML manifests: 
+
 - Generates Crossplane claim manifests 
 - Organizes by cluster/namespace/kind 
 - Maintains consistent file structure 
@@ -31,6 +33,7 @@ Converts input parameters into Kubernetes YAML manifests:
 
 ### terasky:catalog-info-cleaner
 Processes Backstage entity manifests: 
+
 - Removes runtime information 
 - Formats catalog-info.yaml files 
 - Prepares for git-based management 

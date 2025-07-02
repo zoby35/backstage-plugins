@@ -139,6 +139,9 @@ theme:
     - navigation.footer
     - search.suggest
     - search.highlight
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.tracking
     #- toc.integrate
 plugins:
 - search

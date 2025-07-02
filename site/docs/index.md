@@ -4,37 +4,37 @@ Welcome to our comprehensive collection of Backstage plugins! We've created thes
 
 ## 🔧 Our Plugin Categories
 
-### Infrastructure Management
-
-#### Kubernetes & GitOps
+### Kubernetes
 1. [Kubernetes Ingestor](./plugins/kubernetes-ingestor/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-kubernetes-ingestor/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-kubernetes-ingestor) - Automatically create catalog entities from Kubernetes resources, with support for custom GVKs and Crossplane claims.
-
-2. [Kubernetes Resources](./plugins/kubernetes/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-kubernetes-resources-frontend/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-kubernetes-resources-frontend) - Visual graph representation of Kubernetes resources and their dependencies with simple Backstage permission and RBAC management.
-
-3. [GitOps Manifest Updater](./plugins/gitops-manifest-updater/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-gitops-manifest-updater/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-gitops-manifest-updater) - Update GitOps manifests and create PRs with ease.
-
-#### Cloud Infrastructure
-4. [Crossplane Suite](./plugins/crossplane/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-crossplane-common/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-crossplane-common) - Complete Crossplane integration for cloud resource management.
-
-5. [VCF Automation Suite](./plugins/vcf-automation/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-vcf-automation/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-vcf-automation) - Comprehensive VMware Cloud Foundation management.
-
-### Development Tools
-6. [DevPod Plugin](./plugins/devpod/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-devpod/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-devpod) - Quick development environment setup with IDE integration.
-
-7. [Entity Scaffolder Plugin](./plugins/entity-scaffolder/frontend/about.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-entity-scaffolder-content/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-entity-scaffolder-content) - Embed scaffolder templates in component pages.
-
-8. [Scaffolder Actions](./plugins/scaffolder-actions/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils) - Powerful actions for automation:  
-    * Crossplane claim template generation  
-    * CRD template creation  
-    * Catalog info cleaning  
-
-### Security & Cost Management
-9. [Kyverno Policy Reports](./plugins/kyverno/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-kyverno-policy-reports/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-kyverno-policy-reports) - Policy compliance monitoring for Kubernetes.
-
-10. [ScaleOps Frontend](./plugins/scaleops/frontend/about.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-scaleops-frontend/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-scaleops-frontend) - Cost optimization insights and recommendations.
+2. [Crossplane Suite](./plugins/crossplane/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-crossplane-resources-frontend/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-crossplane-resources-frontend) - Complete Crossplane integration for cloud resource management.
+3. [Kyverno Policy Reports](./plugins/kyverno/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-kyverno-policy-reports/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-kyverno-policy-reports) - Policy compliance monitoring for Kubernetes.
+4. [GitOps Manifest Updater](./plugins/gitops-manifest-updater/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-gitops-manifest-updater/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-gitops-manifest-updater) - Update GitOps manifests and create PRs with ease.
+5. [Kubernetes Resources](./plugins/kubernetes/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-kubernetes-resources-frontend/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-kubernetes-resources-frontend) - Visual graph representation of Kubernetes resources and their dependencies with simple Backstage permission and RBAC management.
 
 ### Training & Education
-11. [Educates Platform](./plugins/educates/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-educates/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-educates) - Complete training platform with workshop management.
+1. [Educates Platform](./plugins/educates/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-educates/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-educates) - Complete training platform with workshop management.
+
+### Development Tools
+1. [DevPod Plugin](./plugins/devpod/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-devpod/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-devpod) - Quick development environment setup with IDE integration.
+
+### Resource And Cost Optimization
+1. [ScaleOps Frontend](./plugins/scaleops/frontend/about.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-scaleops-frontend/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-scaleops-frontend) - Cost optimization insights and recommendations.
+
+### Cloud Infrastructure
+1. [VCF Automation Suite](./plugins/vcf-automation/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-vcf-automation/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-vcf-automation) - Comprehensive VMware Cloud Foundation management.
+
+### General Utilities
+1. [Scaffolder Actions](./plugins/scaffolder-actions/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils) - Powerful actions for automation:  
+    * Crossplane claim template creation  
+    * CRD template creation  
+    * Catalog info cleaning  
+2. [Entity Scaffolder Plugin](./plugins/entity-scaffolder/frontend/about.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-entity-scaffolder-content/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-entity-scaffolder-content) - Embbed scaffolder templates in component pages.
+
+
+
+
+
+
 
 ## 💡 Getting Started
 
