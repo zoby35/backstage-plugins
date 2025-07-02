@@ -1,0 +1,153 @@
+site_name: TeraSky OSS Backstage Plugins
+site_url: https://terasky-oss.github.io/backstage-plugins
+nav:
+  - Overview: index.md
+  - Kubernetes:
+      - Kubernetes Ingestor:
+          - Overview: plugins/kubernetes-ingestor/overview.md
+          - Backend:
+              - About: plugins/kubernetes-ingestor/backend/about.md
+              - Install: plugins/kubernetes-ingestor/backend/install.md
+              - Configure: plugins/kubernetes-ingestor/backend/configure.md
+      - Crossplane:
+          - Overview: plugins/crossplane/overview.md
+          - Backend:
+              - About: plugins/crossplane/backend/about.md
+              - Install: plugins/crossplane/backend/install.md
+              - Configure: plugins/crossplane/backend/configure.md
+          - Frontend:
+              - About: plugins/crossplane/frontend/about.md
+              - Install: plugins/crossplane/frontend/install.md
+              - Configure: plugins/crossplane/frontend/configure.md
+      - Kyverno Policy Reports:
+          - Overview: plugins/kyverno/overview.md
+          - Backend:
+              - About: plugins/kyverno/backend/about.md
+              - Install: plugins/kyverno/backend/install.md
+              - Configure: plugins/kyverno/backend/configure.md
+          - Frontend:
+              - About: plugins/kyverno/frontend/about.md
+              - Install: plugins/kyverno/frontend/install.md
+              - Configure: plugins/kyverno/frontend/configure.md
+      - GitOps Manifest Updater:
+          - Overview: plugins/gitops-manifest-updater/overview.md
+          - Frontend:
+              - About: plugins/gitops-manifest-updater/frontend/about.md
+              - Install: plugins/gitops-manifest-updater/frontend/install.md
+              - Configure: plugins/gitops-manifest-updater/frontend/configure.md
+      - Kubernetes Resources:
+          - Overview: plugins/kubernetes/overview.md
+          - Backend:
+              - About: plugins/kubernetes/backend/about.md
+              - Install: plugins/kubernetes/backend/install.md
+              - Configure: plugins/kubernetes/backend/configure.md
+          - Frontend:
+              - About: plugins/kubernetes/frontend/about.md
+              - Install: plugins/kubernetes/frontend/install.md
+              - Configure: plugins/kubernetes/frontend/configure.md
+      
+  - Training & Education:
+      - Educates:
+          - Overview: plugins/educates/overview.md
+          - Backend:
+              - About: plugins/educates/backend/about.md
+              - Install: plugins/educates/backend/install.md
+              - Configure: plugins/educates/backend/configure.md
+          - Frontend:
+              - About: plugins/educates/frontend/about.md
+              - Install: plugins/educates/frontend/install.md
+              - Configure: plugins/educates/frontend/configure.md
+  - Development Tools:
+      - Devpod:
+          - Overview: plugins/devpod/overview.md
+          - Frontend:
+              - About: plugins/devpod/frontend/about.md
+              - Install: plugins/devpod/frontend/install.md
+              - Configure: plugins/devpod/frontend/configure.md
+  - Resource And Cost Optimization:
+      - ScaleOps:
+          - Overview: plugins/scaleops/overview.md
+          - Frontend:
+              - About: plugins/scaleops/frontend/about.md
+              - Install: plugins/scaleops/frontend/install.md
+              - Configure: plugins/scaleops/frontend/configure.md
+  - Cloud Infrastructure:
+      - VCF Automation:
+          - Overview: plugins/vcf-automation/overview.md
+          - Backend:
+              - About: plugins/vcf-automation/backend/about.md
+              - Install: plugins/vcf-automation/backend/install.md
+              - Configure: plugins/vcf-automation/backend/configure.md
+          - Frontend:
+              - About: plugins/vcf-automation/frontend/about.md
+              - Install: plugins/vcf-automation/frontend/install.md
+              - Configure: plugins/vcf-automation/frontend/configure.md
+          - Ingestor:
+              - About: plugins/vcf-automation/ingestor/about.md
+              - Install: plugins/vcf-automation/ingestor/install.md
+              - Configure: plugins/vcf-automation/ingestor/configure.md
+  - General Utilities:
+      - Scaffolder Actions:
+          - Overview: plugins/scaffolder-actions/overview.md
+          - Backend:
+              - About: plugins/scaffolder-actions/backend/about.md
+              - Install: plugins/scaffolder-actions/backend/install.md
+      - Entity Scaffolder:
+          - Overview: plugins/entity-scaffolder/overview.md
+          - Frontend:
+              - About: plugins/entity-scaffolder/frontend/about.md
+              - Install: plugins/entity-scaffolder/frontend/install.md
+              - Configure: plugins/entity-scaffolder/frontend/configure.md
+
+theme:
+  icon:
+    edit: material/pencil 
+    view: material/eye
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default 
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+      primary: white
+      accent: deep orange
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+      primary: grey
+      accent: deep orange
+      
+    
+  logo: images/terasky.png
+  favicon: images/terasky-favicon.png
+  name: material
+  features:
+    - content.code.copy
+    - content.code.select
+    - content.action.edit
+    - content.action.view
+    #- toc.integrate
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - toc:
+      toc_depth: 3
+      permalink: "#"
+repo_url: https://github.com/TeraSky-OSS/backstage-plugins
+edit_uri: edit/main/docs/
