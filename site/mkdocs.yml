@@ -136,8 +136,12 @@ theme:
     - content.code.select
     - content.action.edit
     - content.action.view
+    - navigation.footer
+    - search.suggest
+    - search.highlight
     #- toc.integrate
-
+plugins:
+- search
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
@@ -151,3 +155,23 @@ markdown_extensions:
       permalink: "#"
 repo_url: https://github.com/TeraSky-OSS/backstage-plugins
 edit_uri: edit/main/docs/
+extra:
+  social:
+    - icon: fontawesome/brands/facebook
+      link: https://www.facebook.com/TeraSkyGroup/
+      name: Facebook
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/terasky-ltd./
+      name: LinkedIn
+    - icon: fontawesome/brands/x-twitter
+      link: https://x.com/teraskycom1
+      name: Twitter
+    - icon: fontawesome/brands/youtube
+      link: https://www.youtube.com/@terasky2746
+      name: YouTube
+    - icon: fontawesome/brands/github
+      link: https://github.com/terasky-oss
+      name: GitHub
+    - icon: material/home
+      link: https://terasky.com
+      name: Website
