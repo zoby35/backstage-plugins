@@ -154,7 +154,7 @@ markdown_extensions:
       toc_depth: 3
       permalink: "#"
 repo_url: https://github.com/TeraSky-OSS/backstage-plugins
-edit_uri: edit/main/docs/
+edit_uri: edit/main/site/docs/
 extra:
   social:
     - icon: fontawesome/brands/facebook
