@@ -39,7 +39,7 @@ dist-types
 *.swp
 
 # MkDocs build output
-site
+site/site
 
 # Local configuration files
 *.local.yaml
