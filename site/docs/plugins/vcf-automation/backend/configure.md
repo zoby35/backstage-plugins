@@ -8,15 +8,36 @@ The plugin is configured through your `app-config.yaml`. Here's the basic config
 
 ```yaml
 vcfAutomation:
-  # Base URL of your VCF Automation service
+  name: my-vcf-01
+  majorVersion: 8
   baseUrl: 'https://your-vcf-automation-instance'
-  
-  # Authentication configuration
   authentication:
     username: 'your-username'
     password: 'your-password'
     domain: 'your-domain'
+```  
+  
+The plugin does support multi instance config in the following format:
+
+```yaml
+vcfAutomation:
+  instances:
+  - name: my-vcf-01
+    baseUrl: 'https://your-vcf-automation-instance'
+    majorVersion: 8
+    authentication:
+      username: 'your-username'
+      password: 'your-password'
+      domain: 'your-domain'
+  - name: my-vcf-02
+    baseUrl: 'https://your-vcf-02-automation-instance'
+    majorVersion: 8
+    authentication:
+      username: 'your-username'
+      password: 'your-password'
+      domain: 'your-domain'
 ```
+
 
 ## API Endpoints
 

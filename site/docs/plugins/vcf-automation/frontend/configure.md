@@ -4,8 +4,9 @@ This guide covers the configuration options available for the VCF Automation fro
 
 ## Configuration
 
-Add the following to your `app-config.yaml`:
-
+Add the following to your `app-config.yaml`:  
+  
+Single Instance:  
 ```yaml
 vcfAutomation:
   baseUrl: http://your-vcf-automation-service
@@ -18,6 +19,27 @@ vcfAutomation:
     domain: 'your-domain'
 ```
 
+Multi Instance:  
+```yaml
+vcfAutomation:
+  enablePermissions: true
+  instances:
+  - name: my-vcf-01
+    baseUrl: 'https://your-vcf-automation-instance'
+    majorVersion: 8
+    authentication:
+      username: 'your-username'
+      password: 'your-password'
+      domain: 'your-domain'
+  - name: my-vcf-02
+    baseUrl: 'https://your-vcf-02-automation-instance'
+    majorVersion: 8
+    authentication:
+      username: 'your-username'
+      password: 'your-password'
+      domain: 'your-domain'
+```  
+  
 ## Links
 
 - [Installation Guide](install.md)
@@ -29,17 +51,22 @@ The plugin is configured through your `app-config.yaml`. Here's a comprehensive 
 
 ```yaml
 vcfAutomation:
-  # Base URL of your VCF Automation service
-  baseUrl: http://your-vcf-automation-service
-  
-  # Enable permission checks
   enablePermissions: true
-  # Auth details
-  authentication:
-    username: 'your-username'
-    password: 'your-password'
-    domain: 'your-domain'
-
+  instances:
+  - name: my-vcf-01
+    baseUrl: 'https://your-vcf-automation-instance'
+    majorVersion: 8
+    authentication:
+      username: 'your-username'
+      password: 'your-password'
+      domain: 'your-domain'
+  - name: my-vcf-02
+    baseUrl: 'https://your-vcf-02-automation-instance'
+    majorVersion: 8
+    authentication:
+      username: 'your-username'
+      password: 'your-password'
+      domain: 'your-domain'
 ```
   
 ## Best Practices

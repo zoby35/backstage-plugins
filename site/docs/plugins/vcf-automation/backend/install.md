@@ -39,6 +39,7 @@ backend.start();
 
 Add authentication configuration to your `app-config.yaml`:
 
+Single Instance:  
 ```yaml
 vcfAutomation:
   baseUrl: 'https://your-vcf-automation-instance'
@@ -46,6 +47,26 @@ vcfAutomation:
     username: 'your-username'
     password: 'your-password'
     domain: 'your-domain'
+```
+  
+Multi Instance:  
+```yaml
+vcfAutomation:
+  instances:
+  - name: my-vcf-01
+    baseUrl: 'https://your-vcf-automation-instance'
+    majorVersion: 8
+    authentication:
+      username: 'your-username'
+      password: 'your-password'
+      domain: 'your-domain'
+  - name: my-vcf-02
+    baseUrl: 'https://your-vcf-02-automation-instance'
+    majorVersion: 8
+    authentication:
+      username: 'your-username'
+      password: 'your-password'
+      domain: 'your-domain'
 ```
 
 ## What's Next?

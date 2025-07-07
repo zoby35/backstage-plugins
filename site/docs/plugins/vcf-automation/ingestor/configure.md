@@ -2,17 +2,44 @@
 
 This guide covers the configuration options available for the VCF Automation Ingestor plugin.
 
-## Configuration
+## Simple Configuration
 
+For a single VCF Automation instance you can provide config as follows:
+  
 Add the following to your `app-config.yaml`:
 
 ```yaml
 vcfAutomation:
+  name: my-vcf-01
+  majorVersion: 8
   baseUrl: 'https://your-vcf-automation-instance'
   authentication:
     username: 'your-username'
     password: 'your-password'
     domain: 'your-domain'
+```
+
+## Multi Instance Config
+
+The plugin does support multi instance config in the following format:
+
+```yaml
+vcfAutomation:
+  instances:
+  - name: my-vcf-01
+    baseUrl: 'https://your-vcf-automation-instance'
+    majorVersion: 8
+    authentication:
+      username: 'your-username'
+      password: 'your-password'
+      domain: 'your-domain'
+  - name: my-vcf-02
+    baseUrl: 'https://your-vcf-02-automation-instance'
+    majorVersion: 8
+    authentication:
+      username: 'your-username'
+      password: 'your-password'
+      domain: 'your-domain'
 ```
 
 ## Authentication
