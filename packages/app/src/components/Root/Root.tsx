@@ -29,6 +29,7 @@ import SearchIcon from '@material-ui/icons/Search';
 import { Administration } from '@backstage-community/plugin-rbac';
 import ListIcon from '@material-ui/icons/List';
 import { SiKubernetes } from "react-icons/si";
+import { FaCloud, FaObjectGroup, FaProjectDiagram, FaServer } from "react-icons/fa";
 import { SiOpenapiinitiative } from "react-icons/si";
 import { useApp } from '@backstage/core-plugin-api';
 import BrushIcon from '@material-ui/icons/Brush';
@@ -155,6 +156,17 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
             <SidebarSubmenuItem title="Claims" to="catalog?filters[kind]=component&filters[type]=crossplane-claim" icon={SiKubernetes} />
             <SidebarSubmenuItem title="Composites" to="catalog?filters[kind]=component&filters[type]=crossplane-xr" icon={SiKubernetes} />
             <SidebarSubmenuItem title="CRDs" to="catalog?filters[kind]=api&filters[owners]=group:default/kubernetes-auto-ingested" icon={SiOpenapiinitiative} />
+          </SidebarSubmenu>
+        </SidebarItem>
+        <SidebarItem icon={FaCloud} text="VCF Automation">
+          <SidebarSubmenu title="VCF Automation">
+            <Typography variant="subtitle2" style={{ padding: '32px 16px 16px 16px', fontWeight: 'bold' }}>
+              VCF Automation
+            </Typography>
+            <SidebarSubmenuItem title="Projects" to="catalog?filters[kind]=domain&filters[type]=vcf-automation-project" icon={FaProjectDiagram} />
+            <SidebarSubmenuItem title="Deployments" to="catalog?filters[kind]=system&filters[type]=vcf-automation-deployment" icon={FaObjectGroup} />
+            <SidebarSubmenuItem title="VMs" to="catalog?filters[kind]=component&filters[type]=Cloud.vSphere.Machine" icon={FaServer} />
+            <SidebarSubmenuItem title="Resources" to="catalog?filters[kind]=resource&filters[tags]=vcf-automation-resource" icon={FaCloud} />
           </SidebarSubmenu>
         </SidebarItem>
         
