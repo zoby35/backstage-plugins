@@ -11,41 +11,92 @@ interface VcfErrorResponse {
   status: 'error';
 }
 
-export class VcfAutomationService {
-  private token?: string;
-  private tokenExpiry?: Date;
-  private readonly baseUrl: string;
-  private readonly auth: {
+interface VcfInstance {
+  baseUrl: string;
+  name: string;
+  majorVersion: number;
+  authentication: {
     username: string;
     password: string;
     domain: string;
   };
+  token?: string;
+  tokenExpiry?: Date;
+}
+
+export class VcfAutomationService {
+  private readonly instances: VcfInstance[];
+  private readonly defaultInstance: VcfInstance;
 
   constructor(config: Config, private readonly logger: LoggerService) {
-    this.baseUrl = config.getString('vcfAutomation.baseUrl');
-    const auth = config.getConfig('vcfAutomation.authentication');
-    this.auth = {
-      username: auth.getString('username'),
-      password: auth.getString('password'),
-      domain: auth.getString('domain'),
-    };
+    // Get instances configuration
+    let instances: VcfInstance[] = [];
+    
+    try {
+      // First try to get instances array
+      const instancesConfig = config.getOptionalConfigArray('vcfAutomation.instances');
+      
+      if (instancesConfig && instancesConfig.length > 0) {
+        // Multi-instance configuration
+        instances = instancesConfig.map(instanceConfig => {
+          const baseUrl = instanceConfig.getString('baseUrl');
+          return {
+            baseUrl,
+            name: instanceConfig.getOptionalString('name') ?? new URL(baseUrl).hostname,
+            majorVersion: instanceConfig.getOptionalNumber('majorVersion') ?? 8,
+            authentication: {
+              username: instanceConfig.getString('authentication.username'),
+              password: instanceConfig.getString('authentication.password'),
+              domain: instanceConfig.getString('authentication.domain'),
+            },
+          };
+        });
+      } else {
+        // Legacy single instance configuration
+        const baseUrl = config.getString('vcfAutomation.baseUrl');
+        const auth = config.getConfig('vcfAutomation.authentication');
+        instances = [{
+          baseUrl,
+          name: config.getOptionalString('vcfAutomation.name') ?? new URL(baseUrl).hostname,
+          majorVersion: config.getOptionalNumber('vcfAutomation.majorVersion') ?? 8,
+          authentication: {
+            username: auth.getString('username'),
+            password: auth.getString('password'),
+            domain: auth.getString('domain'),
+          },
+        }];
+      }
+    } catch (error) {
+      this.logger.error('Failed to read VCF Automation configuration', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new Error('Failed to initialize VCF Automation service: Invalid configuration');
+    }
+
+    if (instances.length === 0) {
+      throw new Error('No VCF Automation instances configured');
+    }
+
+    this.instances = instances;
+    this.defaultInstance = instances[0];
+    this.logger.info(`VcfAutomationService initialized with ${instances.length} instance(s)`);
   }
 
-  private async authenticate(retries = 3): Promise<void> {
+  private async authenticate(instance: VcfInstance, retries = 3): Promise<void> {
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        if (this.token && this.tokenExpiry && this.tokenExpiry > new Date()) {
-          this.logger.debug('Using existing valid token');
+        if (instance.token && instance.tokenExpiry && instance.tokenExpiry > new Date()) {
+          this.logger.debug(`Using existing valid token for instance ${instance.name}`);
           return;
         }
 
-        this.logger.debug(`Authentication attempt ${attempt} of ${retries}`);
-        const response = await fetch(`${this.baseUrl}/csp/gateway/am/api/login`, {
+        this.logger.debug(`Authentication attempt ${attempt} of ${retries} for instance ${instance.name}`);
+        const response = await fetch(`${instance.baseUrl}/csp/gateway/am/api/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(this.auth),
+          body: JSON.stringify(instance.authentication),
         });
 
         if (!response.ok) {
@@ -53,18 +104,18 @@ export class VcfAutomationService {
         }
 
         const data = (await response.json()) as VcfAuthResponse;
-        this.token = data.cspAuthToken;
-        this.tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // Token valid for 24 hours
-        this.logger.debug('Successfully authenticated with VCF Automation');
+        instance.token = data.cspAuthToken;
+        instance.tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // Token valid for 24 hours
+        this.logger.debug(`Successfully authenticated with VCF Automation instance ${instance.name}`);
         return;
       } catch (error) {
-        this.logger.warn(`Authentication attempt ${attempt} failed`, {
+        this.logger.warn(`Authentication attempt ${attempt} failed for instance ${instance.name}`, {
           error: error instanceof Error ? error.message : String(error),
         });
         
         if (attempt === retries) {
-          this.logger.error('All authentication attempts failed');
-          throw new Error('Failed to authenticate with VCF Automation after multiple attempts');
+          this.logger.error(`All authentication attempts failed for instance ${instance.name}`);
+          throw new Error(`Failed to authenticate with VCF Automation instance ${instance.name} after multiple attempts`);
         }
         
         // Wait before retrying (with exponential backoff)
@@ -73,12 +124,16 @@ export class VcfAutomationService {
     }
   }
 
-  private async makeAuthorizedRequest(path: string): Promise<any> {
+  private async makeAuthorizedRequest(path: string, instanceName?: string): Promise<any> {
+    const instance = instanceName 
+      ? this.instances.find(i => i.name === instanceName) ?? this.defaultInstance
+      : this.defaultInstance;
+
     try {
-      await this.authenticate();
-      const response = await fetch(`${this.baseUrl}${path}`, {
+      await this.authenticate(instance);
+      const response = await fetch(`${instance.baseUrl}${path}`, {
         headers: {
-          Authorization: `Bearer ${this.token}`,
+          Authorization: `Bearer ${instance.token}`,
         },
       });
 
@@ -88,16 +143,16 @@ export class VcfAutomationService {
 
       return response.json();
     } catch (error) {
-      this.logger.error(`Failed to make authorized request to ${path}`, {
+      this.logger.error(`Failed to make authorized request to ${path} on instance ${instance.name}`, {
         error: error instanceof Error ? error.message : String(error),
       });
       throw new Error(`VCF Automation service unavailable: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
-  async getDeploymentHistory(deploymentId: string): Promise<any | VcfErrorResponse> {
+  async getDeploymentHistory(deploymentId: string, instanceName?: string): Promise<any | VcfErrorResponse> {
     try {
-      return await this.makeAuthorizedRequest(`/deployment/api/deployments/${deploymentId}/requests`);
+      return await this.makeAuthorizedRequest(`/deployment/api/deployments/${deploymentId}/requests`, instanceName);
     } catch (error) {
       this.logger.error(`Failed to get deployment history for ${deploymentId}`, {
         error: error instanceof Error ? error.message : String(error),
@@ -106,9 +161,9 @@ export class VcfAutomationService {
     }
   }
   
-  async getDeploymentDetails(deploymentId: string): Promise<any | VcfErrorResponse> {
+  async getDeploymentDetails(deploymentId: string, instanceName?: string): Promise<any | VcfErrorResponse> {
     try {
-      return await this.makeAuthorizedRequest(`/deployment/api/deployments/${deploymentId}`);
+      return await this.makeAuthorizedRequest(`/deployment/api/deployments/${deploymentId}`, instanceName);
     } catch (error) {
       this.logger.error(`Failed to get deployment details for ${deploymentId}`, {
         error: error instanceof Error ? error.message : String(error),
@@ -117,9 +172,9 @@ export class VcfAutomationService {
     }
   }
 
-  async getDeploymentEvents(deploymentId: string): Promise<any | VcfErrorResponse> {
+  async getDeploymentEvents(deploymentId: string, instanceName?: string): Promise<any | VcfErrorResponse> {
     try {
-      return await this.makeAuthorizedRequest(`/deployment/api/deployments/${deploymentId}/userEvents`);
+      return await this.makeAuthorizedRequest(`/deployment/api/deployments/${deploymentId}/userEvents`, instanceName);
     } catch (error) {
       this.logger.error(`Failed to get deployment events for ${deploymentId}`, {
         error: error instanceof Error ? error.message : String(error),
@@ -128,9 +183,9 @@ export class VcfAutomationService {
     }
   }
 
-  async getResourceDetails(deploymentId: string, resourceId: string): Promise<any | VcfErrorResponse> {
+  async getResourceDetails(deploymentId: string, resourceId: string, instanceName?: string): Promise<any | VcfErrorResponse> {
     try {
-      return await this.makeAuthorizedRequest(`/deployment/api/deployments/${deploymentId}/resources/${resourceId}`);
+      return await this.makeAuthorizedRequest(`/deployment/api/deployments/${deploymentId}/resources/${resourceId}`, instanceName);
     } catch (error) {
       this.logger.error(`Failed to get resource details for deployment ${deploymentId}, resource ${resourceId}`, {
         error: error instanceof Error ? error.message : String(error),
@@ -139,9 +194,9 @@ export class VcfAutomationService {
     }
   }
 
-  async getProjectDetails(projectId: string): Promise<any | VcfErrorResponse> {
+  async getProjectDetails(projectId: string, instanceName?: string): Promise<any | VcfErrorResponse> {
     try {
-      return await this.makeAuthorizedRequest(`/iaas/api/projects/${projectId}`);
+      return await this.makeAuthorizedRequest(`/iaas/api/projects/${projectId}`, instanceName);
     } catch (error) {
       this.logger.error(`Failed to get project details for ${projectId}`, {
         error: error instanceof Error ? error.message : String(error),

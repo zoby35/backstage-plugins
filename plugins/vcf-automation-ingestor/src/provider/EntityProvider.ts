@@ -86,19 +86,79 @@ interface VcfDeploymentResponse {
   number: number;
 }
 
+interface VcfInstance {
+  baseUrl: string;
+  name: string;
+  majorVersion: number;
+  authentication: {
+    username: string;
+    password: string;
+    domain: string;
+  };
+  token?: string;
+  tokenExpiry?: Date;
+}
+
 export class VcfAutomationEntityProvider implements EntityProvider {
-  private readonly config: Config;
+
   private readonly scheduler: SchedulerService;
   private connection?: EntityProviderConnection;
   private readonly logger: LoggerService;
-  private token?: string;
-  private tokenExpiry?: Date;
+  private readonly instances: VcfInstance[];
 
   constructor(config: Config, scheduler: SchedulerService, logger: LoggerService) {
-    this.config = config;
     this.scheduler = scheduler;
     this.logger = logger;
-    this.logger.info('VcfAutomationEntityProvider initialized');
+
+    // Get instances configuration
+    let instances: VcfInstance[] = [];
+    
+    try {
+      // First try to get instances array
+      const instancesConfig = config.getOptionalConfigArray('vcfAutomation.instances');
+      
+      if (instancesConfig && instancesConfig.length > 0) {
+        // Multi-instance configuration
+        instances = instancesConfig.map(instanceConfig => {
+          const baseUrl = instanceConfig.getOptionalString('baseUrl') ?? "";
+          return {
+            baseUrl,
+            name: instanceConfig.getOptionalString('name') ?? new URL(baseUrl).hostname.split(".")[0],
+            majorVersion: instanceConfig.getOptionalNumber('majorVersion') ?? 8,
+            authentication: {
+              username: instanceConfig.getOptionalString('authentication.username') ?? "",
+              password: instanceConfig.getOptionalString('authentication.password') ?? "",
+              domain: instanceConfig.getOptionalString('authentication.domain') ?? "",
+            },
+          };
+        });
+      } else {
+        // Legacy single instance configuration
+        const baseUrl = config.getOptionalString('vcfAutomation.baseUrl') ?? "";
+        instances = [{
+          baseUrl,
+          name: config.getOptionalString('vcfAutomation.name') ?? new URL(baseUrl).hostname.split(".")[0],
+          majorVersion: config.getOptionalNumber('vcfAutomation.majorVersion') ?? 8,
+          authentication: {
+            username: config.getOptionalString('vcfAutomation.authentication.username') ?? "",
+            password: config.getOptionalString('vcfAutomation.authentication.password') ?? "",
+            domain: config.getOptionalString('vcfAutomation.authentication.domain') ?? "",
+          },
+        }];
+      }
+    } catch (error) {
+      this.logger.error('Failed to read VCF Automation configuration', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new Error('Failed to initialize VCF Automation provider: Invalid configuration');
+    }
+
+    if (instances.length === 0) {
+      throw new Error('No VCF Automation instances configured');
+    }
+
+    this.instances = instances;
+    this.logger.info(`VcfAutomationEntityProvider initialized with ${instances.length} instance(s)`);
   }
 
   getProviderName(): string {
@@ -131,84 +191,76 @@ export class VcfAutomationEntityProvider implements EntityProvider {
     }
   }
 
-  private async authenticate(): Promise<void> {
+  private async authenticate(instance: VcfInstance): Promise<void> {
     try {
-      if (this.token && this.tokenExpiry && this.tokenExpiry > new Date()) {
-        this.logger.debug('Using existing valid token');
+      if (instance.token && instance.tokenExpiry && instance.tokenExpiry > new Date()) {
+        this.logger.debug(`Using existing valid token for instance ${instance.name}`);
         return;
       }
 
-      this.logger.debug('Authenticating with VCF Automation');
-      const baseUrl = this.config.getString('vcfAutomation.baseUrl');
-      const auth = this.config.getConfig('vcfAutomation.authentication');
-      
-      const response = await fetch(`${baseUrl}/csp/gateway/am/api/login`, {
+      this.logger.debug(`Authenticating with VCF Automation instance ${instance.name}`);
+      const response = await fetch(`${instance.baseUrl}/csp/gateway/am/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          username: auth.getString('username'),
-          password: auth.getString('password'),
-          domain: auth.getString('domain'),
-        }),
+        body: JSON.stringify(instance.authentication),
       });
 
       if (!response.ok) {
-        throw new Error(`Authentication failed with VCF Automation with status ${response.status}: ${response.statusText}`);
+        throw new Error(`Authentication failed with VCF Automation instance ${instance.name} with status ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
-      this.token = data.cspAuthToken;
-      this.tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      this.logger.debug('Successfully authenticated with VCF Automation');
+      instance.token = data.cspAuthToken;
+      instance.tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      this.logger.debug(`Successfully authenticated with VCF Automation instance ${instance.name}`);
     } catch (error) {
-      this.logger.error('Authentication failed with VCF Automation', {
+      this.logger.error(`Authentication failed with VCF Automation instance ${instance.name}`, {
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
     }
   }
 
-  private async fetchDeployments(): Promise<VcfDeployment[]> {
+  private async fetchDeployments(instance: VcfInstance): Promise<VcfDeployment[]> {
     try {
-      await this.authenticate();
-      const baseUrl = this.config.getString('vcfAutomation.baseUrl');
+      await this.authenticate(instance);
       const deployments: VcfDeployment[] = [];
       let page = 0;
       let hasMorePages = true;
 
-      this.logger.info('Starting to fetch deployments from VCF Automation');
+      this.logger.info(`Starting to fetch deployments from VCF Automation instance ${instance.name}`);
 
       while (hasMorePages) {
-        this.logger.debug(`Fetching deployments page ${page + 1} of VCF Automation response`);
+        this.logger.debug(`Fetching deployments page ${page + 1} from instance ${instance.name}`);
         const response = await fetch(
-          `${baseUrl}/deployment/api/deployments?page=${page}&size=10&sort=createdAt%2CDESC&expand=blueprint&expand=catalog&expand=lastRequest&expand=project&expand=resources&expand=metadata&expand=user&deleted=false`,
+          `${instance.baseUrl}/deployment/api/deployments?page=${page}&size=10&sort=createdAt%2CDESC&expand=blueprint&expand=catalog&expand=lastRequest&expand=project&expand=resources&expand=metadata&expand=user&deleted=false`,
           {
             headers: {
-              Authorization: `Bearer ${this.token}`,
+              Authorization: `Bearer ${instance.token}`,
             },
           },
         );
 
         // If we get a 404, it means we've gone past the last page
         if (response.status === 404) {
-          this.logger.debug(`No more pages available after page ${page} of VCF Automation response`);
+          this.logger.debug(`No more pages available after page ${page} from instance ${instance.name}`);
           break;
         }
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch deployments page ${page + 1} of VCF Automation response with status ${response.status}: ${response.statusText}`);
+          throw new Error(`Failed to fetch deployments page ${page + 1} from instance ${instance.name} with status ${response.status}: ${response.statusText}`);
         }
 
         const data: VcfDeploymentResponse = await response.json();
         
         if (!data.content || !Array.isArray(data.content) || data.content.length === 0) {
-          this.logger.debug(`No more deployments found after page ${page} of VCF Automation response`);
+          this.logger.debug(`No more deployments found after page ${page} from instance ${instance.name}`);
           break;
         }
 
-        this.logger.debug(`Retrieved ${data.content.length} deployments from page ${page + 1} of VCF Automation response`);
+        this.logger.debug(`Retrieved ${data.content.length} deployments from page ${page + 1} from instance ${instance.name}`);
         deployments.push(...data.content);
 
         // Check if we've reached the last page
@@ -219,10 +271,10 @@ export class VcfAutomationEntityProvider implements EntityProvider {
         }
       }
 
-      this.logger.info(`Successfully fetched ${deployments.length} deployments in total from VCF Automation`);
+      this.logger.info(`Successfully fetched ${deployments.length} deployments in total from instance ${instance.name}`);
       return deployments;
     } catch (error) {
-      this.logger.error('Failed to fetch deployments from VCF Automation', {
+      this.logger.error(`Failed to fetch deployments from VCF Automation instance ${instance.name}`, {
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
@@ -237,17 +289,28 @@ export class VcfAutomationEntityProvider implements EntityProvider {
 
     try {
       this.logger.info('Starting refresh of VCF Automation entities');
-      const deployments = await this.fetchDeployments();
-      this.logger.debug(`Transforming ${deployments.length} deployments into entities`);
-      const entities = this.transformToEntities(deployments);
-      this.logger.debug(`Created ${entities.length} entities, applying mutation`);
+      
+      const allEntities = [];
+      for (const instance of this.instances) {
+        try {
+          const deployments = await this.fetchDeployments(instance);
+          this.logger.debug(`Transforming ${deployments.length} deployments into entities for instance ${instance.name}`);
+          const entities = this.transformToEntities(deployments, instance);
+          allEntities.push(...entities);
+        } catch (error) {
+          this.logger.error(`Failed to process instance ${instance.name}`, {
+            error: error instanceof Error ? error.message : String(error),
+          });
+          // Continue with other instances even if one fails
+          continue;
+        }
+      }
+      
+      this.logger.debug(`Created ${allEntities.length} entities in total, applying mutation`);
       
       await this.connection.applyMutation({
         type: 'full',
-        entities: entities.map(entity => ({
-          entity,
-          locationKey: `url:${this.config.getString('vcfAutomation.baseUrl')}/vcf-automation`,
-        })),
+        entities: allEntities,
       });
       
       this.logger.info('Successfully completed refresh of VCF Automation entities');
@@ -259,11 +322,10 @@ export class VcfAutomationEntityProvider implements EntityProvider {
     }
   }
 
-  private transformToEntities(deployments: VcfDeployment[]) {
+  private transformToEntities(deployments: VcfDeployment[], instance: VcfInstance) {
     const entities: Array<SystemEntity | ComponentEntity | ResourceEntity | DomainEntity> = [];
     const domains = new Set<string>();
-    const locationRef = `url:${this.config.getString('vcfAutomation.baseUrl')}/vcf-automation`;
-    const baseUrl = this.config.getString('vcfAutomation.baseUrl');
+    const locationRef = `url:${instance.baseUrl}/vcf-automation`;
 
     // First, create a map of ALL resource IDs to their types and names
     const resourceMap = new Map<string, { type: string; name: string; deploymentId: string }>();
@@ -285,7 +347,7 @@ export class VcfAutomationEntityProvider implements EntityProvider {
       deploymentResourceNameMap.set(deployment.id, nameToIdMap);
     }
 
-    this.logger.debug(`Created resource map with ${resourceMap.size} resources`);
+    this.logger.debug(`Created resource map with ${resourceMap.size} resources for instance ${instance.name}`);
 
     // Helper function to get the entity reference with the correct kind
     const getEntityRef = (resourceId: string): string => {
@@ -312,14 +374,17 @@ export class VcfAutomationEntityProvider implements EntityProvider {
             annotations: {
               [ANNOTATION_LOCATION]: locationRef,
               [ANNOTATION_ORIGIN_LOCATION]: locationRef,
-              'backstage.io/view-url': `${baseUrl}/automation/#/service/catalog/consume/deployment?projects=%5B"${deployment.project.id}"%5D`,
+              'backstage.io/view-url': `${instance.baseUrl}/automation/#/service/catalog/consume/deployment?projects=%5B"${deployment.project.id}"%5D`,
+              'terasky.backstage.io/vcf-automation-instance': instance.name,
+              'terasky.backstage.io/vcf-automation-version': instance.majorVersion.toString(),
             },
             links: [
               {
-                url: `${baseUrl}/automation/#/service/catalog/consume/deployment?projects=%5B"${deployment.project.id}"%5D`,
+                url: `${instance.baseUrl}/automation/#/service/catalog/consume/deployment?projects=%5B"${deployment.project.id}"%5D`,
                 title: 'Open in VCF Automation',
               },
             ],
+            tags: [`vcf-automation:${instance.name}`],
           },
           spec: {
             owner: deployment.ownedBy,
@@ -345,16 +410,20 @@ export class VcfAutomationEntityProvider implements EntityProvider {
             'terasky.backstage.io/vcf-automation-deployment-last-updated': deployment.lastUpdatedAt,
             'terasky.backstage.io/vcf-automation-deployment-last-updated-by': deployment.lastUpdatedBy,
             'terasky.backstage.io/vcf-automation-deployment-last-request': JSON.stringify(deployment.lastRequest),
-            'backstage.io/view-url': `${baseUrl}/automation/#/service/catalog/consume/deployment/${deployment.id}`,
+            'terasky.backstage.io/vcf-automation-instance': instance.name,
+            'terasky.backstage.io/vcf-automation-version': instance.majorVersion.toString(),
+            'backstage.io/view-url': `${instance.baseUrl}/automation/#/service/catalog/consume/deployment/${deployment.id}`,
           },
           links: [
             {
-              url: `${baseUrl}/automation/#/service/catalog/consume/deployment/${deployment.id}`,
+              url: `${instance.baseUrl}/automation/#/service/catalog/consume/deployment/${deployment.id}`,
               title: 'Open in VCF Automation',
             },
           ],
+          tags: [`vcf-automation:${instance.name}`],
         },
         spec: {
+          type: 'vcf-automation-deployment',
           owner: `${deployment.ownerType.toLowerCase()}:${deployment.ownedBy.toLowerCase()}`,
           domain: deployment.project.id.toLowerCase(),
         },
@@ -386,14 +455,17 @@ export class VcfAutomationEntityProvider implements EntityProvider {
               'terasky.backstage.io/vcf-automation-resource-origin': resource.origin,
               'terasky.backstage.io/vcf-automation-resource-sync-status': resource.syncStatus,
               'terasky.backstage.io/vcf-automation-resource-state': resource.state,
-              'backstage.io/view-url': `${baseUrl}/automation/#/service/catalog/consume/deployment/${deployment.id}`,
+              'terasky.backstage.io/vcf-automation-instance': instance.name,
+              'terasky.backstage.io/vcf-automation-version': instance.majorVersion.toString(),
+              'backstage.io/view-url': `${instance.baseUrl}/automation/#/service/catalog/consume/deployment/${deployment.id}`,
             },
             links: [
               {
-                url: `${baseUrl}/automation/#/service/catalog/consume/deployment/${deployment.id}`,
+                url: `${instance.baseUrl}/automation/#/service/catalog/consume/deployment/${deployment.id}`,
                 title: 'Open in VCF Automation',
               },
             ],
+            tags: [`vcf-automation:${instance.name}`,"vcf-automation-resource"],
           },
           spec: {
             owner: `${deployment.ownerType.toLowerCase()}:${deployment.ownedBy.toLowerCase()}`,
@@ -421,7 +493,7 @@ export class VcfAutomationEntityProvider implements EntityProvider {
               links: [
                 ...baseEntity.metadata.links,
                 {
-                  url: `${baseUrl}/provisioning-ui/#/machines/remote-console/${resource.id}`,
+                  url: `${instance.baseUrl}/provisioning-ui/#/machines/remote-console/${resource.id}`,
                   title: 'Open Remote Console',
                 },
               ],
@@ -441,6 +513,9 @@ export class VcfAutomationEntityProvider implements EntityProvider {
       }
     }
 
-    return entities;
+    return entities.map(entity => ({
+      entity,
+      locationKey: locationRef,
+    }));
   }
 }
