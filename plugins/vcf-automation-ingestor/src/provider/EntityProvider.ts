@@ -95,6 +95,7 @@ interface VcfInstance {
     password: string;
     domain: string;
   };
+  orgName?: string;
   token?: string;
   tokenExpiry?: Date;
 }
@@ -130,6 +131,7 @@ export class VcfAutomationEntityProvider implements EntityProvider {
               password: instanceConfig.getOptionalString('authentication.password') ?? "",
               domain: instanceConfig.getOptionalString('authentication.domain') ?? "",
             },
+            orgName: instanceConfig.getOptionalString('orgName'),
           };
         });
       } else {
@@ -144,6 +146,7 @@ export class VcfAutomationEntityProvider implements EntityProvider {
             password: config.getOptionalString('vcfAutomation.authentication.password') ?? "",
             domain: config.getOptionalString('vcfAutomation.authentication.domain') ?? "",
           },
+          orgName: config.getOptionalString('vcfAutomation.orgName'),
         }];
       }
     } catch (error) {
@@ -198,23 +201,58 @@ export class VcfAutomationEntityProvider implements EntityProvider {
         return;
       }
 
-      this.logger.debug(`Authenticating with VCF Automation instance ${instance.name}`);
-      const response = await fetch(`${instance.baseUrl}/csp/gateway/am/api/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(instance.authentication),
-      });
+      this.logger.debug(`Authenticating with VCF Automation instance ${instance.name} (version ${instance.majorVersion})`);
+      
+      if (instance.majorVersion >= 9) {
+        // Version 9+ authentication using vCloud Director API
+        const username = instance.orgName 
+          ? `${instance.authentication.username}@${instance.orgName}`
+          : instance.authentication.username;
+        
+        const basicAuth = Buffer.from(`${username}:${instance.authentication.password}`).toString('base64');
+        
+        const response = await fetch(`${instance.baseUrl}/cloudapi/1.0.0/sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json;version=40.0',
+            'Authorization': `Basic ${basicAuth}`,
+          },
+        });
 
-      if (!response.ok) {
-        throw new Error(`Authentication failed with VCF Automation instance ${instance.name} with status ${response.status}: ${response.statusText}`);
+        if (!response.ok) {
+          throw new Error(`Authentication failed with VCF Automation instance ${instance.name} with status ${response.status}: ${response.statusText}`);
+        }
+
+        const accessToken = response.headers.get('x-vmware-vcloud-access-token');
+        if (!accessToken) {
+          throw new Error(`No access token received from VCF Automation instance ${instance.name}`);
+        }
+
+        instance.token = accessToken;
+        // Version 9+ tokens expire after 1 hour
+        instance.tokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
+        this.logger.debug(`Successfully authenticated with VCF Automation instance ${instance.name} (version 9+)`);
+      } else {
+        // Version 8 authentication using CSP API
+        const response = await fetch(`${instance.baseUrl}/csp/gateway/am/api/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(instance.authentication),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Authentication failed with VCF Automation instance ${instance.name} with status ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        instance.token = data.cspAuthToken;
+        // Version 8 tokens expire after 24 hours
+        instance.tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        this.logger.debug(`Successfully authenticated with VCF Automation instance ${instance.name} (version 8)`);
       }
-
-      const data = await response.json();
-      instance.token = data.cspAuthToken;
-      instance.tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      this.logger.debug(`Successfully authenticated with VCF Automation instance ${instance.name}`);
     } catch (error) {
       this.logger.error(`Authentication failed with VCF Automation instance ${instance.name}`, {
         error: error instanceof Error ? error.message : String(error),
@@ -365,6 +403,31 @@ export class VcfAutomationEntityProvider implements EntityProvider {
       // Create Domain (Project) entity if not already created
       if (!domains.has(deployment.project.id)) {
         domains.add(deployment.project.id);
+        
+        // Generate version-specific links for Domain entities
+        const domainLinks = [];
+        if (instance.majorVersion >= 9) {
+          // Version 9+ links
+          domainLinks.push({
+            url: `${instance.baseUrl}/automation/#/consume/deployment?projects=%5B"${deployment.project.id}"%5D`,
+            title: 'View Project Deployments in VCF Automation',
+          });
+          domainLinks.push({
+            url: `${instance.baseUrl}/automation/#/infrastructure/projects/edit/${deployment.project.id}`,
+            title: 'Edit Project in VCF Automation',
+          });
+        } else {
+          // Version 8 links
+          domainLinks.push({
+            url: `${instance.baseUrl}/automation/#/service/catalog/consume/deployment?projects=%5B"${deployment.project.id}"%5D`,
+            title: 'Open in VCF Automation',
+          });
+        }
+        
+        const domainViewUrl = instance.majorVersion >= 9 
+          ? `${instance.baseUrl}/automation/#/consume/deployment?projects=%5B"${deployment.project.id}"%5D`
+          : `${instance.baseUrl}/automation/#/service/catalog/consume/deployment?projects=%5B"${deployment.project.id}"%5D`;
+        
         entities.push({
           apiVersion: 'backstage.io/v1alpha1',
           kind: 'Domain',
@@ -374,16 +437,11 @@ export class VcfAutomationEntityProvider implements EntityProvider {
             annotations: {
               [ANNOTATION_LOCATION]: locationRef,
               [ANNOTATION_ORIGIN_LOCATION]: locationRef,
-              'backstage.io/view-url': `${instance.baseUrl}/automation/#/service/catalog/consume/deployment?projects=%5B"${deployment.project.id}"%5D`,
+              'backstage.io/view-url': domainViewUrl,
               'terasky.backstage.io/vcf-automation-instance': instance.name,
               'terasky.backstage.io/vcf-automation-version': instance.majorVersion.toString(),
             },
-            links: [
-              {
-                url: `${instance.baseUrl}/automation/#/service/catalog/consume/deployment?projects=%5B"${deployment.project.id}"%5D`,
-                title: 'Open in VCF Automation',
-              },
-            ],
+            links: domainLinks,
             tags: [`vcf-automation:${instance.name}`],
           },
           spec: {
@@ -394,6 +452,15 @@ export class VcfAutomationEntityProvider implements EntityProvider {
       }
 
       // Create System entity for the deployment
+      const systemViewUrl = instance.majorVersion >= 9 
+        ? `${instance.baseUrl}/automation/#/consume/deployment/${deployment.id}`
+        : `${instance.baseUrl}/automation/#/service/catalog/consume/deployment/${deployment.id}`;
+      
+      const systemLinks = [{
+        url: systemViewUrl,
+        title: 'Open in VCF Automation',
+      }];
+      
       const systemEntity: SystemEntity = {
         apiVersion: 'backstage.io/v1alpha1',
         kind: 'System',
@@ -412,14 +479,9 @@ export class VcfAutomationEntityProvider implements EntityProvider {
             'terasky.backstage.io/vcf-automation-deployment-last-request': JSON.stringify(deployment.lastRequest),
             'terasky.backstage.io/vcf-automation-instance': instance.name,
             'terasky.backstage.io/vcf-automation-version': instance.majorVersion.toString(),
-            'backstage.io/view-url': `${instance.baseUrl}/automation/#/service/catalog/consume/deployment/${deployment.id}`,
+            'backstage.io/view-url': systemViewUrl,
           },
-          links: [
-            {
-              url: `${instance.baseUrl}/automation/#/service/catalog/consume/deployment/${deployment.id}`,
-              title: 'Open in VCF Automation',
-            },
-          ],
+          links: systemLinks,
           tags: [`vcf-automation:${instance.name}`],
         },
         spec: {
@@ -442,6 +504,15 @@ export class VcfAutomationEntityProvider implements EntityProvider {
           );
         }
 
+        const resourceViewUrl = instance.majorVersion >= 9 
+          ? `${instance.baseUrl}/automation/#/consume/deployment/${deployment.id}`
+          : `${instance.baseUrl}/automation/#/service/catalog/consume/deployment/${deployment.id}`;
+        
+        const resourceLinks = [{
+          url: resourceViewUrl,
+          title: 'Open in VCF Automation',
+        }];
+        
         const baseEntity = {
           metadata: {
             name: resource.id.toLowerCase(),
@@ -457,14 +528,9 @@ export class VcfAutomationEntityProvider implements EntityProvider {
               'terasky.backstage.io/vcf-automation-resource-state': resource.state,
               'terasky.backstage.io/vcf-automation-instance': instance.name,
               'terasky.backstage.io/vcf-automation-version': instance.majorVersion.toString(),
-              'backstage.io/view-url': `${instance.baseUrl}/automation/#/service/catalog/consume/deployment/${deployment.id}`,
+              'backstage.io/view-url': resourceViewUrl,
             },
-            links: [
-              {
-                url: `${instance.baseUrl}/automation/#/service/catalog/consume/deployment/${deployment.id}`,
-                title: 'Open in VCF Automation',
-              },
-            ],
+            links: resourceLinks,
             tags: [`vcf-automation:${instance.name}`,"vcf-automation-resource"],
           },
           spec: {
@@ -484,19 +550,22 @@ export class VcfAutomationEntityProvider implements EntityProvider {
         };
 
         if (resource.type === 'Cloud.vSphere.Machine') {
+          // Add the remote console link for vSphere VMs
+          const componentLinks = [
+            ...resourceLinks,
+            {
+              url: `${instance.baseUrl}/provisioning-ui/#/machines/remote-console/${resource.id}`,
+              title: 'Open Remote Console',
+            },
+          ];
+          
           entities.push({
             apiVersion: 'backstage.io/v1alpha1',
             kind: 'Component',
             ...baseEntity,
             metadata: {
               ...baseEntity.metadata,
-              links: [
-                ...baseEntity.metadata.links,
-                {
-                  url: `${instance.baseUrl}/provisioning-ui/#/machines/remote-console/${resource.id}`,
-                  title: 'Open Remote Console',
-                },
-              ],
+              links: componentLinks,
             },
             spec: {
               ...baseEntity.spec,

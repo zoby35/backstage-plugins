@@ -15,6 +15,7 @@ export const VCFAutomationDeploymentOverview = () => {
   const { entity } = useEntity();
   const api = useApi(vcfAutomationApiRef);
   const deploymentId = entity.metadata.name;
+  const instanceName = entity.metadata.annotations?.['terasky.backstage.io/vcf-automation-instance'];
 
   const { allowed: hasViewPermission, loading: permissionLoading } = usePermission({
     permission: viewDeploymentHistoryPermission,
@@ -24,8 +25,8 @@ export const VCFAutomationDeploymentOverview = () => {
     if (!deploymentId || !hasViewPermission) {
       return undefined;
     }
-    return await api.getDeploymentDetails(deploymentId);
-  }, [deploymentId, hasViewPermission]);
+    return await api.getDeploymentDetails(deploymentId, instanceName);
+  }, [deploymentId, hasViewPermission, instanceName]);
 
   if (!deploymentId) {
     return (

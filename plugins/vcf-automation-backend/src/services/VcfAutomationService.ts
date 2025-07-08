@@ -20,6 +20,7 @@ interface VcfInstance {
     password: string;
     domain: string;
   };
+  orgName?: string;
   token?: string;
   tokenExpiry?: Date;
 }
@@ -47,8 +48,9 @@ export class VcfAutomationService {
             authentication: {
               username: instanceConfig.getString('authentication.username'),
               password: instanceConfig.getString('authentication.password'),
-              domain: instanceConfig.getString('authentication.domain'),
+              domain: instanceConfig.getOptionalString('authentication.domain') ?? "",
             },
+            orgName: instanceConfig.getOptionalString('orgName'),
           };
         });
       } else {
@@ -64,6 +66,7 @@ export class VcfAutomationService {
             password: auth.getString('password'),
             domain: auth.getString('domain'),
           },
+          orgName: config.getOptionalString('vcfAutomation.orgName'),
         }];
       }
     } catch (error) {
@@ -90,24 +93,60 @@ export class VcfAutomationService {
           return;
         }
 
-        this.logger.debug(`Authentication attempt ${attempt} of ${retries} for instance ${instance.name}`);
-        const response = await fetch(`${instance.baseUrl}/csp/gateway/am/api/login`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(instance.authentication),
-        });
+        this.logger.debug(`Authentication attempt ${attempt} of ${retries} for instance ${instance.name} (version ${instance.majorVersion})`);
+        
+        if (instance.majorVersion >= 9) {
+          // Version 9+ authentication using vCloud Director API
+          const username = instance.orgName 
+            ? `${instance.authentication.username}@${instance.orgName}`
+            : instance.authentication.username;
+          
+          const basicAuth = Buffer.from(`${username}:${instance.authentication.password}`).toString('base64');
+          
+          const response = await fetch(`${instance.baseUrl}/cloudapi/1.0.0/sessions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json;version=40.0',
+              'Authorization': `Basic ${basicAuth}`,
+            },
+          });
 
-        if (!response.ok) {
-          throw new Error(`Authentication failed with status ${response.status}: ${response.statusText}`);
+          if (!response.ok) {
+            throw new Error(`Authentication failed with status ${response.status}: ${response.statusText}`);
+          }
+
+          const accessToken = response.headers.get('x-vmware-vcloud-access-token');
+          if (!accessToken) {
+            throw new Error(`No access token received from VCF Automation instance ${instance.name}`);
+          }
+
+          instance.token = accessToken;
+          // Version 9+ tokens expire after 1 hour
+          instance.tokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
+          this.logger.debug(`Successfully authenticated with VCF Automation instance ${instance.name} (version 9+)`);
+          return;
+        } else {
+          // Version 8 authentication using CSP API
+          const response = await fetch(`${instance.baseUrl}/csp/gateway/am/api/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(instance.authentication),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Authentication failed with status ${response.status}: ${response.statusText}`);
+          }
+
+          const data = (await response.json()) as VcfAuthResponse;
+          instance.token = data.cspAuthToken;
+          // Version 8 tokens expire after 24 hours
+          instance.tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+          this.logger.debug(`Successfully authenticated with VCF Automation instance ${instance.name} (version 8)`);
+          return;
         }
-
-        const data = (await response.json()) as VcfAuthResponse;
-        instance.token = data.cspAuthToken;
-        instance.tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // Token valid for 24 hours
-        this.logger.debug(`Successfully authenticated with VCF Automation instance ${instance.name}`);
-        return;
       } catch (error) {
         this.logger.warn(`Authentication attempt ${attempt} failed for instance ${instance.name}`, {
           error: error instanceof Error ? error.message : String(error),

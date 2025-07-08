@@ -98,6 +98,7 @@ export const VCFAutomationDeploymentDetails = () => {
   const api = useApi(vcfAutomationApiRef);
   const catalogApi = useApi(catalogApiRef);
   const deploymentId = entity.metadata.name;
+  const instanceName = entity.metadata.annotations?.['terasky.backstage.io/vcf-automation-instance'];
 
   const { allowed: hasViewPermission, loading: permissionLoading } = usePermission({
     permission: viewDeploymentHistoryPermission,
@@ -107,16 +108,16 @@ export const VCFAutomationDeploymentDetails = () => {
     if (!deploymentId || !hasViewPermission) {
       return undefined;
     }
-    return await api.getDeploymentDetails(deploymentId);
-  }, [deploymentId, hasViewPermission]);
+    return await api.getDeploymentDetails(deploymentId, instanceName);
+  }, [deploymentId, hasViewPermission, instanceName]);
 
   const { value: eventsResponse, loading: eventsLoading, error: eventsError } = useAsync(async () => {
     if (!deploymentId || !hasViewPermission) {
       return undefined;
     }
-    const response = await api.getDeploymentEvents(deploymentId);
+    const response = await api.getDeploymentEvents(deploymentId, instanceName);
     return response;
-  }, [deploymentId, hasViewPermission]);
+  }, [deploymentId, hasViewPermission, instanceName]);
 
   const { value: resources, loading: resourcesLoading, error: resourcesError } = useAsync(async () => {
     if (!deploymentId) {
@@ -207,12 +208,12 @@ export const VCFAutomationDeploymentDetails = () => {
       'Lease Grace Period (Days)': deploymentDetails?.leaseGracePeriodDays,
     },
     'Expense Information': deploymentDetails?.expense ? {
-      'Total Expense': `${deploymentDetails.expense.totalExpense} ${deploymentDetails.expense.unit}`,
-      'Compute Expense': `${deploymentDetails.expense.computeExpense} ${deploymentDetails.expense.unit}`,
-      'Storage Expense': `${deploymentDetails.expense.storageExpense} ${deploymentDetails.expense.unit}`,
-      'Additional Expense': `${deploymentDetails.expense.additionalExpense} ${deploymentDetails.expense.unit}`,
-      'Last Updated': new Date(deploymentDetails.expense.lastUpdatedTime).toLocaleString(),
-    } : {},
+      'Total Expense': deploymentDetails.expense.totalExpense !== undefined ? `${deploymentDetails.expense.totalExpense} ${deploymentDetails.expense.unit || ''}` : 'N/A',
+      'Compute Expense': deploymentDetails.expense.computeExpense !== undefined ? `${deploymentDetails.expense.computeExpense} ${deploymentDetails.expense.unit || ''}` : 'N/A',
+      'Storage Expense': deploymentDetails.expense.storageExpense !== undefined ? `${deploymentDetails.expense.storageExpense} ${deploymentDetails.expense.unit || ''}` : 'N/A',
+      'Additional Expense': deploymentDetails.expense.additionalExpense !== undefined ? `${deploymentDetails.expense.additionalExpense} ${deploymentDetails.expense.unit || ''}` : 'N/A',
+      'Last Updated': deploymentDetails.expense.lastUpdatedTime ? new Date(deploymentDetails.expense.lastUpdatedTime).toLocaleString() : 'N/A',
+    } : 'No expense information available',
     'Input Parameters': deploymentDetails?.inputs || {},
   };
 

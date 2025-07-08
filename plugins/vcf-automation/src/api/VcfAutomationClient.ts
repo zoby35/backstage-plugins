@@ -121,11 +121,11 @@ export interface VcfVSphereVM {
 export type VcfProject = VcfProjectType;
 
 export interface VcfAutomationApi {
-  getDeploymentEvents(deploymentId: string): Promise<VcfDeploymentResponse>;
-  getVSphereVMDetails(deploymentId: string, resourceId: string): Promise<VcfVSphereVM>;
-  getProjectDetails(projectId: string): Promise<VcfProject>;
-  getGenericResourceDetails(deploymentId: string, resourceId: string): Promise<any>;
-  getDeploymentDetails(deploymentId: string): Promise<any>;
+  getDeploymentEvents(deploymentId: string, instanceName?: string): Promise<VcfDeploymentResponse>;
+  getVSphereVMDetails(deploymentId: string, resourceId: string, instanceName?: string): Promise<VcfVSphereVM>;
+  getProjectDetails(projectId: string, instanceName?: string): Promise<VcfProject>;
+  getGenericResourceDetails(deploymentId: string, resourceId: string, instanceName?: string): Promise<any>;
+  getDeploymentDetails(deploymentId: string, instanceName?: string): Promise<any>;
 }
 
 export const vcfAutomationApiRef = createApiRef<VcfAutomationApi>({
@@ -149,10 +149,13 @@ export class VcfAutomationClient implements VcfAutomationApi {
     };
   }
 
-  async getDeploymentEvents(deploymentId: string): Promise<VcfDeploymentResponse> {
+  async getDeploymentEvents(deploymentId: string, instanceName?: string): Promise<VcfDeploymentResponse> {
     const baseUrl = await this.discoveryApi.getBaseUrl('vcf-automation');
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${baseUrl}/deployments/${deploymentId}/events`, {
+    const url = instanceName 
+      ? `${baseUrl}/deployments/${deploymentId}/events?instance=${encodeURIComponent(instanceName)}`
+      : `${baseUrl}/deployments/${deploymentId}/events`;
+    const response = await fetch(url, {
       headers,
     });
     if (!response.ok) {
@@ -161,10 +164,13 @@ export class VcfAutomationClient implements VcfAutomationApi {
     return await response.json();
   }
 
-  async getVSphereVMDetails(deploymentId: string, resourceId: string): Promise<VcfVSphereVM> {
+  async getVSphereVMDetails(deploymentId: string, resourceId: string, instanceName?: string): Promise<VcfVSphereVM> {
     const baseUrl = await this.discoveryApi.getBaseUrl('vcf-automation');
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${baseUrl}/deployments/${deploymentId}/resources/${resourceId}`, {
+    const url = instanceName 
+      ? `${baseUrl}/deployments/${deploymentId}/resources/${resourceId}?instance=${encodeURIComponent(instanceName)}`
+      : `${baseUrl}/deployments/${deploymentId}/resources/${resourceId}`;
+    const response = await fetch(url, {
       headers,
     });
     if (!response.ok) {
@@ -173,18 +179,20 @@ export class VcfAutomationClient implements VcfAutomationApi {
     return await response.json();
   }
 
-  async getGenericResourceDetails(deploymentId: string, resourceId: string): Promise<any> {
+  async getGenericResourceDetails(deploymentId: string, resourceId: string, instanceName?: string): Promise<any> {
     const baseUrl = await this.discoveryApi.getBaseUrl('vcf-automation');
     const headers = await this.getAuthHeaders();
     
-      const response = await fetch(`${baseUrl}/deployments/${deploymentId}/resources/${resourceId}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          ...headers,
-        },
+    const url = instanceName 
+      ? `${baseUrl}/deployments/${deploymentId}/resources/${resourceId}?instance=${encodeURIComponent(instanceName)}`
+      : `${baseUrl}/deployments/${deploymentId}/resources/${resourceId}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
       },
-    );
+    });
 
     if (!response.ok) {
       throw new Error(`Failed to fetch resource details: ${response.statusText}`);
@@ -193,18 +201,20 @@ export class VcfAutomationClient implements VcfAutomationApi {
     return await response.json();
   }
 
-  async getDeploymentDetails(deploymentId: string): Promise<any> {
+  async getDeploymentDetails(deploymentId: string, instanceName?: string): Promise<any> {
     const baseUrl = await this.discoveryApi.getBaseUrl('vcf-automation');
     const headers = await this.getAuthHeaders();
     
-      const response = await fetch(`${baseUrl}/deployments/${deploymentId}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          ...headers,
-        },
+    const url = instanceName 
+      ? `${baseUrl}/deployments/${deploymentId}?instance=${encodeURIComponent(instanceName)}`
+      : `${baseUrl}/deployments/${deploymentId}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
       },
-    );
+    });
 
     if (!response.ok) {
       throw new Error(`Failed to fetch deployment details: ${response.statusText}`);
@@ -213,10 +223,13 @@ export class VcfAutomationClient implements VcfAutomationApi {
     return await response.json();
   }
 
-  async getProjectDetails(projectId: string): Promise<VcfProject> {
+  async getProjectDetails(projectId: string, instanceName?: string): Promise<VcfProject> {
     const baseUrl = await this.discoveryApi.getBaseUrl('vcf-automation');
     const headers = await this.getAuthHeaders();
-    const response = await fetch(`${baseUrl}/projects/${projectId}`, {
+    const url = instanceName 
+      ? `${baseUrl}/projects/${projectId}?instance=${encodeURIComponent(instanceName)}`
+      : `${baseUrl}/projects/${projectId}`;
+    const response = await fetch(url, {
       headers,
     });
     if (!response.ok) {

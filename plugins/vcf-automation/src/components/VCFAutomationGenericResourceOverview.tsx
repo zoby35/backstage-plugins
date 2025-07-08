@@ -14,11 +14,12 @@ export const VCFAutomationGenericResourceOverview = () => {
   const vcfAutomationApi = useApi(vcfAutomationApiRef);
   const deploymentId = entity.spec?.system || '';
   const resourceId = entity.metadata.name;
+  const instanceName = entity.metadata.annotations?.['terasky.backstage.io/vcf-automation-instance'];
 
   const { value: resourceData, loading, error } = useAsync(async () => {
     if (!deploymentId || !resourceId) return undefined;
-    return await vcfAutomationApi.getGenericResourceDetails(deploymentId as string, resourceId as string);
-  }, [deploymentId, resourceId]);
+    return await vcfAutomationApi.getGenericResourceDetails(deploymentId as string, resourceId as string, instanceName);
+  }, [deploymentId, resourceId, instanceName]);
 
   if (error) {
     return <ResponseErrorPanel error={error} />;

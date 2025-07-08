@@ -35,6 +35,7 @@ export const VCFAutomationResourceOverview = () => {
   const classes = useStyles();
   const deploymentId = entity.spec?.system || '';
   const resourceId = entity.metadata.name;
+  const instanceName = entity.metadata.annotations?.['terasky.backstage.io/vcf-automation-instance'];
 
   const { allowed: hasViewPermission, loading: permissionLoading } = usePermission({
     permission: showDeploymentResourcesDataPermission,
@@ -42,8 +43,8 @@ export const VCFAutomationResourceOverview = () => {
 
   const { value: resource, loading, error } = useAsync(async () => {
     if (!resourceId || !deploymentId || !hasViewPermission) return undefined;
-    return await api.getVSphereVMDetails(deploymentId as string, resourceId);
-  }, [resourceId, deploymentId, hasViewPermission]);
+    return await api.getVSphereVMDetails(deploymentId as string, resourceId, instanceName);
+  }, [resourceId, deploymentId, hasViewPermission, instanceName]);
 
   if (!resourceId || !deploymentId) {
     return (

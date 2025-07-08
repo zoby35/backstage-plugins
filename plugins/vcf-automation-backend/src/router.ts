@@ -24,31 +24,36 @@ export async function createRouter(
 
   router.get('/deployments/:deploymentId/history', async (req, res) => {
     const { deploymentId } = req.params;
-    const history = await vcfService.getDeploymentHistory(deploymentId);
+    const instanceName = req.query.instance as string | undefined;
+    const history = await vcfService.getDeploymentHistory(deploymentId, instanceName);
     res.json(history);
   });
 
   router.get('/deployments/:deploymentId/events', async (req, res) => {
     const { deploymentId } = req.params;
-    const events = await vcfService.getDeploymentEvents(deploymentId);
+    const instanceName = req.query.instance as string | undefined;
+    const events = await vcfService.getDeploymentEvents(deploymentId, instanceName);
     res.json(events);
   });
 
   router.get('/deployments/:deploymentId/resources/:resourceId', async (req, res) => {
     const { deploymentId, resourceId } = req.params;
-    const resource = await vcfService.getResourceDetails(deploymentId, resourceId);
+    const instanceName = req.query.instance as string | undefined;
+    const resource = await vcfService.getResourceDetails(deploymentId, resourceId, instanceName);
     res.json(resource);
   });
 
   router.get('/projects/:projectId', async (req, res) => {
     const { projectId } = req.params;
-    const project = await vcfService.getProjectDetails(projectId);
+    const instanceName = req.query.instance as string | undefined;
+    const project = await vcfService.getProjectDetails(projectId, instanceName);
     res.json(project);
   });
 
   router.get('/deployments/:deploymentId', async (req, res) => {
     const { deploymentId } = req.params;
-    const deployment = await vcfService.getDeploymentDetails(deploymentId);
+    const instanceName = req.query.instance as string | undefined;
+    const deployment = await vcfService.getDeploymentDetails(deploymentId, instanceName);
     res.json(deployment);
   });
 

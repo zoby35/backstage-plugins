@@ -17,6 +17,7 @@ export const VCFAutomationVSphereVMDetails = () => {
   const vcfAutomationApi = useApi(vcfAutomationApiRef);
   const deploymentId = entity.spec?.system || '';
   const resourceId = entity.metadata.name;
+  const instanceName = entity.metadata.annotations?.['terasky.backstage.io/vcf-automation-instance'];
 
   const { allowed } = usePermission({
     permission: showDeploymentResourcesDataPermission,
@@ -24,8 +25,8 @@ export const VCFAutomationVSphereVMDetails = () => {
 
   const { value, loading, error } = useAsync(async () => {
     if (!resourceId || !deploymentId || !allowed) return undefined;
-    return await vcfAutomationApi.getVSphereVMDetails(deploymentId as string, resourceId);
-  }, [resourceId, deploymentId, allowed]);
+    return await vcfAutomationApi.getVSphereVMDetails(deploymentId as string, resourceId, instanceName);
+  }, [resourceId, deploymentId, allowed, instanceName]);
 
   if (error) {
     return <ResponseErrorPanel error={error} />;
@@ -121,12 +122,12 @@ export const VCFAutomationVSphereVMDetails = () => {
         <InfoCard title="Expense Information">
           <StructuredMetadataTable
             metadata={{
-              'Total Expense': `$${value.expense.totalExpense.toFixed(2)}`,
-              'Compute Expense': `$${value.expense.computeExpense.toFixed(2)}`,
-              'Storage Expense': `$${value.expense.storageExpense.toFixed(2)}`,
-              'Additional Expense': `$${value.expense.additionalExpense.toFixed(2)}`,
-              'Currency': value.expense.unit,
-              'Last Updated': new Date(value.expense.lastUpdatedTime).toLocaleString(),
+              'Total Expense': value.expense?.totalExpense !== undefined ? `$${value.expense.totalExpense.toFixed(2)}` : 'N/A',
+              'Compute Expense': value.expense?.computeExpense !== undefined ? `$${value.expense.computeExpense.toFixed(2)}` : 'N/A',
+              'Storage Expense': value.expense?.storageExpense !== undefined ? `$${value.expense.storageExpense.toFixed(2)}` : 'N/A',
+              'Additional Expense': value.expense?.additionalExpense !== undefined ? `$${value.expense.additionalExpense.toFixed(2)}` : 'N/A',
+              'Currency': value.expense?.unit || 'N/A',
+              'Last Updated': value.expense?.lastUpdatedTime ? new Date(value.expense.lastUpdatedTime).toLocaleString() : 'N/A',
             }}
           />
         </InfoCard>

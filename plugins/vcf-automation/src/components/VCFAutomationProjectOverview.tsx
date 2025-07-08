@@ -16,6 +16,7 @@ export const VCFAutomationProjectOverview = () => {
   const { entity } = useEntity();
   const api = useApi(vcfAutomationApiRef);
   const projectId = entity.metadata.name;
+  const instanceName = entity.metadata.annotations?.['terasky.backstage.io/vcf-automation-instance'];
 
   const { allowed: hasViewPermission, loading: permissionLoading } = usePermission({
     permission: viewProjectDetailsPermission,
@@ -23,8 +24,8 @@ export const VCFAutomationProjectOverview = () => {
 
   const { value: project, loading, error } = useAsync(async () => {
     if (!projectId || !hasViewPermission) return undefined;
-    return await api.getProjectDetails(projectId);
-  }, [projectId, hasViewPermission]);
+    return await api.getProjectDetails(projectId, instanceName);
+  }, [projectId, hasViewPermission, instanceName]);
 
   if (!projectId) {
     return (
