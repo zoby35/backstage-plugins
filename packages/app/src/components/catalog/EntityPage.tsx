@@ -656,17 +656,20 @@ const domainPage = (
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
-        <Grid item md={6}>
+        <Grid item md={6} xs={12}>
           <EntityAboutCard variant="gridItem" />
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard variant="gridItem" height={400} />
         </Grid>
-        <Grid item md={6}>
-          <EntityHasSystemsCard variant="gridItem" />
+        <Grid item md={6} xs={12}>
+          <EntityLinksCard />
         </Grid>
-        <Grid item md={6}>
+        <Grid item md={6} xs={12}>
           <VCFAutomationProjectOverview />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityHasSystemsCard title='Deployments' variant="gridItem" />
         </Grid>
       </Grid>
     </EntityLayout.Route>
