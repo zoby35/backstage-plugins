@@ -43,6 +43,8 @@ Single Instance:
 ```yaml
 vcfAutomation:
   baseUrl: 'https://your-vcf-automation-instance'
+  name: demo
+  majorVersion: 8
   authentication:
     username: 'your-username'
     password: 'your-password'
@@ -55,11 +57,11 @@ vcfAutomation:
   instances:
   - name: my-vcf-01
     baseUrl: 'https://your-vcf-automation-instance'
-    majorVersion: 8
+    majorVersion: 9
+    orgName: my-org # This is needed only in VCFA 9 and above
     authentication:
       username: 'your-username'
       password: 'your-password'
-      domain: 'your-domain'
   - name: my-vcf-02
     baseUrl: 'https://your-vcf-02-automation-instance'
     majorVersion: 8

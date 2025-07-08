@@ -1,6 +1,7 @@
 # VCF Automation Plugins
 
 The VCF Automation plugins provide comprehensive visibility and management capabilities for VMware Cloud Foundation (VCF) deployments within Backstage. It enables teams to monitor deployments, manage resources, and oversee project configurations through an intuitive interface.
+The plugins support Aria Automation 8.x as well as VCF Automation 9.x.
 
 ## Features
 

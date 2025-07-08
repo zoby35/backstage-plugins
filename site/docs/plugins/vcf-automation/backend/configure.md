@@ -9,12 +9,12 @@ The plugin is configured through your `app-config.yaml`. Here's the basic config
 ```yaml
 vcfAutomation:
   name: my-vcf-01
-  majorVersion: 8
+  majorVersion: 9
+  orgName: my-org # This is needed only in VCFA 9 and above
   baseUrl: 'https://your-vcf-automation-instance'
   authentication:
     username: 'your-username'
     password: 'your-password'
-    domain: 'your-domain'
 ```  
   
 The plugin does support multi instance config in the following format:
@@ -31,11 +31,11 @@ vcfAutomation:
       domain: 'your-domain'
   - name: my-vcf-02
     baseUrl: 'https://your-vcf-02-automation-instance'
-    majorVersion: 8
+    majorVersion: 9
+    orgName: my-org # This is needed only in VCFA 9 and above
     authentication:
       username: 'your-username'
       password: 'your-password'
-      domain: 'your-domain'
 ```
 
 

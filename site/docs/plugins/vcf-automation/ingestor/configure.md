@@ -2,6 +2,7 @@
 
 This guide covers the configuration options available for the VCF Automation Ingestor plugin.
 
+
 ## Simple Configuration
 
 For a single VCF Automation instance you can provide config as follows:
@@ -11,12 +12,13 @@ Add the following to your `app-config.yaml`:
 ```yaml
 vcfAutomation:
   name: my-vcf-01
-  majorVersion: 8
+  majorVersion: 8 # 9 is also supported
   baseUrl: 'https://your-vcf-automation-instance'
+  orgName: my-org # This is needed only in VCFA 9 and above
   authentication:
     username: 'your-username'
     password: 'your-password'
-    domain: 'your-domain'
+    domain: 'your-domain' # This is needed only in Aria Automation 8.x
 ```
 
 ## Multi Instance Config
@@ -28,18 +30,19 @@ vcfAutomation:
   instances:
   - name: my-vcf-01
     baseUrl: 'https://your-vcf-automation-instance'
-    majorVersion: 8
+    majorVersion: 9
+    orgName: my-org # This is needed only in VCFA 9 and above
     authentication:
       username: 'your-username'
       password: 'your-password'
-      domain: 'your-domain'
+      domain: 'your-domain' # This is needed only in Aria Automation 8.x
   - name: my-vcf-02
     baseUrl: 'https://your-vcf-02-automation-instance'
     majorVersion: 8
     authentication:
       username: 'your-username'
       password: 'your-password'
-      domain: 'your-domain'
+      domain: 'your-domain' # This is needed only in Aria Automation 8.x
 ```
 
 ## Authentication
