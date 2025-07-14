@@ -1,6 +1,6 @@
 import { useEntity } from '@backstage/plugin-catalog-react';
-import CrossplaneAllResourcesTable from './CrossplaneAllResourcesTable';
-import CrossplaneV2ResourcesTable from './CrossplaneV2ResourcesTable';
+import CrossplaneV1ResourcesTable from './CrossplaneV1ResourceTable';
+import CrossplaneV2ResourcesTable from './CrossplaneV2ResourceTable';
 
 const CrossplaneResourcesTableSelector = () => {
   const { entity } = useEntity();
@@ -10,7 +10,7 @@ const CrossplaneResourcesTableSelector = () => {
     return <CrossplaneV2ResourcesTable />;
   }
   // Default to v1
-  return <CrossplaneAllResourcesTable />;
+  return <CrossplaneV1ResourcesTable />;
 };
 
 export default CrossplaneResourcesTableSelector; 

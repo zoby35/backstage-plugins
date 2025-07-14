@@ -34,7 +34,6 @@ import ReactFlow, { ReactFlowProvider, MiniMap, Controls, Background, Node, Edge
 import dagre from 'dagre';
 import { usePermission } from '@backstage/plugin-permission-react';
 import { showResourceGraph } from '@terasky/backstage-plugin-crossplane-common';
-import pluralize from 'pluralize';
 
 const useStyles = makeStyles((theme) => ({
     drawer: {
@@ -206,11 +205,6 @@ const CustomNode = ({ data }: { data: any }) => {
                         backgroundColor: '#1b5e20',
                         color: '#a5d6a7'
                     };
-                case 'K8s':
-                    return {
-                        backgroundColor: '#1976d2',
-                        color: '#90caf9'
-                    };
                 default:
                     return {
                         backgroundColor: theme.palette.primary.dark,
@@ -233,11 +227,6 @@ const CustomNode = ({ data }: { data: any }) => {
                     return {
                         backgroundColor: '#e8f5e9',
                         color: '#388e3c'
-                    };
-                case 'K8s':
-                    return {
-                        backgroundColor: '#e3f2fd',
-                        color: '#1976d2'
                     };
                 default:
                     return {
@@ -362,40 +351,24 @@ const CustomNode = ({ data }: { data: any }) => {
                 paddingTop: '6px'
             }}>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                    {data.categoryBadge === 'K8s' ? (
-                        // For K8s resources, show a generic status indicator
-                        <div style={{
-                            ...getStatusColors(true), // Always show as positive for K8s
-                            padding: '2px 8px',
-                            borderRadius: '3px',
-                            fontSize: '10px',
-                            fontWeight: 'bold'
-                        }}>
-                            K8s
-                        </div>
-                    ) : (
-                        // For XR and MR resources, show Synced and Ready
-                        <>
-                            <div style={{
-                                ...getStatusColors(data.isSynced),
-                                padding: '2px 8px',
-                                borderRadius: '3px',
-                                fontSize: '10px',
-                                fontWeight: 'bold'
-                            }}>
-                                Synced
-                            </div>
-                            <div style={{
-                                ...getStatusColors(data.isReady),
-                                padding: '2px 8px',
-                                borderRadius: '3px',
-                                fontSize: '10px',
-                                fontWeight: 'bold'
-                            }}>
-                                Ready
-                            </div>
-                        </>
-                    )}
+                    <div style={{
+                        ...getStatusColors(data.isSynced),
+                        padding: '2px 8px',
+                        borderRadius: '3px',
+                        fontSize: '10px',
+                        fontWeight: 'bold'
+                    }}>
+                        Synced
+                    </div>
+                    <div style={{
+                        ...getStatusColors(data.isReady),
+                        padding: '2px 8px',
+                        borderRadius: '3px',
+                        fontSize: '10px',
+                        fontWeight: 'bold'
+                    }}>
+                        Ready
+                    </div>
                 </div>
             </div>
 
@@ -459,7 +432,7 @@ const nodeTypes = {
     custom: CustomNode,
 };
 
-const CrossplaneV2ResourceGraph = () => {
+const CrossplaneV1ResourceGraph = () => {
     const { entity } = useEntity();
     const theme = useTheme();
     const classes = useStyles();
@@ -568,6 +541,8 @@ const CrossplaneV2ResourceGraph = () => {
 
         // Find the claim node first (it should be the entity's claim)
         const claimName = entity.metadata.annotations?.['terasky.backstage.io/claim-name'];
+        const claimKind = entity.metadata.annotations?.['terasky.backstage.io/claim-kind'];
+        const claimGroup = entity.metadata.annotations?.['terasky.backstage.io/claim-group'];
         const claimResource = resourceList.find(r => r.metadata?.name === claimName);
 
         // Helper function to determine category badge
@@ -577,31 +552,27 @@ const CrossplaneV2ResourceGraph = () => {
                 return 'Claim';
             }
 
-            // Check for XR vs MR vs K8s based on spec structure
+            // Check for XR vs MR based on resourceRefs
             const spec = (resource as any).spec;
 
             // XR: Has resourceRefs array with items
-            if (spec?.crossplane?.resourceRefs && Array.isArray(spec.crossplane.resourceRefs) && spec.crossplane.resourceRefs.length > 0) {
+            if (spec?.resourceRefs && Array.isArray(spec.resourceRefs) && spec.resourceRefs.length > 0) {
                 return 'XR';
             }
 
             // Additional XR check: Has compositionRef or compositionSelector
-            if (spec?.crossplane?.compositionRef || spec?.crossplane?.compositionSelector) {
+            if (spec?.compositionRef || spec?.compositionSelector) {
                 return 'XR';
             }
 
             // Additional XR check: Has composedTemplate (for newer Crossplane versions)
-            if (spec?.crossplane?.composedTemplate || spec?.crossplane?.composition) {
+            if (spec?.composedTemplate || spec?.composition) {
                 return 'XR';
             }
 
-            // MR: Has spec.forProvider (Crossplane Managed Resource)
-            if (spec?.forProvider) {
-                return 'MR';
-            }
-
-            // K8s: Regular Kubernetes resource (no spec.forProvider)
-            return 'K8s';
+            // MR: Leaf resource (no resourceRefs or empty resourceRefs)
+            // This includes managed resources from providers
+            return 'MR';
         };
 
         // Create nodes
@@ -617,7 +588,11 @@ const CrossplaneV2ResourceGraph = () => {
             const nodeId = resource.metadata?.uid || `${resource.kind}-${Math.random()}`;
 
             // Determine if this is the claim node
-            const isClaimNode = resource === claimResource || resource.metadata?.name === claimName;
+            const isClaimNode = resource === claimResource || (
+                resource.metadata?.name?.toLowerCase() === claimName?.toLowerCase() &&
+                resource.kind?.toLowerCase() === claimKind?.toLowerCase() &&
+                (resource as any).apiVersion?.toLowerCase().startsWith(claimGroup?.toLowerCase())
+            );
 
             // Determine category badge
             const categoryBadge = determineCategoryBadge(resource, isClaimNode);
@@ -773,81 +748,86 @@ const CrossplaneV2ResourceGraph = () => {
 
         const fetchResources = async () => {
             const annotations = entity.metadata.annotations || {};
-            const plural = annotations['terasky.backstage.io/composite-plural'];
-            const group = annotations['terasky.backstage.io/composite-group'];
-            const version = annotations['terasky.backstage.io/composite-version'];
-            const name = annotations['terasky.backstage.io/composite-name'];
-            const clusterOfComposite = annotations['backstage.io/managed-by-location'].split(": ")[1];
-            const scope = annotations['terasky.backstage.io/crossplane-scope'];
-            const namespace = entity.metadata.namespace || annotations['namespace'] || 'default';
-            if (!plural || !group || !version || !name || !clusterOfComposite) {
-                setLoading(false);
-                return;
-            }
-
-            let url = '';
-            if (scope === 'Namespaced') {
-                url = `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${name}`;
-            } else {
-                url = `/apis/${group}/${version}/${plural}/${name}`;
-            }
+            const claimName = annotations['terasky.backstage.io/claim-name'];
+            const clusterOfClaim = annotations['backstage.io/managed-by-location'].split(": ")[1];
+            const plural = annotations['terasky.backstage.io/claim-plural'];
+            const group = annotations['terasky.backstage.io/claim-group'];
+            const version = annotations['terasky.backstage.io/claim-version'];
+            const labelSelector = annotations['backstage.io/kubernetes-label-selector'];
+            const namespace = labelSelector.split(',').find(s => s.startsWith('crossplane.io/claim-namespace'))?.split('=')[1];
+            const crdMap: Map<string, any> = new Map();
 
             try {
-                // Fetch the composite resource first
+                const response = await kubernetesApi.proxy({
+                    clusterName: clusterOfClaim,
+                    path: '/apis',
+                    init: {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json;g=apidiscovery.k8s.io;v=v2beta1;as=APIGroupDiscoveryList,application/json',
+                        },
+                    },
+                });
+
+                const apiGroupDiscoveryList = await response.json();
+
+                apiGroupDiscoveryList.items.forEach((group: any) => {
+                    group.versions.forEach((version: any) => {
+                        version.resources.forEach((resource: any) => {
+                            if (resource.categories?.some((category: string) => ['crossplane', 'managed', 'composite', 'claim'].includes(category))) {
+                                // Use composite key to prevent collisions between same resource names in different groups
+                                const resourceKey = `${group.metadata.name}/${version.version}/${resource.resource}`;
+                                crdMap.set(resourceKey, {
+                                    group: group.metadata.name,
+                                    apiVersion: version.version,
+                                    plural: resource.resource,
+                                });
+                            }
+                        });
+                    });
+                });
+
+                const customResources = Array.from(crdMap.values());
+
+                console.log('Discovered custom resources:', customResources.length);
+                console.log('Resource types:', customResources.map(r => `${r.group}/${r.apiVersion}/${r.plural}`));
+
+                const resourcesResponse = await kubernetesApi.getCustomObjectsByEntity({
+                    entity,
+                    auth: { type: 'serviceAccount' },
+                    customResources,
+                });
+
+                const allResources = resourcesResponse.items.flatMap(item =>
+                    item.resources.flatMap(resourceGroup => resourceGroup.resources)
+                ).filter(resource => resource);
+
+                console.log('Fetched resources:', allResources.length);
+                console.log('Resource details:', allResources.map(r => `${r.kind}/${r.metadata?.name} (${(r as any).apiVersion})`));
+
+                // Fetch the claim resource
+                const resourceName = claimName;
+                const url = `/apis/${group}/${version}/namespaces/${namespace}/${plural}/${resourceName}`;
+
+                try {
                     const response = await kubernetesApi.proxy({
-                    clusterName: clusterOfComposite,
+                        clusterName: clusterOfClaim,
                         path: url,
                         init: { method: 'GET' },
                     });
-                const xrResource = await response.json();
+                    const claimResource = await response.json();
+                    allResources.push(claimResource);
+                    console.log('Added claim resource:', claimResource.kind, claimResource.metadata?.name);
+                } catch (error) {
+                    console.error('Failed to fetch claim resource:', error);
+                }
 
-                // Get resourceRefs from the V2 structure
-                const resourceRefs = xrResource.spec?.crossplane?.resourceRefs || [];
-                
-                // Fetch all managed resources
-                const managedResources = await Promise.all(resourceRefs.map(async (ref: any) => {
-                    let apiGroup = '';
-                    let apiVersion = '';
-                    if (ref.apiVersion.includes('/')) {
-                        [apiGroup, apiVersion] = ref.apiVersion.split('/');
-                    } else {
-                        apiGroup = '';
-                        apiVersion = ref.apiVersion;
-                    }
-                    const kindPlural = pluralize(ref.kind.toLowerCase());
-                    let mrNamespace = ref.namespace;
-                    if (!mrNamespace && scope === 'Namespaced') {
-                        mrNamespace = xrResource.metadata?.namespace || namespace;
-                    }
-                    let resourceUrl = '';
-                    if (mrNamespace) {
-                        if (!apiGroup || apiGroup === 'v1') {
-                            resourceUrl = `/api/v1/namespaces/${mrNamespace}/${kindPlural}/${ref.name}`;
-                        } else {
-                            resourceUrl = `/apis/${apiGroup}/${apiVersion}/namespaces/${mrNamespace}/${kindPlural}/${ref.name}`;
-                        }
-                    } else {
-                        if (!apiGroup || apiGroup === 'v1') {
-                            resourceUrl = `/api/v1/${kindPlural}/${ref.name}`;
-                        } else {
-                            resourceUrl = `/apis/${apiGroup}/${apiVersion}/${kindPlural}/${ref.name}`;
-                        }
-                    }
-                    const resourceResponse = await kubernetesApi.proxy({
-                        clusterName: clusterOfComposite,
-                        path: resourceUrl,
-                        init: { method: 'GET' },
-                    });
-                    return await resourceResponse.json();
-                }));
-
-                setResources([xrResource, ...managedResources]);
-                generateGraphElements([xrResource, ...managedResources]);
-            } catch (error) {
-                console.error('Failed to fetch resources:', error);
-                setResources([]);
+                setResources(allResources);
                 setNodes([]);
                 setEdges([]);
+            } catch (error) {
+                console.error('Failed to fetch resources:', error);
+                throw error;
             } finally {
                 setLoading(false);
             }
@@ -959,7 +939,7 @@ const CrossplaneV2ResourceGraph = () => {
 
     return (
         <ReactFlowProvider>
-            <Typography variant="h6" gutterBottom>Crossplane v2 Resource Graph</Typography>
+            <Typography variant="h6" gutterBottom>Crossplane v1 Resource Graph</Typography>
             <div style={{ height: '80vh' }}>
                 <ReactFlow
                     nodes={nodes}
@@ -1082,4 +1062,4 @@ const CrossplaneV2ResourceGraph = () => {
     );
 };
 
-export default CrossplaneV2ResourceGraph;
+export default CrossplaneV1ResourceGraph;

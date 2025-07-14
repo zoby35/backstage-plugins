@@ -38,7 +38,7 @@ const removeManagedFields = (resource: KubernetesObject) => {
     return resourceCopy;
 };
 
-const CrossplaneV2ManagedResources = () => {
+const LegacyCrossplaneV2ManagedResources = () => {
     const { entity } = useEntity();
     const kubernetesApi = useApi(kubernetesApiRef);
     const config = useApi(configApiRef);
@@ -337,4 +337,4 @@ const CrossplaneV2ManagedResources = () => {
     );
 };
 
-export default CrossplaneV2ManagedResources; 
+export default LegacyCrossplaneV2ManagedResources; 

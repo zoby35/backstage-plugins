@@ -1,10 +1,10 @@
 import { Box, Typography } from '@material-ui/core';
-import CrossplaneV2CompositeResourcesTable from './CrossplaneV2CompositeResourcesTable';
-import CrossplaneV2ManagedResources from './CrossplaneV2ManagedResources';
+import LegacyCrossplaneV2CompositeResourcesTable from './LegacyCrossplaneV2CompositeResourcesTable';
+import LegacyCrossplaneV2ManagedResources from './LegacyCrossplaneV2ManagedResources';
 import CrossplaneV2OverviewCard from './CrossplaneV2OverviewCard';
-import CrossplaneV2UsedResourcesTable from './CrossplaneV2UsedResourcesTable';
+import LegacyCrossplaneV2UsedResourcesTable from './LegacyCrossplaneV2UsedResourcesTable';
 
-const CrossplaneV2ResourcesTable = () => {
+const LegacyCrossplaneV2ResourcesTable = () => {
     return (
         <Box>
             <Typography variant="h5" gutterBottom style={{ marginTop: '2rem' }}>
@@ -15,19 +15,19 @@ const CrossplaneV2ResourcesTable = () => {
             <Typography variant="h5" gutterBottom>
                 Composite Resource
             </Typography>
-            <CrossplaneV2CompositeResourcesTable />
+            <LegacyCrossplaneV2CompositeResourcesTable />
 
             <Typography variant="h5" gutterBottom style={{ marginTop: '2rem' }}>
                 Managed Resources
             </Typography>
-            <CrossplaneV2ManagedResources />
+            <LegacyCrossplaneV2ManagedResources />
 
             <Typography variant="h5" gutterBottom style={{ marginTop: '2rem' }}>
                 Additional Crossplane Resources
             </Typography>
-            <CrossplaneV2UsedResourcesTable />
+            <LegacyCrossplaneV2UsedResourcesTable />
         </Box>
     );
 };
 
-export default CrossplaneV2ResourcesTable; 
+export default LegacyCrossplaneV2ResourcesTable; 

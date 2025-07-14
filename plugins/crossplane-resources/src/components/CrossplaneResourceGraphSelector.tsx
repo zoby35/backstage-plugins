@@ -1,5 +1,5 @@
 import { useEntity } from '@backstage/plugin-catalog-react';
-import CrossplaneResourceGraph from './CrossplaneResourceGraph';
+import CrossplaneV1ResourceGraph from './CrossplaneV1ResourceGraph';
 import CrossplaneV2ResourceGraph from './CrossplaneV2ResourceGraph';
 
 const CrossplaneResourceGraphSelector = () => {
@@ -10,7 +10,7 @@ const CrossplaneResourceGraphSelector = () => {
     return <CrossplaneV2ResourceGraph />;
   }
   // Default to v1
-  return <CrossplaneResourceGraph />;
+  return <CrossplaneV1ResourceGraph />;
 };
 
 export default CrossplaneResourceGraphSelector; 
