@@ -11,6 +11,14 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: User
 metadata:
+  name: vrabbi
+  namespace: default
+spec:
+  memberOf: [guests]
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
   name: guest
   namespace: development
 spec:

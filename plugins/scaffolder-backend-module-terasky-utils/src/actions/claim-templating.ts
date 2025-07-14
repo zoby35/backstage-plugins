@@ -3,6 +3,36 @@ import { resolveSafeChildPath } from '@backstage/backend-plugin-api';
 import yaml from 'js-yaml';
 import fs from 'fs-extra';
 import path from 'path';
+
+// Helper function to generate SCM-specific URLs
+function generateSourceFileUrl(gitRepo: string, gitBranch: string, filePath: string, scmType: string): string {
+  const gitUrl = new URL("https://" + gitRepo);
+  const owner = gitUrl.searchParams.get('owner');
+  const repo = gitUrl.searchParams.get('repo');
+  
+  if (!owner || !repo) {
+    return '';
+  }
+
+  const host = gitUrl.host;
+  
+  // Determine URL format based on configured SCM type
+  switch (scmType?.toLowerCase()) {
+    case 'gitlab':
+      // GitLab or self-hosted GitLab
+      return `https://${host}/${owner}/${repo}/-/blob/${gitBranch}/${filePath}`;
+    case 'bitbucketcloud':
+      // Bitbucket Cloud
+      return `https://${host}/${owner}/${repo}/src/${gitBranch}/${filePath}`;
+    case 'bitbucket':
+      // Bitbucket Server
+      return `https://${host}/projects/${owner}/repos/${repo}/browse/${filePath}?at=${gitBranch}`;
+    case 'github':
+    default:
+      // GitHub or GitHub Enterprise
+      return `https://${host}/${owner}/${repo}/blob/${gitBranch}/${filePath}`;
+  }
+}
 export function createCrossplaneClaimAction({config}: {config: any}) {
   return createTemplateAction({
     id: 'terasky:claim-template',
@@ -95,12 +125,8 @@ export function createCrossplaneClaimAction({config}: {config: any}) {
         // Generate the correct sourceFileUrl for this cluster
         let sourceFileUrl = '';
         if ((input.parameters as any).pushToGit && sourceInfo.gitRepo) {
-          const gitUrl = new URL("https://" + sourceInfo.gitRepo);
-          const owner = gitUrl.searchParams.get('owner');
-          const repo = gitUrl.searchParams.get('repo');
-          if (owner && repo) {
-            sourceFileUrl = `https://${gitUrl.host}/${owner}/${repo}/blob/${sourceInfo.gitBranch}/${filePath}`;
-          }
+          const scmType = config.getOptionalString('kubernetesIngestor.crossplane.xrds.publishPhase.target') || 'github';
+          sourceFileUrl = generateSourceFileUrl(sourceInfo.gitRepo, sourceInfo.gitBranch, filePath, scmType);
         }
 
         // Create the manifest with the correct annotation for this cluster
