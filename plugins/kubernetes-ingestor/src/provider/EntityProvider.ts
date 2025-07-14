@@ -205,7 +205,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
                 {
                   title: 'Open Pull Request',
                   if: '${{ parameters.pushToGit }}',
-                  url: '${{ steps["create-pull-request"].output.remoteUrl }}'
+                  url: this.getPullRequestUrl()
                 }
               ]
             },
@@ -254,7 +254,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
               {
                 title: 'Open Pull Request',
                 if: '${{ parameters.pushToGit }}',
-                url: '${{ steps["create-pull-request"].output.remoteUrl }}'
+                url: this.getPullRequestUrl()
               }
             ]
           },
@@ -786,6 +786,9 @@ export class XRDTemplateEntityProvider implements EntityProvider {
         case 'bitbucket':
           allowedHosts = ['only-bitbucket-server-is-allowed'];
           break;
+        case 'bitbucketCloud':
+          allowedHosts = ['bitbucket.org'];
+          break;
         default:
           allowedHosts = [];
       }
@@ -1046,6 +1049,9 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       case 'bitbucket':
         action = 'publish:bitbucketServer:pull-request';
         break;
+      case 'bitbucketCloud':
+        action = 'publish:bitbucketCloud:pull-request';
+        break;
       case 'github':
       default:
         action = 'publish:github:pull-request';
@@ -1110,6 +1116,21 @@ export class XRDTemplateEntityProvider implements EntityProvider {
     return [...defaultSteps, ...additionalSteps];
   }
 
+  private getPullRequestUrl(): string {
+    const publishPhaseTarget = this.config.getOptionalString('kubernetesIngestor.crossplane.xrds.publishPhase.target')?.toLowerCase();
+    
+    switch (publishPhaseTarget) {
+      case 'gitlab':
+        return '${{ steps["create-pull-request"].output.mergeRequestUrl }}';
+      case 'bitbucket':
+      case 'bitbucketCloud':
+        return '${{ steps["create-pull-request"].output.pullRequestUrl }}';
+      case 'github':
+      default:
+        return '${{ steps["create-pull-request"].output.remoteUrl }}';
+    }
+  }
+
   private translateCRDToTemplate(crd: any): Entity[] {
     if (!crd?.metadata || !crd?.spec?.versions) {
       throw new Error('Invalid CRD object');
@@ -1159,7 +1180,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
             {
               title: 'Open Pull Request',
               if: '${{ parameters.pushToGit }}',
-              url: '${{ steps["create-pull-request"].output.remoteUrl }}'
+              url: this.getCRDPullRequestUrl()
             }
           ]
         },
@@ -1572,6 +1593,9 @@ export class XRDTemplateEntityProvider implements EntityProvider {
         case 'bitbucket':
           allowedHosts = ['only-bitbucket-server-is-allowed'];
           break;
+        case 'bitbucketCloud':
+          allowedHosts = ['bitbucket.org'];
+          break;
         default:
           allowedHosts = [];
       }
@@ -1783,6 +1807,9 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       case 'bitbucket':
         action = 'publish:bitbucketServer:pull-request';
         break;
+      case 'bitbucketCloud':
+        action = 'publish:bitbucketCloud:pull-request';
+        break;
       case 'github':
       default:
         action = 'publish:github:pull-request';
@@ -1819,6 +1846,21 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       }
     }
     return yaml.load(defaultStepsYaml) as any[];
+  }
+
+  private getCRDPullRequestUrl(): string {
+    const publishPhaseTarget = this.config.getOptionalString('kubernetesIngestor.genericCRDTemplates.publishPhase.target')?.toLowerCase();
+    
+    switch (publishPhaseTarget) {
+      case 'gitlab':
+        return '${{ steps["create-pull-request"].output.mergeRequestUrl }}';
+      case 'bitbucket':
+      case 'bitbucketCloud':
+        return '${{ steps["create-pull-request"].output.pullRequestUrl }}';
+      case 'github':
+      default:
+        return '${{ steps["create-pull-request"].output.remoteUrl }}';
+    }
   }
 }
 

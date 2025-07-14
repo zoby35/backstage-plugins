@@ -37,7 +37,7 @@ import { CatalogGraphPage } from '@backstage/plugin-catalog-graph';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
 import { RbacPage } from '@backstage-community/plugin-rbac';
-import { githubAuthApiRef, microsoftAuthApiRef } from '@backstage/core-plugin-api';
+import { githubAuthApiRef, microsoftAuthApiRef, gitlabAuthApiRef } from '@backstage/core-plugin-api';
 import { themes, UnifiedThemeProvider } from '@backstage/theme';
 import { teraskyLightTheme, teraskyDarkTheme } from './theme/teraskyTheme';
 import LightIcon from '@material-ui/icons/WbSunny';
@@ -90,6 +90,12 @@ const app = createApp({
                 message: 'Sign in using EntraID',
                 apiRef: microsoftAuthApiRef,
               },
+              {
+                id: 'gitlab-auth-provider',
+                title: 'GitLab',
+                message: 'Sign in using GitLab',
+                apiRef: gitlabAuthApiRef,
+              },
             ]}
           />
         );
@@ -109,6 +115,12 @@ const app = createApp({
               title: 'Microsoft',
               message: 'Sign in using EntraID',
               apiRef: microsoftAuthApiRef,
+            },
+            {
+              id: 'gitlab-auth-provider',
+              title: 'GitLab',
+              message: 'Sign in using GitLab',
+              apiRef: gitlabAuthApiRef,
             },
           ]}
         />

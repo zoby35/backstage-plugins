@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, ChangeEvent } from 'react';
-import { useApi, fetchApiRef, githubAuthApiRef } from '@backstage/core-plugin-api';
+import { useApi, fetchApiRef, githubAuthApiRef, gitlabAuthApiRef, bitbucketAuthApiRef } from '@backstage/core-plugin-api';
 import {
   Progress,
   ResponseErrorPanel,
@@ -415,6 +415,8 @@ export const GitOpsManifestUpdaterForm = ({
   const catalogApi = useApi(catalogApiRef);
   const scmIntegrations = useApi(scmIntegrationsApiRef);
   const githubAuth = useApi(githubAuthApiRef);
+  const gitlabAuth = useApi(gitlabAuthApiRef);
+  const bitbucketAuth = useApi(bitbucketAuthApiRef);
 
   const getEntityFromRef = useCallback(async (entityRef: string) => {
     try {
@@ -457,24 +459,29 @@ export const GitOpsManifestUpdaterForm = ({
           throw new Error('No matching SCM integration found for URL');
         }
 
-        // Convert GitHub URLs to API URLs
+        // Convert SCM URLs to API URLs
         let fetchUrl = sourceURI;
-        
+        const headers: HeadersInit = {};
+
         if (scmIntegration.type === 'github') {
-          const match = sourceURI.match(/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)/);
-          if (!match) {
-            throw new Error('Invalid GitHub URL format');
+          // Handle both GitHub.com and GitHub Enterprise
+          // URL format: https://github.com/owner/repo/blob/branch/path/to/file.yaml
+          // or: https://github.enterprise.com/owner/repo/blob/branch/path/to/file.yaml
+          const githubMatch = sourceURI.match(/^https?:\/\/([^/]+)\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/);
+          if (!githubMatch) {
+            throw new Error(`Invalid GitHub URL format: ${sourceURI}. Expected format: https://github.com/owner/repo/blob/branch/path/to/file.yaml`);
           }
-          const [, owner, repo, branch, path] = match;
-          fetchUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
-        }
-
-        // Create headers with authentication token
-        const headers: HeadersInit = {
-          'Accept': 'application/vnd.github.v3.raw',
-        };
-
-        if (scmIntegration.type === 'github') {
+          const [, host, owner, repo, branch, path] = githubMatch;
+          
+          if (host === 'github.com') {
+            fetchUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+          } else {
+            // GitHub Enterprise
+            fetchUrl = `https://${host}/api/v3/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+          }
+          
+          headers['Accept'] = 'application/vnd.github.v3.raw';
+          
           try {
             const token = await githubAuth.getAccessToken(['repo']);
             if (token) {
@@ -483,6 +490,71 @@ export const GitOpsManifestUpdaterForm = ({
           } catch (authError) {
             throw new Error('Failed to get GitHub authentication token');
           }
+        } else if (scmIntegration.type === 'gitlab') {
+          // Handle both GitLab.com and self-hosted GitLab
+          // URL format: https://gitlab.com/group/subgroup/project/-/blob/branch/path/to/file.yaml
+          // or: https://gitlab.company.com/group/subgroup/project/-/blob/branch/path/to/file.yaml
+          const gitlabMatch = sourceURI.match(/^https?:\/\/([^/]+)\/(.+)\/-\/blob\/([^/]+)\/(.+)$/);
+          if (!gitlabMatch) {
+            throw new Error(`Invalid GitLab URL format: ${sourceURI}. Expected format: https://gitlab.com/group/project/-/blob/branch/path/to/file.yaml`);
+          }
+          const [, host, groupAndProject, branch, path] = gitlabMatch;
+          const projectPath = encodeURIComponent(groupAndProject);
+          const filePath = encodeURIComponent(path);
+          
+          fetchUrl = `https://${host}/api/v4/projects/${projectPath}/repository/files/${filePath}/raw?ref=${branch}`;
+          
+          try {
+            const token = await gitlabAuth.getAccessToken(['read_repository']);
+            if (token) {
+              headers.Authorization = `Bearer ${token}`;
+            }
+          } catch (authError) {
+            throw new Error('Failed to get GitLab authentication token');
+          }
+        } else if (scmIntegration.type === 'bitbucket') {
+          // Handle Bitbucket Cloud
+          // URL format: https://bitbucket.org/workspace/repo/src/branch/path/to/file.yaml
+          const bitbucketCloudMatch = sourceURI.match(/^https?:\/\/bitbucket\.org\/([^/]+)\/([^/]+)\/src\/([^/]+)\/(.+)$/);
+          if (!bitbucketCloudMatch) {
+            throw new Error(`Invalid Bitbucket Cloud URL format: ${sourceURI}. Expected format: https://bitbucket.org/workspace/repo/src/branch/path/to/file.yaml`);
+          }
+          const [, workspace, repo, branch, path] = bitbucketCloudMatch;
+          fetchUrl = `https://api.bitbucket.org/2.0/repositories/${workspace}/${repo}/src/${branch}/${path}`;
+          
+          try {
+            const token = await bitbucketAuth.getAccessToken(['repository']);
+            if (token) {
+              headers.Authorization = `Bearer ${token}`;
+            }
+          } catch (authError) {
+            throw new Error('Failed to get Bitbucket authentication token');
+          }
+        } else if (scmIntegration.type === 'bitbucket-server') {
+          // Handle Bitbucket Server (on-premises)
+          // URL format: https://bitbucket.company.com/projects/PROJECT/repos/repo/browse/path/to/file.yaml?at=refs%2Fheads%2Fbranch
+          // or: https://bitbucket.company.com/projects/PROJECT/repos/repo/browse/path/to/file.yaml?at=branch
+          let bitbucketServerMatch = sourceURI.match(/^https?:\/\/([^/]+)\/projects\/([^/]+)\/repos\/([^/]+)\/browse\/([^?]+)\?at=refs%2Fheads%2F([^&]+)/);
+          if (!bitbucketServerMatch) {
+            // Try alternative format without refs/heads encoding
+            bitbucketServerMatch = sourceURI.match(/^https?:\/\/([^/]+)\/projects\/([^/]+)\/repos\/([^/]+)\/browse\/([^?]+)\?at=([^&]+)/);
+          }
+          if (!bitbucketServerMatch) {
+            throw new Error(`Invalid Bitbucket Server URL format: ${sourceURI}. Expected format: https://bitbucket.company.com/projects/PROJECT/repos/repo/browse/path/to/file.yaml?at=branch`);
+          }
+          const [, host, project, repo, path, branch] = bitbucketServerMatch;
+          fetchUrl = `https://${host}/rest/api/1.0/projects/${project}/repos/${repo}/raw/${path}?at=${branch}`;
+          
+          try {
+            const token = await bitbucketAuth.getAccessToken(['PROJECT_READ']);
+            if (token) {
+              headers.Authorization = `Bearer ${token}`;
+            }
+          } catch (authError) {
+            throw new Error('Failed to get Bitbucket Server authentication token');
+          }
+        } else {
+          throw new Error(`Unsupported SCM integration type: ${scmIntegration.type}. Supported types: github, gitlab, bitbucket, bitbucket-server`);
         }
 
         // Use Backstage's fetch API with auth headers
@@ -542,7 +614,7 @@ export const GitOpsManifestUpdaterForm = ({
     };
 
     fetchData();
-  }, [formContext?.formData?.entity, manualSourceUrl, fetchApi, catalogApi, scmIntegrations, githubAuth, getEntityFromRef]);
+  }, [formContext?.formData?.entity, manualSourceUrl, fetchApi, catalogApi, scmIntegrations, githubAuth, gitlabAuth, bitbucketAuth, getEntityFromRef]);
 
   const handleFieldChange = (path: string, value: any) => {
     if (!formData) return;
