@@ -2,7 +2,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import LegacyCrossplaneV1ResourcesTable from './LegacyCrossplaneV1ResourcesTable';
 import LegacyCrossplaneV2ResourcesTable from './LegacyCrossplaneV2ResourcesTable';
 
-const CrossplaneResourcesTableSelector = () => {
+const LegacyCrossplaneResourcesTableSelector = () => {
   const { entity } = useEntity();
   const version = entity?.metadata?.annotations?.['terasky.backstage.io/crossplane-version'];
 
@@ -13,4 +13,4 @@ const CrossplaneResourcesTableSelector = () => {
   return <LegacyCrossplaneV1ResourcesTable />;
 };
 
-export default CrossplaneResourcesTableSelector; 
+export default LegacyCrossplaneResourcesTableSelector; 
