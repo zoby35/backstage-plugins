@@ -1,5 +1,5 @@
 import { useEntity } from '@backstage/plugin-catalog-react';
-import CrossplaneOverviewCard from './CrossplaneOverviewCard';
+import CrossplaneOverviewCard from './CrossplaneV1OverviewCard';
 import CrossplaneV2OverviewCard from './CrossplaneV2OverviewCard';
 
 const CrossplaneOverviewCardSelector = () => {

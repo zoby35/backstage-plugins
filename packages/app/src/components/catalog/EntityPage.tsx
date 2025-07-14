@@ -61,8 +61,6 @@ import {
   isKubernetesAvailable,
 } from '@backstage/plugin-kubernetes';
 import {
-  CrossplaneAllResourcesTable,
-  CrossplaneResourceGraph,
   isCrossplaneAvailable,
   IfCrossplaneOverviewAvailable,
   IfCrossplaneResourceGraphAvailable,
@@ -249,12 +247,12 @@ const serviceEntityPage = (
     </EntityLayout.Route>
     <EntityLayout.Route if={isCrossplaneAvailable} path="/crossplane-resources" title="Crossplane Resources">
       <IfCrossplaneResourcesListAvailable>
-        <CrossplaneAllResourcesTable />
+        <CrossplaneResourcesTableSelector />
       </IfCrossplaneResourcesListAvailable>
     </EntityLayout.Route>
     <EntityLayout.Route if={isCrossplaneAvailable} path="/crossplane-graph" title="Crossplane Graph">
       <IfCrossplaneResourceGraphAvailable>
-        <CrossplaneResourceGraph />
+        <CrossplaneResourceGraphSelector />
       </IfCrossplaneResourceGraphAvailable>
     </EntityLayout.Route>
     <EntityLayout.Route if={isScaleopsAvailable} path="/scaleops" title="Scale Ops">

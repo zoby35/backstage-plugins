@@ -66,7 +66,7 @@ const getLayoutedElements = (nodes: any[], edges: any[]) => {
     return { nodes, edges };
 };
 
-const CrossplaneResourceGraph = () => {
+const LegacyCrossplaneV1ResourceGraph = () => {
     const { entity } = useEntity();
     const theme = useTheme();
     const kubernetesApi = useApi(kubernetesApiRef);
@@ -347,4 +347,4 @@ const CrossplaneResourceGraph = () => {
     );
 };
 
-export default CrossplaneResourceGraph;
+export default LegacyCrossplaneV1ResourceGraph;

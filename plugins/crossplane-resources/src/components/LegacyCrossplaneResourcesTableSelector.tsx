@@ -1,16 +1,16 @@
 import { useEntity } from '@backstage/plugin-catalog-react';
-import CrossplaneV1ResourcesTable from './CrossplaneV1ResourceTable';
-import CrossplaneV2ResourcesTable from './CrossplaneV2ResourceTable';
+import LegacyCrossplaneV1ResourcesTable from './LegacyCrossplaneV1ResourcesTable';
+import LegacyCrossplaneV2ResourcesTable from './LegacyCrossplaneV2ResourcesTable';
 
 const CrossplaneResourcesTableSelector = () => {
   const { entity } = useEntity();
   const version = entity?.metadata?.annotations?.['terasky.backstage.io/crossplane-version'];
 
   if (version === 'v2') {
-    return <CrossplaneV2ResourcesTable />;
+    return <LegacyCrossplaneV2ResourcesTable />;
   }
   // Default to v1
-  return <CrossplaneV1ResourcesTable />;
+  return <LegacyCrossplaneV1ResourcesTable />;
 };
 
 export default CrossplaneResourcesTableSelector; 

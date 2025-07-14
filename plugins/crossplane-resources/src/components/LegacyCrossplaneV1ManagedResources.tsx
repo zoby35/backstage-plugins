@@ -73,7 +73,7 @@ const useStyles = makeStyles((theme) => ({
     }
 }));
 
-const CrossplaneManagedResources = () => {
+const LegacyCrossplaneV1ManagedResources = () => {
     const { entity } = useEntity();
     const kubernetesApi = useApi(kubernetesApiRef);
     const config = useApi(configApiRef);
@@ -496,4 +496,4 @@ const CrossplaneManagedResources = () => {
     );
 };
 
-export default CrossplaneManagedResources;
+export default LegacyCrossplaneV1ManagedResources;

@@ -23,16 +23,11 @@ The Crossplane plugin suite consists of several components:
 
 ### Resource Graph View
 ![Graph View](../../images/crossplane-resource-graph.png)
-![Events And YAML](../../images/crossplane-graph-yaml-and-events-view.png)
 
 ### Resource Table View
 ![Table](../../images/crossplane-resources.png)
 ![YAML Viewer](../../images/crossplane-yaml-viewer.png)
 ![Events View](../../images/crossplane-events.png)
-
-### Permission-Based UI
-![No Permissions](../../images/no-permissions.png)
-![Some Permissions](../../images/some-permissions.png)
 
 ### Overview Information
 ![Overview](../../images/claim-info.png)
