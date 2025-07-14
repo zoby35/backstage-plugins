@@ -1855,7 +1855,7 @@ export class XRDTemplateEntityProvider implements EntityProvider {
       case 'gitlab':
         return '${{ steps["create-pull-request"].output.mergeRequestUrl }}';
       case 'bitbucket':
-      case 'bitbucketCloud':
+      case 'bitbucketcloud':
         return '${{ steps["create-pull-request"].output.pullRequestUrl }}';
       case 'github':
       default:
