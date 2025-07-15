@@ -367,8 +367,6 @@ const RuleComponent = ({ rule }: { rule: AIRule }) => {
 export const AIRulesComponent = ({ title = "AI Coding Rules" }: AIRulesComponentProps = {}) => {
   const { rulesByType, loading, error, hasGitUrl, totalRules, allowedRuleTypes, selectedRuleTypes, setSelectedRuleTypes } = useAiRules();
   const styles = useStyles();
-  // const [expandedTypes, setExpandedTypes] = useState<Set<AIRuleType>>(new Set(allowedRuleTypes));
-
   const handleTypeToggle = (type: AIRuleType, checked: boolean) => {
     const newTypes = checked 
       ? [...selectedRuleTypes, type]
