@@ -74,4 +74,5 @@ backend.add(import('@terasky/backstage-plugin-kyverno-permissions-backend'));
 backend.add(import('@terasky/backstage-plugin-vcf-automation-ingestor'));
 backend.add(import('@terasky/backstage-plugin-vcf-automation-backend'));
 backend.add(import('@terasky/backstage-plugin-educates-backend'));
+backend.add(import('@terasky/backstage-plugin-ai-rules-backend'));
 backend.start();

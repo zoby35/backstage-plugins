@@ -89,6 +89,7 @@ import {
   VCFAutomationGenericResourceDetails,
   VCFAutomationGenericResourceOverview,
 } from '@terasky/backstage-plugin-vcf-automation';
+import { AIRulesComponent } from '@terasky/backstage-plugin-ai-rules';
 
 const techdocsContent = (
   <EntityTechdocsContent>
@@ -199,7 +200,9 @@ const serviceEntityPage = (
     <EntityLayout.Route path="/" title="Overview">
       {overviewContent}
     </EntityLayout.Route>
-
+    <EntityLayout.Route path="/ai-rules" title="AI Rules">
+     <AIRulesComponent />
+   </EntityLayout.Route>
     <EntityLayout.Route path="/ci-cd" title="CI/CD">
       {cicdContent}
     </EntityLayout.Route>
