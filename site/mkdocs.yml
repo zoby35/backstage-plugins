@@ -86,6 +86,17 @@ nav:
               - About: plugins/vcf-automation/ingestor/about.md
               - Install: plugins/vcf-automation/ingestor/install.md
               - Configure: plugins/vcf-automation/ingestor/configure.md
+  - AI:
+      - AI Coding Rules:
+          - Overview: plugins/ai-rules-plugin/overview.md
+          - Backend:
+              - About: plugins/ai-rules-plugin/backend/about.md
+              - Install: plugins/ai-rules-plugin/backend/install.md
+              - Configure: plugins/ai-rules-plugin/backend/configure.md
+          - Frontend:
+              - About: plugins/ai-rules-plugin/frontend/about.md
+              - Install: plugins/ai-rules-plugin/frontend/install.md
+              - Configure: plugins/ai-rules-plugin/frontend/configure.md
   - General Utilities:
       - Scaffolder Actions:
           - Overview: plugins/scaffolder-actions/overview.md

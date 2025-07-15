@@ -23,6 +23,9 @@ Welcome to our comprehensive collection of Backstage plugins! We've created thes
 ### Cloud Infrastructure
 1. [VCF Automation Suite](./plugins/vcf-automation/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-vcf-automation/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-vcf-automation) - Comprehensive VMware Cloud Foundation management.
 
+### AI
+1. [AI Coding Rules](./plugins/ai-rules-plugin/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-ai-rules/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-ai-rules) - Comprehensive visualization and management of AI coding rules from Cursor, GitHub Copilot, and Cline.
+
 ### General Utilities
 1. [Scaffolder Actions](./plugins/scaffolder-actions/overview.md) [![npm latest version](https://img.shields.io/npm/v/@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils/latest.svg)](https://www.npmjs.com/package/@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils) - Powerful actions for automation:  
     * Crossplane claim template creation  
