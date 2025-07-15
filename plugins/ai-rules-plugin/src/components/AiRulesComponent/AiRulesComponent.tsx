@@ -6,8 +6,6 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import CodeIcon from '@material-ui/icons/Code';
 import LaunchIcon from '@material-ui/icons/Launch';
 import { AIRuleType, AIRule, CursorRule, CopilotRule, ClineRule } from '../../types';
-//import { useState } from 'react';
-
 export interface AIRulesComponentProps {
   title?: string;
 }
