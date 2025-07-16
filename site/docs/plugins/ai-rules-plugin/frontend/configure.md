@@ -10,24 +10,59 @@ Configure the plugin behavior in your `app-config.yaml`:
 
 ```yaml
 aiRules:
-  # Configure which rule types to look for
+  # Configure which rule types are available for selection
   allowedRuleTypes:
     - cursor
     - copilot
     - cline
+    - claude-code
+  # Configure which rule types are pre-selected by default
+  defaultRuleTypes:
+    - cursor
+    - claude-code
 ```
 
 ### Configuration Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `allowedRuleTypes` | `string[]` | `["cursor", "copilot"]` | Array of rule types to search for and display |
+| `allowedRuleTypes` | `string[]` | `["cursor", "copilot", "cline", "claude-code"]` | Array of rule types available for selection |
+| `defaultRuleTypes` | `string[]` | `[]` | Array of rule types pre-selected when component loads. If not specified, defaults to empty array (no auto-search) |
 
 ### Supported Rule Types
 
 - `cursor`: Cursor IDE rules from `.cursor/rules/*.mdc` files
 - `copilot`: GitHub Copilot rules from `.github/copilot-instructions.md`
 - `cline`: Cline AI rules from `.clinerules/*.md` files
+- `claude-code`: Claude Code rules from `CLAUDE.md` files in repository root
+
+### Filtering Behavior
+
+The plugin uses manual filtering with Apply Filter functionality:
+
+- **No Auto-Search**: By default, no search is performed when the component loads
+- **Manual Control**: Users must select rule types and click "Apply Filter" to search
+- **Always Visible**: Filter interface is always shown, even when results are empty
+- **Configurable Defaults**: Use `defaultRuleTypes` to pre-select specific rule types
+
+#### Configuration Examples
+
+```yaml
+# No rules pre-selected (default behavior)
+aiRules:
+  allowedRuleTypes: ["cursor", "copilot", "cline", "claude-code"]
+  # defaultRuleTypes not specified = empty array
+
+# Pre-select specific rule types
+aiRules:
+  allowedRuleTypes: ["cursor", "copilot", "cline", "claude-code"]
+  defaultRuleTypes: ["cursor", "claude-code"]
+
+# Empty pre-selection (explicit)
+aiRules:
+  allowedRuleTypes: ["cursor", "copilot", "cline", "claude-code"]
+  defaultRuleTypes: []
+```
 
 ## Component Configuration
 
@@ -101,6 +136,30 @@ metadata:
     backstage.io/source-location: url:https://github.com/org/my-repo/tree/main/services/api
 ```
 
+### Clickable Git Links
+
+Each rule now includes a clickable launch icon (↗) that opens the rule file directly in your git repository:
+
+- **Multi-Provider Support**: Works with GitHub, GitLab, and other git providers
+- **New Tab**: Opens in a new browser tab for easy access
+- **Direct File Access**: Links directly to the specific rule file in the repository
+- **Non-Intrusive**: Doesn't interfere with existing accordion/card functionality
+
+#### Supported Git Providers
+
+- **GitHub**: Converts to `/blob/main/` URL format
+- **GitLab**: Converts to `/-/blob/main/` URL format  
+- **Generic Providers**: Uses standard `/blob/main/` format
+
+### Apply Filter Functionality
+
+The component now uses manual filtering instead of automatic rule loading:
+
+- **Apply Filter Button**: Users must click to trigger searches
+- **Unsaved Changes Indicator**: Shows when filter selections haven't been applied
+- **Status Messages**: Clear feedback about filter state and required actions
+- **Reset Filters**: Quickly reset to all allowed rule types
+
 ## Rule File Configuration
 
 ### Cursor Rules (.cursor/rules/*.mdc)
@@ -148,6 +207,24 @@ Markdown files with automatic section extraction:
 ## Testing
 - Write unit tests for all functions
 - Use Jest for testing framework
+```
+
+### Claude Code Rules (CLAUDE.md)
+
+Simple markdown file in repository root with automatic title extraction:
+
+```markdown
+# Claude Code Guidelines
+
+## Development Principles
+- Write clean, readable code
+- Follow SOLID principles
+- Use meaningful variable names
+
+## Code Review Standards
+- All code must be reviewed
+- Tests must pass before merge
+- Documentation should be updated
 ```
 
 ## Advanced Configuration

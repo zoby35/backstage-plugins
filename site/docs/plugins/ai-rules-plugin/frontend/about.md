@@ -4,7 +4,7 @@
 
 ## Overview
 
-The AI Coding Rules frontend plugin provides a comprehensive interface for visualizing AI coding rules from various sources within Backstage. It enables users to discover, view, and manage coding guidelines from Cursor, GitHub Copilot, and Cline, all integrated seamlessly into the Backstage interface.
+The AI Coding Rules frontend plugin provides a comprehensive interface for visualizing AI coding rules from various sources within Backstage. It enables users to discover, view, and manage coding guidelines from Cursor, GitHub Copilot, Cline, and Claude Code, all integrated seamlessly into the Backstage interface with clickable links to open rule files directly in git repositories.
 
 ## Features
 
@@ -14,9 +14,18 @@ The AI Coding Rules frontend plugin provides a comprehensive interface for visua
 - Organized presentation of rule content and metadata
 - Support for markdown formatting in rule content
 
-### Filtering and Search
-- Filter rules by type (Cursor, Copilot, Cline)
-- Toggle visibility of different rule types
+### Manual Filtering with Apply Filter
+- Filter rules by type (Cursor, Copilot, Cline, Claude Code)
+- Manual control with Apply Filter button functionality
+- Configurable default rule types
+- Always visible filter interface
+- Status indicators for unsaved changes
+
+### Clickable Git Repository Links
+- Launch icon (↗) for each rule to open files in git repositories
+- Multi-provider support (GitHub, GitLab, etc.)
+- Opens in new tab for easy access
+- Direct linking to specific rule files
 
 ### Statistics and Overview
 - Total rule count display
@@ -28,6 +37,7 @@ The AI Coding Rules frontend plugin provides a comprehensive interface for visua
 - Expandable rule cards for detailed viewing
 - Metadata display including file paths and descriptions
 - Support for frontmatter in Cursor rules
+- Markdown rendering for all rule types
 
 ## Components
 

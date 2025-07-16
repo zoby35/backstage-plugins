@@ -1,6 +1,6 @@
 # AI Coding Rules Plugin
 
-The AI Coding Rules plugin for Backstage provides comprehensive visualization of AI coding rules from various sources like Cursor, GitHub Copilot, and Cline. It enables teams to discover, and view their AI coding guidelines directly within the Backstage interface.
+The AI Coding Rules plugin for Backstage provides comprehensive visualization and management of AI coding rules from various sources like Cursor, GitHub Copilot, Cline, and Claude Code. It enables teams to discover, view, and manage their AI coding guidelines directly within the Backstage interface with clickable links to open rule files in their git repositories.
 
 ## Plugin Components
 
@@ -10,9 +10,12 @@ The frontend plugin provides a user interface for:
 - Visualizing Cursor rules from `.mdc` files in `.cursor/rules/` directories
 - Displaying GitHub Copilot rules from `.github/copilot-instructions.md`
 - Showing Cline rules from `.clinerules/*.md` files
-- Filtering and searching through rule types
+- Displaying Claude Code rules from `CLAUDE.md` files
+- Manual filtering with configurable default rule types
+- Clickable links to open rule files directly in git repositories
 - Viewing rule metadata and content in expandable cards
 - Statistics and overview of rule counts
+- Apply Filter functionality for controlled rule searches
 
 [Learn more about the frontend plugin](./frontend/about.md)
 
@@ -20,35 +23,47 @@ The frontend plugin provides a user interface for:
 The backend plugin handles:
 
 - Integration with Backstage SCM integrations
-- Fetching rules from Git repositories
+- Fetching rules from Git repositories with retry logic and exponential backoff
 - Parsing frontmatter metadata in rule files
 - API endpoints for rule data retrieval
 - Support for multiple rule types and formats
+- Rate limiting protection for large repositories
+- Multi-provider git support (GitHub, GitLab, etc.)
 
 [Learn more about the backend plugin](./backend/about.md)
 
 ## Features
 
-- **Multi-Source Support**: Support for Cursor, GitHub Copilot, and Cline rules
-- **Modern UI**: Clean and intuitive interface with filtering capabilities
+- **Multi-Source Support**: Support for Cursor, GitHub Copilot, Cline, and Claude Code rules
+- **Modern UI**: Clean and intuitive interface with manual filtering and Apply Filter controls
+- **Clickable Git Links**: Direct links to open rule files in git repositories in new tabs
 - **Rule Discovery**: Automatic detection of rule files in repositories
+- **Configurable Defaults**: Separate configuration for allowed and default rule types
+- **Manual Filtering**: Users control when to search with Apply Filter functionality
 - **Metadata Parsing**: Extract and display rule metadata from frontmatter
-- **Configurable Types**: Configure which rule types to display via Backstage configuration
 - **Repository Integration**: Seamless integration with all Backstage SCM integrations
+- **Rate Limiting Protection**: Retry logic with exponential backoff for large repositories
+- **Multi-Provider Support**: Works with GitHub, GitLab, and other git providers
 
 ## Screenshots
 
 ### AI Rules Overview
-![AI Rules Plugin Overview](../../images/ai-plugin-1.png)
+![AI Rules Plugin Empty Overview](../../images/ai-plugin-1.png)
+*AI Rules component showing no rule types selected*
+
+![AI Rules Plugin Overview](../../images/ai-plugin-1b.png)
 *AI Rules component showing rule statistics and filtering options*
 
 ![AI Cursor Rules Details](../../images/ai-plugin-2.png)
 *Detailed view of AI coding rules from cursor with expandable cards*
 
-![AI Copilot Rules Details](../../images/ai-plugin-3.png)
+![AI Claude Code Rules Details](../../images/ai-plugin-3.png)
+*Detailed view of AI coding rules from Claude Code project rules*
+
+![AI Copilot Rules Details](../../images/ai-plugin-4.png)
 *Detailed view of AI coding rules from copilot project rules*
 
-![AI Rules Content](../../images/ai-plugin-4.png)
+![AI Cline Rules Content](../../images/ai-plugin-5.png)
 *Detailed view of AI coding rules from cline with expandable cards*
 
 ## Documentation Structure
@@ -70,6 +85,7 @@ The plugin supports the following AI coding rule sources:
 - **Cursor Rules**: `.mdc` files in `.cursor/rules/` directories with frontmatter metadata support
 - **GitHub Copilot Rules**: `.github/copilot-instructions.md` files with automatic section splitting
 - **Cline Rules**: `.md` files in `.clinerules/` directories with markdown section extraction
+- **Claude Code Rules**: `CLAUDE.md` files in repository root with markdown content and title extraction
 
 ## Getting Started
 

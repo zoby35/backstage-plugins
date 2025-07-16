@@ -4,7 +4,7 @@
 
 ## Overview
 
-The AI Coding Rules backend plugin provides the server-side functionality required to fetch and parse AI coding rules from Git repositories. It handles integration with Backstage's SCM integrations, parses various rule file formats, and exposes REST API endpoints for the frontend plugin to consume.
+The AI Coding Rules backend plugin provides the server-side functionality required to fetch and parse AI coding rules from Git repositories. It handles integration with Backstage's SCM integrations, parses various rule file formats, includes retry logic with exponential backoff for rate limiting protection, and exposes REST API endpoints for the frontend plugin to consume.
 
 ## Features
 
@@ -12,13 +12,16 @@ The AI Coding Rules backend plugin provides the server-side functionality requir
 - Seamless integration with all Backstage SCM integrations
 - Support for GitHub, GitLab, Bitbucket, and Azure DevOps
 - Handles both public and private repositories
-- Efficient file fetching and caching
+- Retry logic with exponential backoff for rate limiting
+- Efficient file fetching with network resilience
 
 ### Rule Type Support
 - **Cursor Rules**: Parse `.mdc` files from `.cursor/rules/` directories
 - **GitHub Copilot Rules**: Process `.github/copilot-instructions.md` files  
 - **Cline Rules**: Extract content from `.clinerules/*.md` files
+- **Claude Code Rules**: Process `CLAUDE.md` files from repository root
 - Configurable rule type filtering
+- Support for all rule types by default
 
 ### Content Processing
 - Frontmatter metadata parsing for Cursor rules
@@ -26,11 +29,18 @@ The AI Coding Rules backend plugin provides the server-side functionality requir
 - Markdown section extraction for Cline rules
 - Content validation and error handling
 
+### Rate Limiting and Resilience
+- Automatic retry logic with exponential backoff
+- Protection against GitLab and other provider rate limits
+- Jitter to prevent thundering herd problems
+- Graceful handling of network failures and timeouts
+- Detailed logging for debugging rate limit issues
+
 ### API Endpoints
 - RESTful API for rule data retrieval
 - Entity-based rule fetching
 - Configurable rule type filtering
-- Structured JSON responses
+- Structured JSON responses with git URLs
 
 ## Technical Details
 
@@ -44,6 +54,7 @@ The AI Coding Rules backend plugin provides the server-side functionality requir
 - **Cursor**: `.cursor/rules/*.mdc` with frontmatter support
 - **Copilot**: `.github/copilot-instructions.md` with automatic parsing
 - **Cline**: `.clinerules/*.md` with section extraction
+- **Claude Code**: `CLAUDE.md` in repository root with title extraction
 
 ### Content Parsing
 

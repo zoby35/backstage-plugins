@@ -10,13 +10,32 @@ export const useAiRules = () => {
   const fetchApi = useApi(fetchApiRef);
   
   const [rules, setRules] = useState<AIRule[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedRuleTypes, setSelectedRuleTypes] = useState<AIRuleType[]>([]);
+  const [appliedRuleTypes, setAppliedRuleTypes] = useState<AIRuleType[]>([]);
+  const [initialized, setInitialized] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Stabilize allowed rule types
   const allowedRuleTypes = useMemo(() => {
-    return configApi.getOptionalStringArray('aiRules.allowedRuleTypes') as AIRuleType[] || [AIRuleType.CURSOR, AIRuleType.COPILOT];
+    return configApi.getOptionalStringArray('aiRules.allowedRuleTypes') as AIRuleType[] || [AIRuleType.CURSOR, AIRuleType.COPILOT, AIRuleType.CLINE, AIRuleType.CLAUDE_CODE];
+  }, [configApi]);
+
+  // Stabilize default rule types
+  const defaultRuleTypes = useMemo(() => {
+    // Check if the config has the aiRules section at all
+    const aiRulesConfig = configApi.getOptionalConfig('aiRules');
+    if (!aiRulesConfig) {
+      // Config not loaded yet or aiRules section doesn't exist, use empty array
+      return [];
+    }
+    
+    const configuredDefaults = configApi.getOptionalStringArray('aiRules.defaultRuleTypes') as AIRuleType[];
+    
+    // If defaultRuleTypes is explicitly configured (even as empty array), use that
+    // If not configured at all, use empty array
+    return configuredDefaults !== undefined ? configuredDefaults : [];
   }, [configApi]);
 
   // Extract stable entity properties
@@ -49,10 +68,18 @@ export const useAiRules = () => {
     };
   }, [entity.kind, entity.metadata.namespace, entity.metadata.name, entity.metadata?.annotations?.['backstage.io/source-location']]);
 
-  // Initialize selected rule types only once
+  // Initialize selected and applied rule types when defaultRuleTypes is available
   useEffect(() => {
-    setSelectedRuleTypes(allowedRuleTypes);
-  }, []); // Empty dependency - only run once
+    // Check if config is loaded
+    const aiRulesConfig = configApi.getOptionalConfig('aiRules');
+    const configLoaded = aiRulesConfig !== undefined;
+    
+    if (!initialized && allowedRuleTypes.length > 0 && configLoaded) {
+      setSelectedRuleTypes(defaultRuleTypes);
+      setAppliedRuleTypes(defaultRuleTypes);
+      setInitialized(true);
+    }
+  }, [defaultRuleTypes, allowedRuleTypes, initialized, configApi]);
 
   // Stable fetch function
   const fetchAiRules = useCallback(async (ruleTypes: AIRuleType[]) => {
@@ -64,6 +91,7 @@ export const useAiRules = () => {
     try {
       setLoading(true);
       setError(null);
+      setHasSearched(true);
       
       const baseUrl = await discoveryApi.getBaseUrl('ai-rules');
       const url = new URL(`${baseUrl}/rules`);
@@ -74,15 +102,12 @@ export const useAiRules = () => {
         url.searchParams.append('ruleTypes', ruleTypes.join(','));
       }
 
-      console.log('Fetching AI rules from:', url.toString());
-
       const response = await fetchApi.fetch(url.toString());
       if (!response.ok) {
         throw new Error(`Failed to fetch AI rules: ${response.statusText}`);
       }
 
       const data: AIRulesResponse = await response.json();
-      console.log('Received AI rules:', data);
       setRules(data.rules);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -94,12 +119,34 @@ export const useAiRules = () => {
     }
   }, [entityData.hasGitUrl, entityData.gitUrl, discoveryApi, fetchApi]);
 
-  // Fetch rules when dependencies change
-  useEffect(() => {
+  // Manual apply filter function
+  const applyFilters = useCallback(() => {
+    setAppliedRuleTypes([...selectedRuleTypes]);
     if (selectedRuleTypes.length > 0) {
       fetchAiRules(selectedRuleTypes);
+    } else {
+      // If no rule types selected, clear rules
+      setRules([]);
+      setError(null);
+      setHasSearched(true);
     }
-  }, [fetchAiRules, selectedRuleTypes]);
+  }, [selectedRuleTypes, fetchAiRules]);
+
+  // Reset filters to allowed rule types and apply immediately
+  const resetFilters = useCallback(() => {
+    setSelectedRuleTypes(allowedRuleTypes);
+    setAppliedRuleTypes([...allowedRuleTypes]);
+    if (allowedRuleTypes.length > 0) {
+      fetchAiRules(allowedRuleTypes);
+    }
+  }, [allowedRuleTypes, fetchAiRules]);
+
+  // Fetch rules when applied rule types change (triggered by applyFilters)
+  useEffect(() => {
+    if (appliedRuleTypes.length > 0) {
+      fetchAiRules(appliedRuleTypes);
+    }
+  }, [fetchAiRules, appliedRuleTypes]);
 
   const rulesByType = useMemo(() => {
     return rules.reduce((acc, rule) => {
@@ -119,8 +166,14 @@ export const useAiRules = () => {
     hasGitUrl: entityData.hasGitUrl,
     componentName: entityData.name,
     allowedRuleTypes,
+    defaultRuleTypes,
     selectedRuleTypes,
     setSelectedRuleTypes,
+    appliedRuleTypes,
+    applyFilters,
+    resetFilters,
     totalRules: rules.length,
+    hasSearched,
+    hasUnappliedChanges: JSON.stringify(selectedRuleTypes.sort()) !== JSON.stringify(appliedRuleTypes.sort()),
   };
 };

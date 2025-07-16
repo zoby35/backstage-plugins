@@ -2,6 +2,7 @@ export enum AIRuleType {
   CURSOR = 'cursor',
   COPILOT = 'copilot', 
   CLINE = 'cline',
+  CLAUDE_CODE = 'claude-code',
 }
 
 export interface CursorRule {
@@ -41,7 +42,17 @@ export interface ClineRule {
   }>;
 }
 
-export type AIRule = CursorRule | CopilotRule | ClineRule;
+export interface ClaudeCodeRule {
+  type: AIRuleType.CLAUDE_CODE;
+  id: string;
+  filePath: string;
+  fileName: string;
+  gitUrl?: string;
+  content: string;
+  title?: string;
+}
+
+export type AIRule = CursorRule | CopilotRule | ClineRule | ClaudeCodeRule;
 
 export interface AIRulesResponse {
   rules: AIRule[];

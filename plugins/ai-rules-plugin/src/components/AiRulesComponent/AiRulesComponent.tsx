@@ -5,7 +5,7 @@ import { Entity } from '@backstage/catalog-model';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import CodeIcon from '@material-ui/icons/Code';
 import LaunchIcon from '@material-ui/icons/Launch';
-import { AIRuleType, AIRule, CursorRule, CopilotRule, ClineRule } from '../../types';
+import { AIRuleType, AIRule, CursorRule, CopilotRule, ClineRule, ClaudeCodeRule } from '../../types';
 export interface AIRulesComponentProps {
   title?: string;
 }
@@ -86,6 +86,9 @@ const useStyles = makeStyles((theme) => ({
       marginRight: theme.spacing(1),
     },
   },
+  applyFilterButton: {
+    marginTop: theme.spacing(1),
+  },
 }));
 
 const RuleTypeIcon = ({ type }: { type: AIRuleType }) => {
@@ -93,6 +96,7 @@ const RuleTypeIcon = ({ type }: { type: AIRuleType }) => {
     [AIRuleType.CURSOR]: '#0066CC',
     [AIRuleType.COPILOT]: '#6F42C1', 
     [AIRuleType.CLINE]: '#28A745',
+    [AIRuleType.CLAUDE_CODE]: '#FF6B35',
   };
   
   return <CodeIcon style={{ color: colors[type] }} />;
@@ -352,9 +356,48 @@ const RuleComponent = ({ rule }: { rule: AIRule }) => {
     </Accordion>
   );
 
+  const renderClaudeCodeRule = (rule: ClaudeCodeRule) => (
+    <Accordion className={styles.ruleCard}>
+      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <div className={styles.ruleHeader}>
+          <div className={styles.ruleHeaderContent}>
+            <RuleTypeIcon type={rule.type} />
+            <Typography variant="h6">{rule.title || rule.fileName}</Typography>
+            <Chip label={rule.type} size="small" className={styles.ruleType} />
+          </div>
+          {rule.gitUrl && (
+            <Tooltip title="Open file in repository">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(constructFileUrl(rule.gitUrl!, rule.filePath), '_blank');
+                }}
+              >
+                <LaunchIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+        </div>
+      </AccordionSummary>
+      <AccordionDetails>
+        <div>
+          <div className={styles.ruleMetadata}>
+            <Chip label={`Path: ${rule.filePath}`} size="small" variant="outlined" />
+          </div>
+          <div className={styles.ruleContent}>
+            <MarkdownContent content={rule.content} />
+          </div>
+        </div>
+      </AccordionDetails>
+    </Accordion>
+  );
+
   switch (rule.type) {
     case AIRuleType.CURSOR:
       return renderCursorRule(rule as CursorRule);
+    case AIRuleType.CLAUDE_CODE:
+        return renderClaudeCodeRule(rule as ClaudeCodeRule);
     case AIRuleType.COPILOT:
       return renderCopilotRule(rule as CopilotRule);
     case AIRuleType.CLINE:
@@ -365,8 +408,25 @@ const RuleComponent = ({ rule }: { rule: AIRule }) => {
 };
 
 export const AIRulesComponent = ({ title = "AI Coding Rules" }: AIRulesComponentProps = {}) => {
-  const { rulesByType, loading, error, hasGitUrl, totalRules, allowedRuleTypes, selectedRuleTypes, setSelectedRuleTypes } = useAiRules();
+  const { rulesByType, loading, error, hasGitUrl, totalRules, allowedRuleTypes, selectedRuleTypes, setSelectedRuleTypes, applyFilters, resetFilters, hasUnappliedChanges, hasSearched } = useAiRules();
   const styles = useStyles();
+  
+  // Define the desired rendering order
+  const ruleTypeDisplayOrder = [AIRuleType.CURSOR, AIRuleType.CLAUDE_CODE, AIRuleType.COPILOT, AIRuleType.CLINE];
+  
+  // Helper function to format rule type names for display
+  const formatRuleTypeName = (type: AIRuleType): string => {
+    switch (type) {
+      case AIRuleType.CURSOR:
+        return 'Cursor';
+      case AIRuleType.CLAUDE_CODE:
+        return 'Claude Code';
+      case AIRuleType.COPILOT:
+        return 'Copilot';
+      case AIRuleType.CLINE:
+        return 'Cline';
+    }
+  };
   const handleTypeToggle = (type: AIRuleType, checked: boolean) => {
     const newTypes = checked 
       ? [...selectedRuleTypes, type]
@@ -406,26 +466,6 @@ export const AIRulesComponent = ({ title = "AI Coding Rules" }: AIRulesComponent
     );
   }
 
-  if (totalRules === 0) {
-    return (
-      <InfoCard title={title}>
-        <EmptyState
-          missing="content"
-          title="No AI Rules Found"
-          description="No AI rules were found in this repository for the selected rule types."
-          action={
-            <Button
-              variant="outlined"
-              onClick={() => setSelectedRuleTypes(allowedRuleTypes)}
-            >
-              Reset Filters
-            </Button>
-          }
-        />
-      </InfoCard>
-    );
-  }
-
   return (
     <InfoCard title={title} className={styles.root}>
       <div className={styles.filterSection}>
@@ -442,39 +482,91 @@ export const AIRulesComponent = ({ title = "AI Coding Rules" }: AIRulesComponent
                   onChange={(e) => handleTypeToggle(type, e.target.checked)}
                 />
               }
-              label={type.charAt(0).toUpperCase() + type.slice(1)}
+              label={formatRuleTypeName(type)}
             />
           ))}
         </div>
-      </div>
-
-      <div className={styles.statsContainer}>
-        <Card className={styles.statCard}>
-          <CardContent>
-            <Typography variant="h4">{totalRules}</Typography>
-            <Typography color="textSecondary">Total Rules</Typography>
-          </CardContent>
-        </Card>
-        {Object.entries(rulesByType).map(([type, typeRules]) => (
-          <Card key={type} className={styles.statCard}>
-            <CardContent>
-              <Typography variant="h4">{typeRules.length}</Typography>
-              <Typography color="textSecondary">{type.charAt(0).toUpperCase() + type.slice(1)}</Typography>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {Object.entries(rulesByType).map(([type, typeRules]) => (
-        <div key={type}>
-          <Typography variant="h5" gutterBottom style={{ marginTop: 16 }}>
-            {type.charAt(0).toUpperCase() + type.slice(1)} Rules ({typeRules.length})
-          </Typography>
-          {typeRules.map(rule => (
-            <RuleComponent key={rule.id} rule={rule} />
-          ))}
+        <div className={styles.applyFilterButton}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={applyFilters}
+            disabled={!hasUnappliedChanges}
+          >
+            Apply Filter
+          </Button>
+          {hasUnappliedChanges && (
+            <Typography variant="body2" color="textSecondary" style={{ marginTop: 8 }}>
+              You have unsaved filter changes. Click "Apply Filter" to update the results.
+            </Typography>
+          )}
+          {!hasUnappliedChanges && selectedRuleTypes.length === 0 && (
+            <Typography variant="body2" color="textSecondary" style={{ marginTop: 8 }}>
+              Select at least one rule type to search for AI rules.
+            </Typography>
+          )}
         </div>
-      ))}
+      </div>
+
+      {hasSearched && totalRules === 0 ? (
+        <EmptyState
+          missing="content"
+          title="No AI Rules Found"
+          description="No AI rules were found in this repository for the selected rule types."
+          action={
+            <Button
+              variant="outlined"
+              onClick={resetFilters}
+            >
+              Reset Filters
+            </Button>
+          }
+        />
+      ) : totalRules > 0 ? (
+        <>
+          <div className={styles.statsContainer}>
+            <Card className={styles.statCard}>
+              <CardContent>
+                <Typography variant="h4">{totalRules}</Typography>
+                <Typography color="textSecondary">Total Rules</Typography>
+              </CardContent>
+            </Card>
+            {ruleTypeDisplayOrder.map(type => {
+              const typeRules = rulesByType[type] || [];
+              if (typeRules.length === 0) return null;
+              return (
+                <Card key={type} className={styles.statCard}>
+                  <CardContent>
+                    <Typography variant="h4">{typeRules.length}</Typography>
+                    <Typography color="textSecondary">{formatRuleTypeName(type)}</Typography>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          {ruleTypeDisplayOrder.map(type => {
+            const typeRules = rulesByType[type] || [];
+            if (typeRules.length === 0) return null;
+            return (
+              <div key={type}>
+                <Typography variant="h5" gutterBottom style={{ marginTop: 16 }}>
+                  {formatRuleTypeName(type)} Rules ({typeRules.length})
+                </Typography>
+                {typeRules.map(rule => (
+                  <RuleComponent key={rule.id} rule={rule} />
+                ))}
+              </div>
+            );
+          })}
+        </>
+      ) : (
+        <div style={{ marginTop: 16 }}>
+          <Typography variant="body1" color="textSecondary">
+            Select rule types above and click "Apply Filter" to search for AI coding rules in this repository.
+          </Typography>
+        </div>
+      )}
     </InfoCard>
   );
 };

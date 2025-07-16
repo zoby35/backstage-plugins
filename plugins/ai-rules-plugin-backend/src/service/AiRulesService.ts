@@ -3,7 +3,7 @@ import { Config } from '@backstage/config';
 const matter = require('gray-matter');
 
 export interface AIRule {
-  type: 'cursor' | 'copilot' | 'cline';
+  type: 'cursor' | 'copilot' | 'cline' | 'claude-code';
   id: string;
   filePath: string;
   fileName: string;
@@ -61,6 +61,10 @@ export class AiRulesService {
             const clineRules = await this.fetchClineRules(gitUrl);
             allRules.push(...clineRules);
             break;
+          case 'claude-code':
+            const claudeCodeRules = await this.fetchClaudeCodeRules(gitUrl);
+            allRules.push(...claudeCodeRules);
+            break;
         }
       } catch (error) {
         this.logger.warn(`Failed to fetch ${ruleType} rules: ${error}`);
@@ -93,10 +97,6 @@ export class AiRulesService {
     // Check for .cursor/rules directory
     const cursorPaths = [
       '.cursor/rules',
-      '.cursor',
-      'cursor/rules',
-      'cursor',
-      '.cursorrules.d',
     ];
 
     for (const basePath of cursorPaths) {
@@ -210,6 +210,22 @@ export class AiRulesService {
     return rules;
   }
 
+  private async fetchClaudeCodeRules(gitUrl: string): Promise<AIRule[]> {
+    const rules: AIRule[] = [];
+    
+    try {
+      const content = await this.fetchFileContent(gitUrl, 'CLAUDE.md');
+      const rule = this.parseClaudeCodeRule('CLAUDE.md', content, gitUrl);
+      if (rule) {
+        rules.push(rule);
+      }
+    } catch (error) {
+      // File not found, continue silently
+    }
+
+    return rules;
+  }
+
   private parseCursorRule(filePath: string, content: string, gitUrl: string): AIRule | null {
     try {
       const fileName = filePath.split('/').pop() || filePath;
@@ -309,46 +325,139 @@ export class AiRulesService {
     }
   }
 
+  private parseClaudeCodeRule(filePath: string, content: string, gitUrl: string): AIRule | null {
+    try {
+      const fileName = filePath.split('/').pop() || filePath;
+      
+      // Extract title from markdown (first # heading)
+      const titleMatch = content.match(/^# (.+)$/m);
+      const title = titleMatch ? titleMatch[1] : 'Claude Code Rules';
+
+      return {
+        type: 'claude-code',
+        id: `claude-code-${filePath.replace(/[^a-zA-Z0-9]/g, '-')}`,
+        filePath,
+        fileName: fileName.replace('.md', ''),
+        content,
+        gitUrl,
+        title,
+      };
+    } catch (error) {
+      this.logger.warn(`Failed to parse Claude Code rule ${filePath}: ${error}`);
+      return null;
+    }
+  }
+
+  // Helper method for retry logic with exponential backoff
+  private async retryWithBackoff<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    initialDelayMs: number = 1000,
+    maxDelayMs: number = 10000,
+    operationName: string = 'operation'
+  ): Promise<T> {
+    let lastError: Error;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error as Error;
+        
+        // Check if it's a rate limit error or connection issue that should be retried
+        const shouldRetry = this.shouldRetryError(error as Error);
+        
+        if (!shouldRetry || attempt === maxRetries) {
+          this.logger.warn(`${operationName} failed after ${attempt + 1} attempts: ${lastError.message}`);
+          throw lastError;
+        }
+        
+        // Calculate delay with exponential backoff and jitter
+        const baseDelay = Math.min(initialDelayMs * Math.pow(2, attempt), maxDelayMs);
+        const jitter = Math.random() * 0.1 * baseDelay; // Add up to 10% jitter
+        const delayMs = baseDelay + jitter;
+        
+        this.logger.warn(`${operationName} failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${Math.round(delayMs)}ms: ${lastError.message}`);
+        
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+    
+    throw lastError!;
+  }
+
+  // Check if an error should trigger a retry
+  private shouldRetryError(error: Error): boolean {
+    const errorMessage = error.message.toLowerCase();
+    
+    // Retry on rate limiting, network issues, and temporary server errors
+    return (
+      errorMessage.includes('429') || // Too Many Requests
+      errorMessage.includes('too many requests') ||
+      errorMessage.includes('rate limit') ||
+      errorMessage.includes('502') || // Bad Gateway
+      errorMessage.includes('503') || // Service Unavailable
+      errorMessage.includes('504') || // Gateway Timeout
+      errorMessage.includes('timeout') ||
+      errorMessage.includes('network') ||
+      errorMessage.includes('connection') ||
+      errorMessage.includes('econnreset') ||
+      errorMessage.includes('enotfound')
+    );
+  }
+
   // URL Reader service methods for files and directories
   private async listDirectoryFiles(gitUrl: string, path: string): Promise<string[]> {
     try {
-      // Construct directory URL using the correct format
-      const directoryUrl = `${gitUrl}/tree/HEAD/${path}`;
+      return await this.retryWithBackoff(
+        async () => {
+          // Construct directory URL using the correct format
+          const directoryUrl = `${gitUrl}/tree/HEAD/${path}`;
 
-      // Use URL Reader to read the directory tree
-      const treeResponse = await this.urlReader.readTree(directoryUrl);
-      
-      const files: string[] = [];
-      
-      // Extract files from the tree using the correct API
-      const filesArray = await treeResponse.files();
-      for (const file of filesArray) {
-        // Only include actual files, not directories
-        if (file.path && !file.path.endsWith('/')) {
-          files.push(file.path);
-        }
-      }
+          // Use URL Reader to read the directory tree
+          const treeResponse = await this.urlReader.readTree(directoryUrl);
+          
+          const files: string[] = [];
+          
+          // Extract files from the tree using the correct API
+          const filesArray = await treeResponse.files();
+          for (const file of filesArray) {
+            // Only include actual files, not directories
+            if (file.path && !file.path.endsWith('/')) {
+              files.push(file.path);
+            }
+          }
 
-      return files;
+          return files;
+        },
+        3, // maxRetries
+        1000, // initialDelayMs
+        10000, // maxDelayMs
+        `listDirectoryFiles(${path})`
+      );
     } catch (error) {
-      this.logger.error(`Failed to list directory ${path}: ${error}`);
+      this.logger.error(`Failed to list directory ${path} after retries: ${error}`);
       return [];  // Return empty array instead of throwing
     }
   }
 
   private async fetchFileContent(gitUrl: string, filePath: string): Promise<string> {
-    try {
-      // Construct file URL using the correct format 
-      const fileUrl = `${gitUrl}/blob/HEAD/${filePath}`;
+    return await this.retryWithBackoff(
+      async () => {
+        // Construct file URL using the correct format 
+        const fileUrl = `${gitUrl}/blob/HEAD/${filePath}`;
 
-      // Use URL Reader to read the file using the documented API
-      const response = await this.urlReader.readUrl(fileUrl);
-      const buffer = await response.buffer();
-      const content = buffer.toString('utf-8');
-      
-      return content;
-    } catch (error) {
-      throw error;
-    }
+        // Use URL Reader to read the file using the documented API
+        const response = await this.urlReader.readUrl(fileUrl);
+        const buffer = await response.buffer();
+        const content = buffer.toString('utf-8');
+        
+        return content;
+      },
+      3, // maxRetries
+      1000, // initialDelayMs
+      10000, // maxDelayMs
+      `fetchFileContent(${filePath})`
+    );
   }
 } 

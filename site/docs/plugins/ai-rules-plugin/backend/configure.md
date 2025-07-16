@@ -14,13 +14,18 @@ aiRules:
     - cursor
     - copilot
     - cline
+    - claude-code
+  defaultRuleTypes:
+    - cursor
+    - claude-code
 ```
 
 ### Configuration Schema
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `allowedRuleTypes` | `string[]` | `["cursor", "copilot"]` | Array of rule types to search for and parse |
+| `allowedRuleTypes` | `string[]` | `["cursor", "copilot", "cline", "claude-code"]` | Array of rule types to search for and parse |
+| `defaultRuleTypes` | `string[]` | `[]` | Array of rule types pre-selected when component loads |
 
 ### Default Configuration
 
@@ -31,6 +36,9 @@ aiRules:
   allowedRuleTypes:
     - cursor
     - copilot
+    - cline
+    - claude-code
+  defaultRuleTypes: []
 ```
 
 ## SCM Integration Requirements
@@ -161,6 +169,30 @@ aiRules:
 - Write unit tests for all functions
 ```
 
+### Claude Code Rules
+
+Claude Code rules are found in `CLAUDE.md` file in repository root:
+
+```yaml
+# Configuration
+aiRules:
+  allowedRuleTypes:
+    - claude-code
+
+# Rule file structure
+# CLAUDE.md (in repository root)
+# Claude Code Guidelines
+
+## Development Principles
+- Write clean, readable code
+- Follow SOLID principles
+- Use meaningful variable names
+
+## Code Review Standards
+- All code must be reviewed
+- Tests must pass before merge
+```
+
 ## Environment-Specific Configuration
 
 ### Development Environment
@@ -230,6 +262,67 @@ Ensure tokens have minimal required permissions:
 - **Azure DevOps**: `Code (read)` permission
 - **Bitbucket**: `Repositories: Read` permission
 
+
+## Performance and Rate Limiting
+
+### Retry Logic Configuration
+
+The backend includes built-in retry logic with exponential backoff to handle rate limiting and network issues:
+
+```yaml
+# Default retry configuration (not user-configurable)
+# - Max retries: 3 attempts
+# - Initial delay: 1 second  
+# - Max delay: 10 seconds
+# - Exponential backoff with jitter
+```
+
+#### Retry Behavior
+
+The plugin automatically retries on these error conditions:
+
+- **Rate Limiting**: HTTP 429 "Too Many Requests"
+- **Server Errors**: HTTP 502, 503, 504
+- **Network Issues**: Timeouts, connection resets, DNS failures
+
+#### Large Repository Optimization
+
+For large repositories with many rule files:
+
+- **Automatic Retry**: Failed requests are retried with increasing delays
+- **Jitter**: Random delays prevent thundering herd problems
+- **Circuit Breaking**: Stops retrying permanently failed requests
+- **Logging**: Detailed logs for debugging rate limit issues
+
+### Rate Limit Best Practices
+
+#### GitLab Rate Limits
+GitLab.com has stricter rate limits than GitHub:
+
+```yaml
+# Consider using GitLab tokens with higher rate limits
+integrations:
+  gitlab:
+    - host: gitlab.com
+      token: ${GITLAB_TOKEN} # Use personal access token with appropriate scopes
+```
+
+#### GitHub Rate Limits
+GitHub has generous rate limits, but monitor usage:
+
+```yaml
+integrations:
+  github:
+    - host: github.com
+      token: ${GITHUB_TOKEN} # Authenticated requests have higher limits
+```
+
+#### Repository Access Patterns
+
+Optimize access patterns:
+- Avoid scanning extremely large repositories frequently
+- Consider caching strategies for frequently accessed rules
+- Monitor API usage in provider dashboards
 
 ## Monitoring and Observability
 
